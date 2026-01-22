@@ -1,6 +1,34 @@
-"""Pytest configuration and fixtures."""
+"""Pytest configuration and shared fixtures.
+
+Uses respx for HTTP mocking with httpx async client.
+"""
 
 import pytest
+import respx
+from httpx import Response
+
+from epiphan_mcp.client import PearlClient
+from epiphan_mcp.config import Settings
+
+from .fixtures.responses import (
+    ARCHIVE_FILES_RESPONSE,
+    CHANNELS_RESPONSE,
+    CONTROL_SUCCESS_RESPONSE,
+    DEVICE_RESPONSE,
+    INPUTS_RESPONSE,
+    PUBLISHER_STATUS_STOPPED,
+    PUBLISHER_STATUS_STREAMING,
+    PUBLISHERS_RESPONSE,
+    RECORDER_STATUS_RECORDING,
+    RECORDER_STATUS_STOPPED,
+    RECORDERS_RESPONSE,
+    STORAGE_RESPONSE,
+)
+
+
+# ============================================================
+# Configuration Fixtures
+# ============================================================
 
 
 @pytest.fixture
@@ -10,10 +38,294 @@ def mock_pearl_host() -> str:
 
 
 @pytest.fixture
-def mock_pearl_response() -> dict:
-    """Return a mock Pearl API response."""
-    return {
-        "rec_enabled": "on",
-        "publish_type": "0",
-        "framesize": "1920x1080",
-    }
+def mock_pearl_host_secondary() -> str:
+    """Return a secondary mock Pearl host for fleet testing."""
+    return "192.168.1.101"
+
+
+@pytest.fixture
+def test_settings(mock_pearl_host: str, mock_pearl_host_secondary: str) -> Settings:
+    """Create test settings with mock devices."""
+    return Settings(
+        devices=f"{mock_pearl_host},{mock_pearl_host_secondary}",
+        username="admin",
+        password="testpass",
+        use_https=False,
+        timeout=5.0,
+        verify_ssl=False,
+        fleet_name="test-fleet",
+    )
+
+
+@pytest.fixture
+def single_device_settings(mock_pearl_host: str) -> Settings:
+    """Create test settings with a single device."""
+    return Settings(
+        devices=mock_pearl_host,
+        username="admin",
+        password="testpass",
+        use_https=False,
+        timeout=5.0,
+        verify_ssl=False,
+        fleet_name="single-device",
+    )
+
+
+@pytest.fixture
+def empty_settings() -> Settings:
+    """Create test settings with no devices configured."""
+    return Settings(
+        devices="",
+        username="admin",
+        password="testpass",
+        fleet_name="empty-fleet",
+    )
+
+
+# ============================================================
+# Client Fixtures
+# ============================================================
+
+
+@pytest.fixture
+def pearl_client(mock_pearl_host: str) -> PearlClient:
+    """Create a PearlClient instance for testing."""
+    return PearlClient(
+        host=mock_pearl_host,
+        username="admin",
+        password="testpass",
+        use_https=False,
+        timeout=5.0,
+        verify_ssl=False,
+    )
+
+
+@pytest.fixture
+def pearl_client_from_settings(mock_pearl_host: str, test_settings: Settings) -> PearlClient:
+    """Create a PearlClient from settings."""
+    return PearlClient.from_settings(mock_pearl_host, test_settings)
+
+
+# ============================================================
+# Mock Router Fixtures
+# ============================================================
+
+
+@pytest.fixture
+def mock_api_base(mock_pearl_host: str) -> str:
+    """Return the mock API base URL."""
+    return f"http://{mock_pearl_host}/api/v2.0"
+
+
+@pytest.fixture
+def respx_mock():
+    """
+    Provide a respx mock router that allows unmatched requests to pass through.
+
+    Most tests should use this fixture and add specific route mocks.
+    """
+    with respx.mock(assert_all_called=False) as router:
+        yield router
+
+
+# ============================================================
+# Pre-configured Mock Responses
+# ============================================================
+
+
+@pytest.fixture
+def mock_device_routes(respx_mock, mock_api_base: str):
+    """Set up mock routes for device/system endpoints."""
+    respx_mock.get(f"{mock_api_base}/device").mock(
+        return_value=Response(200, json=DEVICE_RESPONSE)
+    )
+    respx_mock.get(f"{mock_api_base}/storages").mock(
+        return_value=Response(200, json=STORAGE_RESPONSE)
+    )
+    return respx_mock
+
+
+@pytest.fixture
+def mock_recorder_routes(respx_mock, mock_api_base: str):
+    """Set up mock routes for recorder endpoints."""
+    respx_mock.get(f"{mock_api_base}/recorders").mock(
+        return_value=Response(200, json=RECORDERS_RESPONSE)
+    )
+    respx_mock.get(f"{mock_api_base}/recorders/status").mock(
+        return_value=Response(200, json={"status": "ok", "result": RECORDERS_RESPONSE["result"]})
+    )
+    # Individual recorder routes
+    respx_mock.get(f"{mock_api_base}/recorders/recorder-1/status").mock(
+        return_value=Response(200, json=RECORDER_STATUS_STOPPED)
+    )
+    respx_mock.get(f"{mock_api_base}/recorders/1/status").mock(
+        return_value=Response(200, json=RECORDER_STATUS_STOPPED)
+    )
+    respx_mock.post(f"{mock_api_base}/recorders/recorder-1/control/start").mock(
+        return_value=Response(200, json=CONTROL_SUCCESS_RESPONSE)
+    )
+    respx_mock.post(f"{mock_api_base}/recorders/1/control/start").mock(
+        return_value=Response(200, json=CONTROL_SUCCESS_RESPONSE)
+    )
+    respx_mock.post(f"{mock_api_base}/recorders/recorder-1/control/stop").mock(
+        return_value=Response(200, json=CONTROL_SUCCESS_RESPONSE)
+    )
+    respx_mock.post(f"{mock_api_base}/recorders/1/control/stop").mock(
+        return_value=Response(200, json=CONTROL_SUCCESS_RESPONSE)
+    )
+    # Archive files
+    respx_mock.get(f"{mock_api_base}/recorders/recorder-1/archive/files").mock(
+        return_value=Response(200, json=ARCHIVE_FILES_RESPONSE)
+    )
+    # Batch control
+    respx_mock.post(f"{mock_api_base}/recorders/control/start").mock(
+        return_value=Response(200, json=CONTROL_SUCCESS_RESPONSE)
+    )
+    respx_mock.post(f"{mock_api_base}/recorders/control/stop").mock(
+        return_value=Response(200, json=CONTROL_SUCCESS_RESPONSE)
+    )
+    return respx_mock
+
+
+@pytest.fixture
+def mock_channel_routes(respx_mock, mock_api_base: str):
+    """Set up mock routes for channel endpoints."""
+    respx_mock.get(f"{mock_api_base}/channels").mock(
+        return_value=Response(200, json=CHANNELS_RESPONSE)
+    )
+    # Layout switching
+    respx_mock.put(f"{mock_api_base}/channels/channel-1/layouts/active").mock(
+        return_value=Response(200, json=CONTROL_SUCCESS_RESPONSE)
+    )
+    respx_mock.put(f"{mock_api_base}/channels/1/layouts/active").mock(
+        return_value=Response(200, json=CONTROL_SUCCESS_RESPONSE)
+    )
+    # Bookmarks
+    respx_mock.post(f"{mock_api_base}/channels/channel-1/bookmarks").mock(
+        return_value=Response(200, json=CONTROL_SUCCESS_RESPONSE)
+    )
+    return respx_mock
+
+
+@pytest.fixture
+def mock_publisher_routes(respx_mock, mock_api_base: str):
+    """Set up mock routes for publisher/streaming endpoints."""
+    respx_mock.get(f"{mock_api_base}/channels/channel-1/publishers").mock(
+        return_value=Response(200, json=PUBLISHERS_RESPONSE)
+    )
+    respx_mock.get(f"{mock_api_base}/channels/1/publishers").mock(
+        return_value=Response(200, json=PUBLISHERS_RESPONSE)
+    )
+    # Publisher status
+    respx_mock.get(f"{mock_api_base}/channels/channel-1/publishers/publisher-1/status").mock(
+        return_value=Response(200, json=PUBLISHER_STATUS_STREAMING)
+    )
+    # Start/stop all publishers
+    respx_mock.post(f"{mock_api_base}/channels/channel-1/publishers/control/start").mock(
+        return_value=Response(200, json=CONTROL_SUCCESS_RESPONSE)
+    )
+    respx_mock.post(f"{mock_api_base}/channels/1/publishers/control/start").mock(
+        return_value=Response(200, json=CONTROL_SUCCESS_RESPONSE)
+    )
+    respx_mock.post(f"{mock_api_base}/channels/channel-1/publishers/control/stop").mock(
+        return_value=Response(200, json=CONTROL_SUCCESS_RESPONSE)
+    )
+    respx_mock.post(f"{mock_api_base}/channels/1/publishers/control/stop").mock(
+        return_value=Response(200, json=CONTROL_SUCCESS_RESPONSE)
+    )
+    # Individual publisher control
+    respx_mock.post(f"{mock_api_base}/channels/channel-1/publishers/publisher-1/control/start").mock(
+        return_value=Response(200, json=CONTROL_SUCCESS_RESPONSE)
+    )
+    respx_mock.post(f"{mock_api_base}/channels/channel-1/publishers/publisher-1/control/stop").mock(
+        return_value=Response(200, json=CONTROL_SUCCESS_RESPONSE)
+    )
+    return respx_mock
+
+
+@pytest.fixture
+def mock_input_routes(respx_mock, mock_api_base: str):
+    """Set up mock routes for input endpoints."""
+    respx_mock.get(f"{mock_api_base}/inputs").mock(
+        return_value=Response(200, json=INPUTS_RESPONSE)
+    )
+    return respx_mock
+
+
+@pytest.fixture
+def mock_system_routes(respx_mock, mock_api_base: str):
+    """Set up mock routes for system control endpoints."""
+    respx_mock.post(f"{mock_api_base}/system/control/reboot").mock(
+        return_value=Response(200, json=CONTROL_SUCCESS_RESPONSE)
+    )
+    respx_mock.post(f"{mock_api_base}/system/control/shutdown").mock(
+        return_value=Response(200, json=CONTROL_SUCCESS_RESPONSE)
+    )
+    return respx_mock
+
+
+@pytest.fixture
+def mock_singletouch_routes(respx_mock, mock_api_base: str):
+    """Set up mock routes for single touch control."""
+    respx_mock.post(f"{mock_api_base}/singletouch/control/start").mock(
+        return_value=Response(200, json=CONTROL_SUCCESS_RESPONSE)
+    )
+    respx_mock.post(f"{mock_api_base}/singletouch/control/stop").mock(
+        return_value=Response(200, json=CONTROL_SUCCESS_RESPONSE)
+    )
+    return respx_mock
+
+
+@pytest.fixture
+def mock_all_routes(
+    mock_device_routes,
+    mock_recorder_routes,
+    mock_channel_routes,
+    mock_publisher_routes,
+    mock_input_routes,
+    mock_system_routes,
+    mock_singletouch_routes,
+):
+    """Set up all mock routes for comprehensive testing."""
+    return mock_device_routes
+
+
+# ============================================================
+# Mock Response Data Fixtures
+# ============================================================
+
+
+@pytest.fixture
+def mock_device_response() -> dict:
+    """Return mock device response."""
+    return DEVICE_RESPONSE
+
+
+@pytest.fixture
+def mock_storage_response() -> dict:
+    """Return mock storage response."""
+    return STORAGE_RESPONSE
+
+
+@pytest.fixture
+def mock_recorder_status_stopped() -> dict:
+    """Return mock recorder status (stopped)."""
+    return RECORDER_STATUS_STOPPED
+
+
+@pytest.fixture
+def mock_recorder_status_recording() -> dict:
+    """Return mock recorder status (recording)."""
+    return RECORDER_STATUS_RECORDING
+
+
+@pytest.fixture
+def mock_publisher_status_stopped() -> dict:
+    """Return mock publisher status (stopped)."""
+    return PUBLISHER_STATUS_STOPPED
+
+
+@pytest.fixture
+def mock_publisher_status_streaming() -> dict:
+    """Return mock publisher status (streaming)."""
+    return PUBLISHER_STATUS_STREAMING

@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 # Create MCP server instance
 mcp = FastMCP(
     "epiphan-pearl",
-    description="Control Epiphan Pearl video capture devices through natural language",
+    instructions="Control Epiphan Pearl video capture devices through natural language",
 )
 
 
@@ -59,14 +59,18 @@ async def get_device_status(device_id: str = "default") -> dict[str, Any]:
     try:
         async with get_client(device_id) as client:
             status = await client.get_system_status()
-            recorder_status = await client.get_recorder_status(1)
+            recorder_status = await client.get_recorder_status("recorder-1")
 
             return {
                 "success": True,
                 "device": client.host,
                 "status": {
                     "uptime_hours": status.uptime_hours,
-                    "storage": status.storage.model_dump() if status.storage else None,
+                    "storage": {
+                        "total_gb": status.storage_total_gb,
+                        "free_gb": status.storage_free_gb,
+                        "used_percent": status.storage_used_percent,
+                    },
                     "firmware": status.firmware_version,
                     "model": status.model,
                     "recording": recorder_status.state.value,
@@ -130,7 +134,9 @@ async def start_recording(device_id: str = "default", recorder: int = 1) -> dict
     """
     try:
         async with get_client(device_id) as client:
-            result = await client.start_recording(recorder)
+            # Convert int to string recorder ID (e.g., 1 -> "recorder-1")
+            recorder_id = f"recorder-{recorder}" if isinstance(recorder, int) else str(recorder)
+            result = await client.start_recording(recorder_id)
             return result.model_dump()
     except PearlAPIError as e:
         return {
@@ -164,7 +170,8 @@ async def stop_recording(device_id: str = "default", recorder: int = 1) -> dict[
     """
     try:
         async with get_client(device_id) as client:
-            result = await client.stop_recording(recorder)
+            recorder_id = f"recorder-{recorder}" if isinstance(recorder, int) else str(recorder)
+            result = await client.stop_recording(recorder_id)
             return result.model_dump()
     except PearlAPIError as e:
         return {
@@ -195,7 +202,8 @@ async def get_recording_status(device_id: str = "default", recorder: int = 1) ->
     """
     try:
         async with get_client(device_id) as client:
-            status = await client.get_recorder_status(recorder)
+            recorder_id = f"recorder-{recorder}" if isinstance(recorder, int) else str(recorder)
+            status = await client.get_recorder_status(recorder_id)
             return {
                 "success": True,
                 "device": client.host,
@@ -232,6 +240,7 @@ async def start_stream(device_id: str = "default", channel: int = 1) -> dict[str
 
     This begins streaming video to the configured destination (RTMP, SRT, etc.).
     The stream destination must be configured on the device beforehand.
+    Starts all publishers/streams on the specified channel.
 
     Args:
         device_id: Device identifier. Use "default" for the primary configured device.
@@ -242,7 +251,8 @@ async def start_stream(device_id: str = "default", channel: int = 1) -> dict[str
     """
     try:
         async with get_client(device_id) as client:
-            result = await client.start_stream(channel)
+            channel_id = f"channel-{channel}" if isinstance(channel, int) else str(channel)
+            result = await client.start_all_publishers(channel_id)
             return result.model_dump()
     except PearlAPIError as e:
         return {
@@ -264,7 +274,7 @@ async def stop_stream(device_id: str = "default", channel: int = 1) -> dict[str,
     """
     Stop streaming on an Epiphan Pearl device.
 
-    This stops the active stream on the specified channel.
+    This stops all active streams on the specified channel.
 
     Args:
         device_id: Device identifier. Use "default" for the primary configured device.
@@ -275,7 +285,8 @@ async def stop_stream(device_id: str = "default", channel: int = 1) -> dict[str,
     """
     try:
         async with get_client(device_id) as client:
-            result = await client.stop_stream(channel)
+            channel_id = f"channel-{channel}" if isinstance(channel, int) else str(channel)
+            result = await client.stop_all_publishers(channel_id)
             return result.model_dump()
     except PearlAPIError as e:
         return {
@@ -324,7 +335,8 @@ async def switch_layout(
 
     try:
         async with get_client(device_id) as client:
-            result = await client.switch_layout(channel, layout_id)
+            channel_id = f"channel-{channel}" if isinstance(channel, int) else str(channel)
+            result = await client.switch_layout(channel_id, layout_id)
             return result.model_dump()
     except PearlAPIError as e:
         return {
@@ -381,25 +393,25 @@ async def get_fleet_status() -> dict[str, Any]:
         try:
             async with PearlClient.from_settings(host, settings) as client:
                 status = await client.get_system_status()
-                recorder = await client.get_recorder_status(1)
+                recorder = await client.get_recorder_status("recorder-1")
 
                 online_count += 1
                 if recorder.state.value == "recording":
                     recording_count += 1
 
-                # Check for alerts
-                if status.storage and status.storage.percent_used > 80:
+                # Check for alerts (storage threshold: 80%)
+                if status.storage_used_percent > 80:
                     alerts.append({
                         "device": host,
                         "severity": "warning",
-                        "message": f"Storage at {status.storage.percent_used:.1f}%",
+                        "message": f"Storage at {status.storage_used_percent:.1f}%",
                     })
 
                 results.append({
                     "host": host,
                     "online": True,
                     "recording": recorder.state.value == "recording",
-                    "storage_percent": status.storage.percent_used if status.storage else None,
+                    "storage_percent": status.storage_used_percent,
                 })
 
         except Exception as e:
@@ -456,7 +468,7 @@ async def batch_start_recording(device_ids: str = "all") -> dict[str, Any]:
     for host in hosts:
         try:
             async with PearlClient.from_settings(host, settings) as client:
-                await client.start_recording(1)
+                await client.start_recording("recorder-1")
                 results.append({"device": host, "success": True})
                 success_count += 1
         except Exception as e:
@@ -501,7 +513,7 @@ async def batch_stop_recording(device_ids: str = "all") -> dict[str, Any]:
     for host in hosts:
         try:
             async with PearlClient.from_settings(host, settings) as client:
-                await client.stop_recording(1)
+                await client.stop_recording("recorder-1")
                 results.append({"device": host, "success": True})
                 success_count += 1
         except Exception as e:

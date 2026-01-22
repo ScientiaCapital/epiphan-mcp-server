@@ -127,6 +127,12 @@ pip install -e ".[dev]"
 # Run tests
 pytest
 
+# Run tests with coverage report
+pytest --cov=src/epiphan_mcp --cov-report=term-missing
+
+# Run tests verbosely
+pytest -v
+
 # Type checking
 mypy src/
 
@@ -134,6 +140,19 @@ mypy src/
 ruff check src/
 ruff format src/
 ```
+
+### Test Structure
+
+```
+tests/
+├── conftest.py          # Shared fixtures, mock configurations
+├── fixtures/
+│   └── responses.py     # Mock API v2.0 responses
+├── test_client.py       # PearlClient API tests (46 tests)
+└── test_server.py       # MCP tool tests (33 tests)
+```
+
+All tests use mocked HTTP responses via `respx` - no real Pearl hardware required.
 
 ## API Reference
 

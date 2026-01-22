@@ -86,3 +86,14 @@ ignore = ["E501"]  # Line length handled by formatter
 
 [tool.ruff.lint.isort]
 known-first-party = ["epiphan_mcp"]
+
+[tool.coverage.run]
+source = ["src/epiphan_mcp"]
+omit = ["src/epiphan_mcp/__main__.py"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "if __name__ == .__main__.:",
+    "mcp.run()",
+]

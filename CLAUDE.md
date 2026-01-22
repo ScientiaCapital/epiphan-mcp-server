@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-MCP (Model Context Protocol) server that wraps Epiphan Pearl's REST API, enabling AI assistants like Claude to control Pearl video capture devices through natural language.
+MCP (Model Context Protocol) server that wraps Epiphan Pearl's **REST API v2.0**, enabling AI assistants like Claude to control Pearl video capture devices through natural language.
 
 **Goal**: First-to-market AI-native control for professional AV hardware.
 
@@ -15,16 +15,18 @@ MCP (Model Context Protocol) server that wraps Epiphan Pearl's REST API, enablin
 - Use Anthropic Claude for any AI features
 - Use local/edge models if needed for processing
 
+**Note**: OpenAI is an Epiphan customer (used Pearl for "12 Days of OpenAI" streaming), not a technology partner. Epiphan products do not use OpenAI APIs.
+
 ### API Keys
 - **NEVER hardcode** API keys or credentials
 - All secrets go in `.env` file only
-- Use `python-dotenv` for environment loading
+- Use `pydantic-settings` for environment loading
 
 ### Code Style
 - Python 3.11+ with type hints everywhere
 - Async-first (asyncio, httpx)
 - FastMCP for MCP server implementation
-- Pydantic for data validation
+- Pydantic v2 for data validation
 - pytest for testing
 
 ---
@@ -36,25 +38,17 @@ epiphan-mcp-server/
 ├── src/
 │   └── epiphan_mcp/
 │       ├── __init__.py
-│       ├── server.py          # FastMCP server definition
-│       ├── client.py          # Pearl REST API client
-│       ├── tools/             # MCP tool implementations
-│       │   ├── __init__.py
-│       │   ├── device.py      # Device discovery & status
-│       │   ├── recording.py   # Recording control
-│       │   ├── streaming.py   # Streaming control
-│       │   └── fleet.py       # Fleet management
-│       ├── models.py          # Pydantic models
-│       └── config.py          # Configuration
+│       ├── __main__.py       # Entry point
+│       ├── server.py         # FastMCP server definition
+│       ├── client.py         # Pearl REST API v2.0 client
+│       ├── models.py         # Pydantic models
+│       └── config.py         # Configuration (pydantic-settings)
 ├── tests/
 │   ├── conftest.py
-│   ├── test_client.py
-│   └── test_tools/
-├── examples/
-│   └── basic_usage.py
+│   └── test_client.py
 ├── docs/
-│   ├── PRD.md                 # Product Requirements
-│   └── PRP.md                 # Project Plan
+│   ├── PRD.md               # Product Requirements + GTM
+│   └── PRP.md               # Project Plan
 ├── .env.example
 ├── pyproject.toml
 ├── README.md
@@ -63,88 +57,144 @@ epiphan-mcp-server/
 
 ---
 
-## Pearl API Reference
+## Pearl REST API v2.0 Reference
 
 ### Base URL
 ```
-http://<pearl-ip>/api
-https://<pearl-ip>/api  (if HTTPS enabled)
+http://<pearl-ip>/api/v2.0
+https://<pearl-ip>/api/v2.0  (if HTTPS enabled)
 ```
 
 ### Authentication
-- HTTP Basic Auth or API key
-- Credentials stored in `.env`
+- **HTTP Basic Auth** with admin account (required since firmware 4.14.2)
+- All API calls require authentication
+
+### Response Format
+All JSON responses include a top-level `status` field:
+- `"ok"` - Success, result in `result` field
+- `"error"` - Error, details in `message` field
+- `"busy"` - Resource busy, retry later
+
+### API Categories
+
+| Category | Description |
+|----------|-------------|
+| **Recorders** | Recording control and status |
+| **Channels** | Channel configuration and layouts |
+| **Publishers** | Streaming control (RTMP, SRT, etc.) |
+| **Inputs** | Video/audio input sources |
+| **Events** | Scheduled recording (Kaltura/Panopto/Opencast) |
+| **System** | Device control, firmware, storage |
+| **AFU** | Automatic File Upload |
+| **Single Touch** | Batch start/stop all |
 
 ### Key Endpoints
 
+#### Recorders
 | Endpoint | Method | Purpose |
 |----------|--------|---------|
-| `/admin/channel{n}/status` | GET | Channel status |
-| `/admin/channel{n}/recording/start` | POST | Start recording |
-| `/admin/channel{n}/recording/stop` | POST | Stop recording |
-| `/admin/channel{n}/streaming/start` | POST | Start streaming |
-| `/admin/channel{n}/streaming/stop` | POST | Stop streaming |
-| `/admin/channel{n}/layout/set` | POST | Change layout |
-| `/admin/sources` | GET | List input sources |
-| `/admin/sysstat` | GET | System status |
-| `/admin/mediafiles` | GET | List recordings |
+| `/recorders` | GET | List all recorders |
+| `/recorders/status` | GET | Status of all recorders |
+| `/recorders/control/start` | POST | Start all recorders |
+| `/recorders/control/stop` | POST | Stop all recorders |
+| `/recorders/{rid}/control/start` | POST | Start specific recorder |
+| `/recorders/{rid}/control/stop` | POST | Stop specific recorder |
+| `/recorders/{rid}/status` | GET | Get recorder status |
+| `/recorders/{rid}/archive/files` | GET | List recorded files |
+
+#### Channels
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `/channels` | GET | List all channels |
+| `/channels/{cid}/preview` | GET | Get preview image (binary) |
+| `/channels/{cid}/layouts/active` | PUT | Switch layout |
+| `/channels/{cid}/bookmarks` | POST | Add bookmark to recording |
+
+#### Publishers (Streaming)
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `/channels/{cid}/publishers` | GET | List publishers (streams) |
+| `/channels/{cid}/publishers/control/start` | POST | Start all streams |
+| `/channels/{cid}/publishers/control/stop` | POST | Stop all streams |
+| `/channels/{cid}/publishers/{pid}/control/start` | POST | Start specific stream |
+| `/channels/{cid}/publishers/{pid}/control/stop` | POST | Stop specific stream |
+| `/channels/{cid}/publishers/{pid}/status` | GET | Get stream status |
+
+#### Events (CMS Integration)
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `/schedule/events` | GET | List scheduled events |
+| `/schedule/events` | POST | Create ad-hoc event |
+| `/schedule/events/{id}/control/start` | POST | Force start event |
+| `/schedule/events/{id}/control/stop` | POST | Force stop event |
+
+#### System
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `/device` | GET | Device identity info |
+| `/storages` | GET | Storage information |
+| `/inputs` | GET | List input sources |
+| `/system/control/reboot` | POST | Reboot device |
+| `/system/control/shutdown` | POST | Shutdown device |
+
+#### Single Touch Control
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `/singletouch/control/start` | POST | Start all recorders + streams |
+| `/singletouch/control/stop` | POST | Stop all recorders + streams |
 
 ### Full API Documentation
-- [Epiphan Pearl API Guide (PDF)](https://www.epiphan.com/userguides/pdfs/Epiphan-Pearl-API-Guide.pdf)
-- [Pearl API User Guide](https://www.epiphan.com/userguides/pearl-api/Content/startHere/startHere-about-apiGuide.htm)
+- **OpenAPI Spec**: https://epiphan-video.github.io/pearl_api_swagger_ui/api/v2.0/openapi.yml
+- **Swagger UI**: https://epiphan-video.github.io/pearl_api_swagger_ui/
+- **API Guide**: https://www.epiphan.com/userguides/pearl-api/Default.htm
 
 ---
 
-## MCP Tools to Implement
+## MCP Tools Implemented
 
-### Phase 1: Core Tools (MVP)
+### Device & System
 ```python
-# Device Discovery & Status
 @mcp.tool()
-async def list_devices() -> list[Device]: ...
+async def get_device_status(device_id: str) -> dict: ...
 
 @mcp.tool()
-async def get_device_status(device_id: str) -> DeviceStatus: ...
-
-# Recording Control
-@mcp.tool()
-async def start_recording(device_id: str, channel: int = 1) -> RecordingResult: ...
+async def list_devices() -> dict: ...
 
 @mcp.tool()
-async def stop_recording(device_id: str, channel: int = 1) -> RecordingResult: ...
-
-@mcp.tool()
-async def get_recording_status(device_id: str) -> RecordingStatus: ...
+async def get_fleet_status() -> dict: ...
 ```
 
-### Phase 2: Streaming & Layout
+### Recording Control
 ```python
-# Streaming Control
 @mcp.tool()
-async def start_stream(device_id: str, channel: int = 1) -> StreamResult: ...
+async def start_recording(device_id: str, recorder: str) -> dict: ...
 
 @mcp.tool()
-async def stop_stream(device_id: str, channel: int = 1) -> StreamResult: ...
-
-# Layout Control
-@mcp.tool()
-async def list_layouts(device_id: str) -> list[Layout]: ...
+async def stop_recording(device_id: str, recorder: str) -> dict: ...
 
 @mcp.tool()
-async def switch_layout(device_id: str, layout_id: str) -> LayoutResult: ...
+async def get_recording_status(device_id: str, recorder: str) -> dict: ...
+
+@mcp.tool()
+async def batch_start_recording(device_ids: str = "all") -> dict: ...
+
+@mcp.tool()
+async def batch_stop_recording(device_ids: str = "all") -> dict: ...
 ```
 
-### Phase 3: Fleet Management
+### Streaming Control
 ```python
-# Fleet Operations
 @mcp.tool()
-async def get_fleet_status() -> FleetStatus: ...
+async def start_stream(device_id: str, channel: str, publisher: str) -> dict: ...
 
 @mcp.tool()
-async def batch_start_recording(device_ids: list[str]) -> BatchResult: ...
+async def stop_stream(device_id: str, channel: str, publisher: str) -> dict: ...
+```
 
+### Layout Control
+```python
 @mcp.tool()
-async def get_fleet_alerts() -> list[Alert]: ...
+async def switch_layout(device_id: str, channel: str, layout_id: str) -> dict: ...
 ```
 
 ---
@@ -196,12 +246,14 @@ ruff format src/
 # Pearl device(s) - comma-separated for multiple
 PEARL_DEVICES=192.168.1.100,192.168.1.101
 
-# Authentication
+# Authentication (REQUIRED since firmware 4.14.2)
 PEARL_USERNAME=admin
 PEARL_PASSWORD=your_password
 
-# Optional: API key auth instead of basic auth
-# PEARL_API_KEY=your_api_key
+# Connection settings
+PEARL_USE_HTTPS=false
+PEARL_TIMEOUT=30.0
+PEARL_VERIFY_SSL=true
 
 # Fleet management (optional)
 PEARL_FLEET_NAME=classroom-pearls
@@ -215,14 +267,17 @@ PEARL_TEST_IP=192.168.1.100
 ## Related Resources
 
 ### Epiphan Documentation
-- [Pearl API Guide](https://www.epiphan.com/userguides/pearl-api/)
-- [Pearl-2 User Guide](https://www.epiphan.com/userguides/pearl-2/)
-- [Pearl Mini User Guide](https://www.epiphan.com/userguides/pearl-mini/)
+- [Pearl REST API v2.0 Swagger](https://epiphan-video.github.io/pearl_api_swagger_ui/)
+- [Pearl System API Guide](https://www.epiphan.com/userguides/pearl-api/)
+- [Firmware Release Notes](https://www.epiphan.com/userguides/pearl-2/Content/startHere/releaseNotes/whatsNew-details.htm)
 
 ### MCP Resources
 - [MCP Specification](https://modelcontextprotocol.io/)
 - [FastMCP Documentation](https://github.com/jlowin/fastmcp)
 - [Claude MCP Integration](https://docs.anthropic.com/en/docs/agents-and-tools/mcp)
+
+### Reference Implementations
+- [harvard-dce/epipearl](https://github.com/harvard-dce/epipearl) - Python client reference
 
 ### Tim's Related Projects
 - `research-hub` - Research agents (this project's origin)
@@ -247,20 +302,21 @@ chore: Changes to build process or auxiliary tools
 ## Success Criteria
 
 ### MVP (Week 1)
-- [ ] Connect to single Pearl device
+- [ ] Connect to single Pearl device via v2.0 API
 - [ ] Get device status
 - [ ] Start/stop recording
 - [ ] Works with Claude Code
 
 ### v0.2 (Week 2)
 - [ ] Multi-device support
-- [ ] Streaming control
+- [ ] Streaming control (publishers)
 - [ ] Layout switching
 - [ ] Fleet status
 
 ### v1.0 (Month 1)
 - [ ] Full fleet management
 - [ ] Batch operations
-- [ ] Alert monitoring
+- [ ] CMS event control (Kaltura/Panopto/Opencast)
+- [ ] AFU status monitoring
 - [ ] Published to PyPI
 - [ ] GitHub Actions CI

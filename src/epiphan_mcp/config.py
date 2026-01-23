@@ -38,6 +38,52 @@ class Settings(BaseSettings):
     # Testing
     test_ip: str | None = Field(default=None, description="Pearl IP for integration tests")
 
+    # Health thresholds
+    storage_warning_percent: float = Field(
+        default=80.0,
+        description="Storage usage percent to trigger warning",
+        ge=0.0,
+        le=100.0,
+    )
+    storage_critical_percent: float = Field(
+        default=90.0,
+        description="Storage usage percent considered critical",
+        ge=0.0,
+        le=100.0,
+    )
+
+    # Health score weights (should sum to 100 for a 0-100 score)
+    health_score_storage_weight: int = Field(
+        default=50,
+        description="Weight of storage in health score (0-100)",
+        ge=0,
+        le=100,
+    )
+    health_score_recording_weight: int = Field(
+        default=50,
+        description="Weight of recording in health score (0-100)",
+        ge=0,
+        le=100,
+    )
+
+    # Retry settings
+    max_retries: int = Field(
+        default=3,
+        description="Max retry attempts for API calls",
+        ge=0,
+        le=10,
+    )
+    retry_base_delay: float = Field(
+        default=1.0,
+        description="Base retry delay in seconds",
+        ge=0.1,
+    )
+    retry_max_delay: float = Field(
+        default=30.0,
+        description="Max retry delay in seconds",
+        ge=1.0,
+    )
+
     def get_device_list(self) -> list[str]:
         """Get list of configured device hosts."""
         if not self.devices:

@@ -3,12 +3,53 @@
 Uses respx for HTTP mocking with httpx async client.
 """
 
+from contextlib import contextmanager
+from unittest.mock import patch
+
 import pytest
 import respx
 from httpx import Response
 
 from epiphan_mcp.client import PearlClient
 from epiphan_mcp.config import Settings
+
+
+# ============================================================
+# Settings Patch Helper
+# ============================================================
+
+
+@contextmanager
+def patch_settings(settings: Settings):
+    """
+    Context manager that patches get_settings in all tool modules.
+
+    Since tool implementations are now in separate modules, we need to
+    patch get_settings at each location where it's imported.
+
+    Args:
+        settings: The Settings instance to use for the test.
+
+    Yields:
+        Control to the test code.
+    """
+    # Modules that actually call get_settings()
+    patch_locations = [
+        "epiphan_mcp.server.get_settings",  # Fleet tools in server.py
+        "epiphan_mcp.tools.device.get_settings",  # get_client(), list_devices()
+        "epiphan_mcp.tools.fleet.get_settings",  # Fleet operations
+        "epiphan_mcp.tools.ai_tools.get_settings",  # AI tools
+    ]
+
+    patches = [patch(loc, return_value=settings) for loc in patch_locations]
+
+    for p in patches:
+        p.start()
+    try:
+        yield
+    finally:
+        for p in patches:
+            p.stop()
 
 # ============================================================
 # Environment Isolation for LLM Tests
@@ -125,7 +166,10 @@ def empty_settings() -> Settings:
 
 @pytest.fixture
 def pearl_client(mock_pearl_host: str) -> PearlClient:
-    """Create a PearlClient instance for testing."""
+    """Create a PearlClient instance for testing.
+
+    Note: max_retries=0 disables retry logic for faster unit tests.
+    """
     return PearlClient(
         host=mock_pearl_host,
         username="admin",
@@ -133,6 +177,7 @@ def pearl_client(mock_pearl_host: str) -> PearlClient:
         use_https=False,
         timeout=5.0,
         verify_ssl=False,
+        max_retries=0,  # Disable retries for unit tests
     )
 
 

@@ -22,6 +22,7 @@ from .models import (
     StorageInfo,
     SystemStatus,
 )
+from .retry import with_retry
 
 logger = logging.getLogger(__name__)
 
@@ -64,6 +65,9 @@ class PearlClient:
         use_https: bool = False,
         timeout: float = 30.0,
         verify_ssl: bool = True,
+        max_retries: int = 3,
+        retry_base_delay: float = 1.0,
+        retry_max_delay: float = 30.0,
     ):
         """
         Initialize Pearl client.
@@ -75,6 +79,9 @@ class PearlClient:
             use_https: Use HTTPS instead of HTTP
             timeout: Request timeout in seconds
             verify_ssl: Verify SSL certificates
+            max_retries: Maximum retry attempts for transient failures
+            retry_base_delay: Base delay between retries (seconds)
+            retry_max_delay: Maximum retry delay cap (seconds)
         """
         self.host = host
         self.base_url = f"{'https' if use_https else 'http'}://{host}"
@@ -83,6 +90,11 @@ class PearlClient:
         self.timeout = timeout
         self.verify_ssl = verify_ssl
         self._client: httpx.AsyncClient | None = None
+
+        # Retry configuration
+        self.max_retries = max_retries
+        self.retry_base_delay = retry_base_delay
+        self.retry_max_delay = retry_max_delay
 
     @classmethod
     def from_settings(cls, host: str, settings: Settings | None = None) -> "PearlClient":
@@ -95,6 +107,9 @@ class PearlClient:
             use_https=settings.use_https,
             timeout=settings.timeout,
             verify_ssl=settings.verify_ssl,
+            max_retries=settings.max_retries,
+            retry_base_delay=settings.retry_base_delay,
+            retry_max_delay=settings.retry_max_delay,
         )
 
     async def __aenter__(self) -> "PearlClient":
@@ -160,11 +175,34 @@ class PearlClient:
 
         return data
 
+    async def _get_raw(self, path: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
+        """Make raw GET request without retry (internal use)."""
+        response = await self.client.get(path, params=params)
+        return self._handle_response(response, path)
+
+    async def _post_raw(
+        self, path: str, params: dict[str, Any] | None = None, json: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
+        """Make raw POST request without retry (internal use)."""
+        response = await self.client.post(path, params=params, json=json)
+        return self._handle_response(response, path)
+
+    async def _put_raw(
+        self, path: str, params: dict[str, Any] | None = None, json: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
+        """Make raw PUT request without retry (internal use)."""
+        response = await self.client.put(path, params=params, json=json)
+        return self._handle_response(response, path)
+
     async def _get(self, path: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
-        """Make GET request to API v2.0 endpoint."""
+        """Make GET request to API v2.0 endpoint with automatic retry."""
         try:
-            response = await self.client.get(path, params=params)
-            return self._handle_response(response, path)
+            return await with_retry(
+                lambda: self._get_raw(path, params),
+                max_retries=self.max_retries,
+                base_delay=self.retry_base_delay,
+                max_delay=self.retry_max_delay,
+            )
         except httpx.RequestError as e:
             logger.error(f"Request error for GET {path}: {e}")
             raise PearlAPIError(str(e)) from e
@@ -172,10 +210,14 @@ class PearlClient:
     async def _post(
         self, path: str, params: dict[str, Any] | None = None, json: dict[str, Any] | None = None
     ) -> dict[str, Any]:
-        """Make POST request to API v2.0 endpoint."""
+        """Make POST request to API v2.0 endpoint with automatic retry."""
         try:
-            response = await self.client.post(path, params=params, json=json)
-            return self._handle_response(response, path)
+            return await with_retry(
+                lambda: self._post_raw(path, params, json),
+                max_retries=self.max_retries,
+                base_delay=self.retry_base_delay,
+                max_delay=self.retry_max_delay,
+            )
         except httpx.RequestError as e:
             logger.error(f"Request error for POST {path}: {e}")
             raise PearlAPIError(str(e)) from e
@@ -183,10 +225,14 @@ class PearlClient:
     async def _put(
         self, path: str, params: dict[str, Any] | None = None, json: dict[str, Any] | None = None
     ) -> dict[str, Any]:
-        """Make PUT request to API v2.0 endpoint."""
+        """Make PUT request to API v2.0 endpoint with automatic retry."""
         try:
-            response = await self.client.put(path, params=params, json=json)
-            return self._handle_response(response, path)
+            return await with_retry(
+                lambda: self._put_raw(path, params, json),
+                max_retries=self.max_retries,
+                base_delay=self.retry_base_delay,
+                max_delay=self.retry_max_delay,
+            )
         except httpx.RequestError as e:
             logger.error(f"Request error for PUT {path}: {e}")
             raise PearlAPIError(str(e)) from e

@@ -1,12 +1,18 @@
-"""FastMCP server for Epiphan Pearl devices."""
+"""FastMCP server for Epiphan Pearl devices.
 
+This module creates the MCP server and registers all tools.
+Tool implementations are organized in the tools/ subpackage.
+"""
+
+import asyncio
 import logging
+from collections.abc import Awaitable, Callable
 from typing import Any
 
 from fastmcp import FastMCP
 
-from .client import PearlAPIError, PearlClient
-from .config import get_settings
+from .client import PearlClient
+from .config import Settings, get_settings
 from .tools.ai_tools import (
     analyze_channel_scene as _analyze_channel_scene,
 )
@@ -23,6 +29,65 @@ from .tools.ai_tools import (
     extract_text_from_preview as _extract_text_from_preview,
 )
 
+# Import tool implementations from modules
+from .tools.device import (
+    get_device_status as _get_device_status,
+)
+from .tools.device import (
+    list_devices as _list_devices,
+)
+from .tools.layout import (
+    add_bookmark as _add_bookmark,
+)
+from .tools.layout import (
+    list_layouts as _list_layouts,
+)
+from .tools.layout import (
+    switch_layout as _switch_layout,
+)
+from .tools.maintenance import (
+    get_device_health_score as _get_device_health_score,
+)
+from .tools.maintenance import (
+    predict_storage_full as _predict_storage_full,
+)
+from .tools.recording import (
+    get_recording_status as _get_recording_status,
+)
+from .tools.recording import (
+    start_recording as _start_recording,
+)
+from .tools.recording import (
+    stop_recording as _stop_recording,
+)
+from .tools.schedule import (
+    get_scheduled_events as _get_scheduled_events,
+)
+from .tools.schedule import (
+    single_touch_start as _single_touch_start,
+)
+from .tools.schedule import (
+    single_touch_stop as _single_touch_stop,
+)
+from .tools.storage import (
+    get_afu_status as _get_afu_status,
+)
+from .tools.storage import (
+    get_storage_report as _get_storage_report,
+)
+from .tools.storage import (
+    list_inputs as _list_inputs,
+)
+from .tools.streaming import (
+    get_stream_status as _get_stream_status,
+)
+from .tools.streaming import (
+    start_stream as _start_stream,
+)
+from .tools.streaming import (
+    stop_stream as _stop_stream,
+)
+
 logger = logging.getLogger(__name__)
 
 # Create MCP server instance
@@ -32,19 +97,65 @@ mcp = FastMCP(
 )
 
 
-def get_client(device_id: str = "default") -> PearlClient:
+# ============================================================
+# Parallel Fleet Execution Helper
+# ============================================================
+
+
+async def _execute_on_fleet(
+    hosts: list[str],
+    operation: Callable[[PearlClient], Awaitable[dict[str, Any]]],
+    settings: Settings,
+    timeout_per_device: float = 10.0,
+) -> list[dict[str, Any]]:
     """
-    Get a PearlClient for the specified device.
+    Execute operation on all devices in parallel using asyncio.gather.
 
     Args:
-        device_id: Device identifier (IP, hostname, "default", or index)
+        hosts: List of device hostnames/IPs to operate on.
+        operation: Async function that takes a PearlClient and returns a result dict.
+        settings: Settings instance for creating clients.
+        timeout_per_device: Timeout in seconds for each device operation.
 
     Returns:
-        Configured PearlClient instance.
+        List of results from each device, in the same order as hosts.
+        Failed operations return dicts with host, success=False, online=False,
+        error message, and alert dict.
     """
-    settings = get_settings()
-    host = settings.get_device_host(device_id)
-    return PearlClient.from_settings(host, settings)
+
+    async def _device_op(host: str) -> dict[str, Any]:
+        """Execute operation on a single device with timeout and error handling."""
+        try:
+            async with asyncio.timeout(timeout_per_device):
+                async with PearlClient.from_settings(host, settings) as client:
+                    return await operation(client)
+        except TimeoutError:
+            return {
+                "host": host,
+                "success": False,
+                "online": False,
+                "error": "Device timeout",
+                "alert": {
+                    "device": host,
+                    "severity": "error",
+                    "message": "Device timeout",
+                },
+            }
+        except Exception as e:
+            return {
+                "host": host,
+                "success": False,
+                "online": False,
+                "error": str(e),
+                "alert": {
+                    "device": host,
+                    "severity": "error",
+                    "message": f"Device offline: {e}",
+                },
+            }
+
+    tasks = [_device_op(host) for host in hosts]
+    return await asyncio.gather(*tasks, return_exceptions=False)
 
 
 # ============================================================
@@ -71,38 +182,7 @@ async def get_device_status(device_id: str = "default") -> dict[str, Any]:
         - Firmware version
         - Current recording/streaming state
     """
-    try:
-        async with get_client(device_id) as client:
-            status = await client.get_system_status()
-            recorder_status = await client.get_recorder_status("recorder-1")
-
-            return {
-                "success": True,
-                "device": client.host,
-                "status": {
-                    "uptime_hours": status.uptime_hours,
-                    "storage": {
-                        "total_gb": status.storage_total_gb,
-                        "free_gb": status.storage_free_gb,
-                        "used_percent": status.storage_used_percent,
-                    },
-                    "firmware": status.firmware_version,
-                    "model": status.model,
-                    "recording": recorder_status.state.value,
-                },
-            }
-    except PearlAPIError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "device": device_id,
-        }
-    except ValueError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "device": device_id,
-        }
+    return await _get_device_status(device_id=device_id)
 
 
 @mcp.tool()
@@ -115,15 +195,7 @@ async def list_devices() -> dict[str, Any]:
     Returns:
         List of device hostnames/IPs with their indices.
     """
-    settings = get_settings()
-    devices = settings.get_device_list()
-
-    return {
-        "success": True,
-        "fleet_name": settings.fleet_name,
-        "device_count": len(devices),
-        "devices": [{"index": i, "host": host} for i, host in enumerate(devices)],
-    }
+    return await _list_devices()
 
 
 # ============================================================
@@ -149,27 +221,7 @@ async def list_inputs(device_id: str = "default") -> dict[str, Any]:
         - Connection status
         - Resolution and format info
     """
-    try:
-        async with get_client(device_id) as client:
-            inputs = await client.get_inputs()
-            return {
-                "success": True,
-                "device": client.host,
-                "total_inputs": len(inputs),
-                "inputs": [inp.model_dump() for inp in inputs],
-            }
-    except PearlAPIError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "device": device_id,
-        }
-    except ValueError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "device": device_id,
-        }
+    return await _list_inputs(device_id=device_id)
 
 
 # ============================================================
@@ -195,49 +247,7 @@ async def get_storage_report(device_id: str = "default") -> dict[str, Any]:
         - Used percentage
         - Mount point and status
     """
-    try:
-        async with get_client(device_id) as client:
-            storages = await client.get_storages()
-            storage_list = []
-            total_bytes = 0
-            free_bytes = 0
-
-            for storage in storages:
-                storage_data = storage.model_dump()
-                storage_list.append(storage_data)
-                total_bytes += storage.total_bytes or 0
-                free_bytes += storage.free_bytes or 0
-
-            used_bytes = total_bytes - free_bytes
-            used_percent = (used_bytes / total_bytes * 100) if total_bytes > 0 else 0
-
-            return {
-                "success": True,
-                "device": client.host,
-                "total_storages": len(storages),
-                "storages": storage_list,
-                "summary": {
-                    "total_bytes": total_bytes,
-                    "total_gb": round(total_bytes / (1024**3), 2),
-                    "free_bytes": free_bytes,
-                    "free_gb": round(free_bytes / (1024**3), 2),
-                    "used_bytes": used_bytes,
-                    "used_gb": round(used_bytes / (1024**3), 2),
-                    "used_percent": round(used_percent, 1),
-                },
-            }
-    except PearlAPIError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "device": device_id,
-        }
-    except ValueError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "device": device_id,
-        }
+    return await _get_storage_report(device_id=device_id)
 
 
 # ============================================================
@@ -261,25 +271,7 @@ async def start_recording(device_id: str = "default", recorder: int = 1) -> dict
     Returns:
         Confirmation of recording start with device and recorder details.
     """
-    try:
-        async with get_client(device_id) as client:
-            # Convert int to string recorder ID (e.g., 1 -> "recorder-1")
-            recorder_id = f"recorder-{recorder}" if isinstance(recorder, int) else str(recorder)
-            result = await client.start_recording(recorder_id)
-            return result.model_dump()
-    except PearlAPIError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "device": device_id,
-            "recorder": recorder,
-        }
-    except ValueError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "device": device_id,
-        }
+    return await _start_recording(device_id=device_id, recorder=recorder)
 
 
 @mcp.tool()
@@ -297,24 +289,7 @@ async def stop_recording(device_id: str = "default", recorder: int = 1) -> dict[
     Returns:
         Confirmation of recording stop with device and recorder details.
     """
-    try:
-        async with get_client(device_id) as client:
-            recorder_id = f"recorder-{recorder}" if isinstance(recorder, int) else str(recorder)
-            result = await client.stop_recording(recorder_id)
-            return result.model_dump()
-    except PearlAPIError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "device": device_id,
-            "recorder": recorder,
-        }
-    except ValueError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "device": device_id,
-        }
+    return await _stop_recording(device_id=device_id, recorder=recorder)
 
 
 @mcp.tool()
@@ -329,32 +304,7 @@ async def get_recording_status(device_id: str = "default", recorder: int = 1) ->
     Returns:
         Recording state (recording, stopped, paused, error) and details.
     """
-    try:
-        async with get_client(device_id) as client:
-            recorder_id = f"recorder-{recorder}" if isinstance(recorder, int) else str(recorder)
-            status = await client.get_recorder_status(recorder_id)
-            return {
-                "success": True,
-                "device": client.host,
-                "recorder": recorder,
-                "state": status.state.value,
-                "duration_seconds": status.duration_seconds,
-                "file_size_bytes": status.file_size_bytes,
-                "filename": status.filename,
-            }
-    except PearlAPIError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "device": device_id,
-            "recorder": recorder,
-        }
-    except ValueError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "device": device_id,
-        }
+    return await _get_recording_status(device_id=device_id, recorder=recorder)
 
 
 # ============================================================
@@ -378,24 +328,7 @@ async def start_stream(device_id: str = "default", channel: int = 1) -> dict[str
     Returns:
         Confirmation of stream start with device and channel details.
     """
-    try:
-        async with get_client(device_id) as client:
-            channel_id = f"channel-{channel}" if isinstance(channel, int) else str(channel)
-            result = await client.start_all_publishers(channel_id)
-            return result.model_dump()
-    except PearlAPIError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "device": device_id,
-            "channel": channel,
-        }
-    except ValueError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "device": device_id,
-        }
+    return await _start_stream(device_id=device_id, channel=channel)
 
 
 @mcp.tool()
@@ -412,24 +345,7 @@ async def stop_stream(device_id: str = "default", channel: int = 1) -> dict[str,
     Returns:
         Confirmation of stream stop with device and channel details.
     """
-    try:
-        async with get_client(device_id) as client:
-            channel_id = f"channel-{channel}" if isinstance(channel, int) else str(channel)
-            result = await client.stop_all_publishers(channel_id)
-            return result.model_dump()
-    except PearlAPIError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "device": device_id,
-            "channel": channel,
-        }
-    except ValueError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "device": device_id,
-        }
+    return await _stop_stream(device_id=device_id, channel=channel)
 
 
 @mcp.tool()
@@ -454,35 +370,7 @@ async def get_stream_status(
         - bytes_sent: Total bytes sent since stream started
         - destination: Stream destination URL
     """
-    try:
-        async with get_client(device_id) as client:
-            channel_id = f"channel-{channel}" if isinstance(channel, int) else str(channel)
-            status = await client.get_publisher_status(channel_id, publisher)
-            return {
-                "success": True,
-                "device": client.host,
-                "channel": channel_id,
-                "publisher": publisher,
-                "state": status.state.value,
-                "duration_seconds": status.duration_seconds,
-                "bitrate_bps": status.bitrate_actual or 0,
-                "bytes_sent": status.bytes_sent or 0,
-                "destination": status.destination or "",
-            }
-    except PearlAPIError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "device": device_id,
-            "channel": channel,
-            "publisher": publisher,
-        }
-    except ValueError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "device": device_id,
-        }
+    return await _get_stream_status(device_id=device_id, channel=channel, publisher=publisher)
 
 
 # ============================================================
@@ -507,30 +395,7 @@ async def add_bookmark(
     Returns:
         Confirmation of bookmark creation with device and channel details.
     """
-    try:
-        async with get_client(device_id) as client:
-            channel_id = f"channel-{channel}" if isinstance(channel, int) else str(channel)
-            result = await client.add_bookmark(channel_id, text)
-            return {
-                "success": True,
-                "device": client.host,
-                "channel": channel_id,
-                "text": text,
-                "message": result.message,
-            }
-    except PearlAPIError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "device": device_id,
-            "channel": channel,
-        }
-    except ValueError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "device": device_id,
-        }
+    return await _add_bookmark(device_id=device_id, channel=channel, text=text)
 
 
 # ============================================================
@@ -555,34 +420,7 @@ async def list_layouts(device_id: str = "default", channel: int = 1) -> dict[str
         - Layout ID and name
         - Which layout is currently active
     """
-    try:
-        async with get_client(device_id) as client:
-            channel_id = f"channel-{channel}" if isinstance(channel, int) else str(channel)
-            layouts = await client.get_layouts(channel_id)
-            active_layout = next(
-                (layout["id"] for layout in layouts if layout.get("is_active")), None
-            )
-            return {
-                "success": True,
-                "device": client.host,
-                "channel": channel_id,
-                "total_layouts": len(layouts),
-                "layouts": layouts,
-                "active_layout": active_layout,
-            }
-    except PearlAPIError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "device": device_id,
-            "channel": channel,
-        }
-    except ValueError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "device": device_id,
-        }
+    return await _list_layouts(device_id=device_id, channel=channel)
 
 
 @mcp.tool()
@@ -602,32 +440,7 @@ async def switch_layout(
     Returns:
         Confirmation of layout switch with device and channel details.
     """
-    if not layout_id:
-        return {
-            "success": False,
-            "error": "layout_id is required",
-            "device": device_id,
-            "channel": channel,
-        }
-
-    try:
-        async with get_client(device_id) as client:
-            channel_id = f"channel-{channel}" if isinstance(channel, int) else str(channel)
-            result = await client.switch_layout(channel_id, layout_id)
-            return result.model_dump()
-    except PearlAPIError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "device": device_id,
-            "channel": channel,
-        }
-    except ValueError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "device": device_id,
-        }
+    return await _switch_layout(device_id=device_id, channel=channel, layout_id=layout_id)
 
 
 # ============================================================
@@ -649,26 +462,7 @@ async def single_touch_start(device_id: str = "default") -> dict[str, Any]:
     Returns:
         Confirmation that all recorders and streams have started.
     """
-    try:
-        async with get_client(device_id) as client:
-            result = await client.single_touch_start()
-            return {
-                "success": True,
-                "device": client.host,
-                "message": result.message,
-            }
-    except PearlAPIError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "device": device_id,
-        }
-    except ValueError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "device": device_id,
-        }
+    return await _single_touch_start(device_id=device_id)
 
 
 @mcp.tool()
@@ -685,26 +479,7 @@ async def single_touch_stop(device_id: str = "default") -> dict[str, Any]:
     Returns:
         Confirmation that all recorders and streams have stopped.
     """
-    try:
-        async with get_client(device_id) as client:
-            result = await client.single_touch_stop()
-            return {
-                "success": True,
-                "device": client.host,
-                "message": result.message,
-            }
-    except PearlAPIError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "device": device_id,
-        }
-    except ValueError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "device": device_id,
-        }
+    return await _single_touch_stop(device_id=device_id)
 
 
 # ============================================================
@@ -732,27 +507,7 @@ async def get_scheduled_events(
         - CMS type (Kaltura, Panopto, Opencast)
         - Current status
     """
-    try:
-        async with get_client(device_id) as client:
-            events = await client.get_events(limit=limit)
-            return {
-                "success": True,
-                "device": client.host,
-                "total_events": len(events),
-                "events": events,
-            }
-    except PearlAPIError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "device": device_id,
-        }
-    except ValueError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "device": device_id,
-        }
+    return await _get_scheduled_events(device_id=device_id, limit=limit)
 
 
 # ============================================================
@@ -779,38 +534,7 @@ async def get_afu_status(device_id: str = "default") -> dict[str, Any]:
         - Queue count (files waiting to upload)
         - Destination URL
     """
-    try:
-        async with get_client(device_id) as client:
-            afu_status = await client.get_afu_status()
-
-            # Calculate summary stats
-            total_queued = sum(item.get("queue_count", 0) for item in afu_status)
-            uploading_count = sum(1 for item in afu_status if item.get("state") == "uploading")
-            error_count = sum(1 for item in afu_status if item.get("state") == "error")
-
-            return {
-                "success": True,
-                "device": client.host,
-                "total_destinations": len(afu_status),
-                "destinations": afu_status,
-                "summary": {
-                    "total_queued_files": total_queued,
-                    "uploading_count": uploading_count,
-                    "error_count": error_count,
-                },
-            }
-    except PearlAPIError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "device": device_id,
-        }
-    except ValueError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "device": device_id,
-        }
+    return await _get_afu_status(device_id=device_id)
 
 
 # ============================================================
@@ -843,64 +567,9 @@ async def predict_storage_full(
         - bitrate_mbps: Actual or assumed recording bitrate
         - warning: True if storage is critically low (<10%)
     """
-    try:
-        async with get_client(device_id) as client:
-            # Get storage info
-            storage_status = await client.get_system_status()
-            free_bytes = storage_status.storage_free_gb * 1024 * 1024 * 1024
-
-            # Get recording status for bitrate
-            recorder_id = f"recorder-{recorder}"
-            recorder_status = await client.get_recorder_status(recorder_id)
-            is_recording = recorder_status.state.value == "recording"
-
-            # Use actual bitrate if recording, otherwise use assumed
-            bitrate_bps: float = (
-                recorder_status.bitrate
-                if is_recording and recorder_status.bitrate
-                else assumed_bitrate_mbps * 1_000_000
-            )
-
-            bitrate_mbps = bitrate_bps / 1_000_000
-            bytes_per_hour = bitrate_bps / 8 * 3600  # bits/sec -> bytes/hour
-
-            # Calculate hours until full
-            hours_until_full = (
-                free_bytes / bytes_per_hour if bytes_per_hour > 0 else float("inf")
-            )
-
-            # Determine warning status (>= 90% used or < 2 hours remaining)
-            storage_used_percent = storage_status.storage_used_percent or 0
-            warning = storage_used_percent >= 90 or hours_until_full < 2
-
-            return {
-                "success": True,
-                "device": client.host,
-                "hours_until_full": round(hours_until_full, 1),
-                "storage_free_gb": round(storage_status.storage_free_gb, 1),
-                "storage_total_gb": round(storage_status.storage_total_gb, 1),
-                "storage_used_percent": round(storage_used_percent, 1),
-                "is_recording": is_recording,
-                "bitrate_mbps": round(bitrate_mbps, 1),
-                "warning": warning,
-                "recommendation": (
-                    "Storage critically low - archive or delete recordings"
-                    if warning
-                    else "Storage capacity is sufficient"
-                ),
-            }
-    except PearlAPIError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "device": device_id,
-        }
-    except ValueError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "device": device_id,
-        }
+    return await _predict_storage_full(
+        device_id=device_id, recorder=recorder, assumed_bitrate_mbps=assumed_bitrate_mbps
+    )
 
 
 @mcp.tool()
@@ -922,93 +591,13 @@ async def get_device_health_score(device_id: str = "default") -> dict[str, Any]:
         - is_recording: Whether device is currently recording
         - recommendation: Suggested action if any issues found
     """
-    try:
-        async with get_client(device_id) as client:
-            issues: list[str] = []
-            category_scores: dict[str, dict[str, Any]] = {}
-
-            # Get device and storage info
-            storage_status = await client.get_system_status()
-
-            # Storage health (50 points max)
-            storage_used_percent = storage_status.storage_used_percent or 0
-            if storage_used_percent >= 90:
-                storage_score = 10  # Critical
-                storage_healthy = False
-                issues.append(f"Storage critically low: {storage_used_percent:.0f}% used")
-            elif storage_used_percent >= 75:
-                storage_score = 30  # Warning
-                storage_healthy = False
-                issues.append(f"Storage running low: {storage_used_percent:.0f}% used")
-            else:
-                storage_score = 50  # Healthy
-                storage_healthy = True
-
-            category_scores["storage"] = {
-                "score": storage_score,
-                "max": 50,
-                "healthy": storage_healthy,
-                "used_percent": round(storage_used_percent, 1),
-            }
-
-            # Recording health (50 points max)
-            try:
-                recorder_status = await client.get_recorder_status("recorder-1")
-                is_recording = recorder_status.state.value == "recording"
-                recording_score = 50  # Healthy - device is responsive
-                recording_healthy = True
-            except PearlAPIError:
-                is_recording = False
-                recording_score = 25  # Degraded - couldn't check recorder
-                recording_healthy = False
-                issues.append("Could not check recorder status")
-
-            category_scores["recording"] = {
-                "score": recording_score,
-                "max": 50,
-                "healthy": recording_healthy,
-                "is_recording": is_recording,
-            }
-
-            # Calculate total score
-            total_score = sum(cat["score"] for cat in category_scores.values())
-
-            # Generate recommendation
-            if total_score >= 80:
-                recommendation = "Device is healthy - no action needed"
-            elif total_score >= 60:
-                recommendation = "Device has minor issues - review when convenient"
-            elif total_score >= 40:
-                recommendation = "Device needs attention - address issues soon"
-            else:
-                recommendation = "Device is unhealthy - immediate attention required"
-
-            return {
-                "success": True,
-                "device": client.host,
-                "score": total_score,
-                "categories": category_scores,
-                "issues": issues,
-                "is_recording": is_recording,
-                "recommendation": recommendation,
-            }
-    except PearlAPIError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "device": device_id,
-        }
-    except ValueError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "device": device_id,
-        }
+    return await _get_device_health_score(device_id=device_id)
 
 
 # ============================================================
 # Fleet Management Tools (Phase 3)
 # ============================================================
+# Fleet tools use parallel execution for improved performance.
 
 
 @mcp.tool()
@@ -1017,6 +606,7 @@ async def get_fleet_status() -> dict[str, Any]:
     Get status of all configured Epiphan Pearl devices.
 
     This provides a fleet-wide view of device health and activity.
+    Operations are executed in parallel for improved performance.
 
     Returns:
         Summary of fleet status including:
@@ -1037,55 +627,67 @@ async def get_fleet_status() -> dict[str, Any]:
             "message": "No devices configured. Set PEARL_DEVICES environment variable.",
         }
 
-    results = []
-    online_count = 0
-    recording_count = 0
-    alerts = []
-
-    for host in devices:
+    async def _get_device_status_op(client: PearlClient) -> dict[str, Any]:
+        """Get status for a single device."""
+        host = client.host
         try:
-            async with PearlClient.from_settings(host, settings) as client:
-                status = await client.get_system_status()
-                recorder = await client.get_recorder_status("recorder-1")
+            status = await client.get_system_status()
+            recorder = await client.get_recorder_status("recorder-1")
 
-                online_count += 1
-                if recorder.state.value == "recording":
-                    recording_count += 1
+            result: dict[str, Any] = {
+                "host": host,
+                "online": True,
+                "recording": recorder.state.value == "recording",
+                "storage_percent": status.storage_used_percent,
+            }
 
-                # Check for alerts (storage threshold: 80%)
-                if status.storage_used_percent > 80:
-                    alerts.append(
-                        {
-                            "device": host,
-                            "severity": "warning",
-                            "message": f"Storage at {status.storage_used_percent:.1f}%",
-                        }
-                    )
-
-                results.append(
-                    {
-                        "host": host,
-                        "online": True,
-                        "recording": recorder.state.value == "recording",
-                        "storage_percent": status.storage_used_percent,
-                    }
-                )
-
-        except Exception as e:
-            results.append(
-                {
-                    "host": host,
-                    "online": False,
-                    "error": str(e),
+            # Check for storage alerts
+            if status.storage_used_percent > settings.storage_warning_percent:
+                result["alert"] = {
+                    "device": host,
+                    "severity": "warning",
+                    "message": f"Storage at {status.storage_used_percent:.1f}%",
                 }
-            )
-            alerts.append(
-                {
+
+            return result
+        except Exception as e:
+            return {
+                "host": host,
+                "online": False,
+                "error": str(e),
+                "alert": {
                     "device": host,
                     "severity": "error",
                     "message": f"Device offline: {e}",
-                }
-            )
+                },
+            }
+
+    # Execute on all devices in parallel
+    raw_results = await _execute_on_fleet(
+        hosts=devices,
+        operation=_get_device_status_op,
+        settings=settings,
+        timeout_per_device=settings.timeout,
+    )
+
+    # Aggregate results
+    results = []
+    alerts = []
+    online_count = 0
+    recording_count = 0
+
+    for raw_result in raw_results:
+        # Extract alert if present
+        alert = raw_result.pop("alert", None)
+        if alert:
+            alerts.append(alert)
+
+        results.append(raw_result)
+
+        if raw_result.get("online", False):
+            online_count += 1
+        if raw_result.get("recording", False):
+            recording_count += 1
 
     return {
         "success": True,
@@ -1104,6 +706,8 @@ async def batch_start_recording(device_ids: str = "all") -> dict[str, Any]:
     """
     Start recording on multiple Epiphan Pearl devices.
 
+    Operations are executed in parallel for improved performance.
+
     Args:
         device_ids: Comma-separated list of device IDs, or "all" for all devices.
 
@@ -1123,17 +727,25 @@ async def batch_start_recording(device_ids: str = "all") -> dict[str, Any]:
             "error": "No devices specified",
         }
 
-    results = []
-    success_count = 0
-
-    for host in hosts:
+    async def _start_recording_op(client: PearlClient) -> dict[str, Any]:
+        """Start recording on a single device."""
+        host = client.host
         try:
-            async with PearlClient.from_settings(host, settings) as client:
-                await client.start_recording("recorder-1")
-                results.append({"device": host, "success": True})
-                success_count += 1
+            await client.start_recording("recorder-1")
+            return {"device": host, "success": True}
         except Exception as e:
-            results.append({"device": host, "success": False, "error": str(e)})
+            return {"device": host, "success": False, "error": str(e)}
+
+    # Execute on all devices in parallel
+    results = await _execute_on_fleet(
+        hosts=hosts,
+        operation=_start_recording_op,
+        settings=settings,
+        timeout_per_device=settings.timeout,
+    )
+
+    # Count successes
+    success_count = sum(1 for r in results if r.get("success", False))
 
     return {
         "success": success_count == len(hosts),
@@ -1149,6 +761,8 @@ async def batch_stop_recording(device_ids: str = "all") -> dict[str, Any]:
     """
     Stop recording on multiple Epiphan Pearl devices.
 
+    Operations are executed in parallel for improved performance.
+
     Args:
         device_ids: Comma-separated list of device IDs, or "all" for all devices.
 
@@ -1168,17 +782,25 @@ async def batch_stop_recording(device_ids: str = "all") -> dict[str, Any]:
             "error": "No devices specified",
         }
 
-    results = []
-    success_count = 0
-
-    for host in hosts:
+    async def _stop_recording_op(client: PearlClient) -> dict[str, Any]:
+        """Stop recording on a single device."""
+        host = client.host
         try:
-            async with PearlClient.from_settings(host, settings) as client:
-                await client.stop_recording("recorder-1")
-                results.append({"device": host, "success": True})
-                success_count += 1
+            await client.stop_recording("recorder-1")
+            return {"device": host, "success": True}
         except Exception as e:
-            results.append({"device": host, "success": False, "error": str(e)})
+            return {"device": host, "success": False, "error": str(e)}
+
+    # Execute on all devices in parallel
+    results = await _execute_on_fleet(
+        hosts=hosts,
+        operation=_stop_recording_op,
+        settings=settings,
+        timeout_per_device=settings.timeout,
+    )
+
+    # Count successes
+    success_count = sum(1 for r in results if r.get("success", False))
 
     return {
         "success": success_count == len(hosts),
@@ -1221,16 +843,6 @@ async def analyze_channel_scene(
 
     Returns:
         Analysis results including AI description, model used, and metadata.
-
-    Examples:
-        >>> # Describe what's happening on channel 1
-        >>> await analyze_channel_scene(channel="1", analysis_type="scene_description")
-
-        >>> # Check video quality during a live event
-        >>> await analyze_channel_scene(channel="1", analysis_type="quality_check")
-
-        >>> # Extract text from presentation slides
-        >>> await analyze_channel_scene(channel="1", analysis_type="text_extraction")
     """
     return await _analyze_channel_scene(
         device_id=device_id,
@@ -1250,25 +862,12 @@ async def extract_text_from_preview(
     Uses a vision LLM optimized for text recognition (Qwen VL) to read text
     from presentations, slides, lower thirds, and other on-screen graphics.
 
-    Useful for:
-    - Automated captioning and transcription
-    - Content indexing and search
-    - Slide detection and chapter markers
-    - Compliance monitoring (detecting required disclosures)
-
     Args:
         device_id: Pearl device identifier.
         channel: Channel ID to analyze.
 
     Returns:
         Extracted text content organized by location/type.
-
-    Example:
-        >>> result = await extract_text_from_preview(channel="1")
-        >>> print(result["text"])
-        "Title: Introduction to Machine Learning
-         Subtitle: Chapter 3 - Neural Networks
-         Footer: Presented by Dr. Smith"
     """
     return await _extract_text_from_preview(device_id=device_id, channel=channel)
 
@@ -1283,14 +882,7 @@ async def detect_layout_changes(
     Detect if the channel content has changed since last check.
 
     Monitors a channel for significant changes like scene transitions,
-    slide advances, or presenter movement. Uses efficient image hashing
-    for quick comparisons, with AI analysis to describe detected changes.
-
-    Useful for:
-    - Automated recording triggers on scene changes
-    - Event logging and chapter markers
-    - Slide advance detection for presentations
-    - Production monitoring and alerts
+    slide advances, or presenter movement.
 
     Args:
         device_id: Pearl device identifier.
@@ -1302,16 +894,6 @@ async def detect_layout_changes(
 
     Returns:
         Change detection results including whether change occurred and description.
-
-    Example:
-        >>> # First call establishes baseline
-        >>> result = await detect_layout_changes(channel="1")
-        >>> print(result["changed"])  # False (first frame)
-
-        >>> # Later call detects changes
-        >>> result = await detect_layout_changes(channel="1")
-        >>> if result["changed"]:
-        ...     print(result["message"])  # "Slide advanced to new content"
     """
     return await _detect_layout_changes(
         device_id=device_id,
@@ -1331,29 +913,12 @@ async def check_video_quality(
     Analyzes the current frame for technical quality issues and provides
     actionable feedback for production improvement.
 
-    Checks for:
-    - Lighting issues (over/underexposed areas, uneven lighting)
-    - Focus problems (blur, soft focus)
-    - Framing issues (headroom, rule of thirds, cropping)
-    - Visible artifacts or technical problems
-    - Overall production quality rating
-
     Args:
         device_id: Pearl device identifier.
         channel: Channel ID to check.
 
     Returns:
         Quality assessment with specific issues and recommendations.
-
-    Example:
-        >>> result = await check_video_quality(channel="1")
-        >>> print(result["quality_report"])
-        "Video quality assessment:
-        - Lighting: Good, even illumination
-        - Focus: Sharp
-        - Framing: Presenter has adequate headroom
-        - Issues: None detected
-        Overall quality: Excellent"
     """
     return await _check_video_quality(device_id=device_id, channel=channel)
 
@@ -1366,10 +931,7 @@ async def clear_change_detection_cache(
     """
     Clear the change detection cache.
 
-    Resets stored frames used for change detection. Call this when:
-    - Starting a new monitoring session
-    - After intentional content changes
-    - When resetting the baseline for comparison
+    Resets stored frames used for change detection.
 
     Args:
         device_id: Specific device to clear (None for all devices).

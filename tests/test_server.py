@@ -62,7 +62,7 @@ class TestGetDeviceStatus:
 
         api_base = f"http://{mock_pearl_host}/api/v2.0"
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.device.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(mock_pearl_host)
 
             with respx.mock(assert_all_called=False) as router:
@@ -91,7 +91,7 @@ class TestGetDeviceStatus:
 
         api_base = f"http://{mock_pearl_host}/api/v2.0"
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.device.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(mock_pearl_host)
 
             with respx.mock(assert_all_called=False) as router:
@@ -114,7 +114,7 @@ class TestGetDeviceStatus:
         """Test device status with no configured devices."""
         from epiphan_mcp.server import get_device_status
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.device.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(devices="")
 
             result = await get_device_status.fn(device_id="default")
@@ -128,7 +128,7 @@ class TestGetDeviceStatus:
 
         api_base = f"http://{mock_pearl_host}/api/v2.0"
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.device.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(mock_pearl_host)
 
             with respx.mock(assert_all_called=False) as router:
@@ -155,7 +155,7 @@ class TestListDevices:
         """Test listing single device."""
         from epiphan_mcp.server import list_devices
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.device.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(mock_pearl_host)
 
             result = await list_devices.fn()
@@ -171,7 +171,7 @@ class TestListDevices:
 
         devices = "192.168.1.100,192.168.1.101,192.168.1.102"
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.device.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(
                 devices=devices, fleet_name="multi-fleet"
             )
@@ -187,7 +187,7 @@ class TestListDevices:
         """Test listing with no devices configured."""
         from epiphan_mcp.server import list_devices
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.device.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(devices="")
 
             result = await list_devices.fn()
@@ -210,7 +210,7 @@ class TestStartRecording:
 
         api_base = f"http://{mock_pearl_host}/api/v2.0"
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.device.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(mock_pearl_host)
 
             with respx.mock(assert_all_called=False) as router:
@@ -230,7 +230,7 @@ class TestStartRecording:
 
         api_base = f"http://{mock_pearl_host}/api/v2.0"
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.device.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(mock_pearl_host)
 
             with respx.mock(assert_all_called=False) as router:
@@ -253,7 +253,7 @@ class TestStopRecording:
 
         api_base = f"http://{mock_pearl_host}/api/v2.0"
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.device.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(mock_pearl_host)
 
             with respx.mock(assert_all_called=False) as router:
@@ -276,7 +276,7 @@ class TestGetRecordingStatus:
 
         api_base = f"http://{mock_pearl_host}/api/v2.0"
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.device.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(mock_pearl_host)
 
             with respx.mock(assert_all_called=False) as router:
@@ -296,7 +296,7 @@ class TestGetRecordingStatus:
 
         api_base = f"http://{mock_pearl_host}/api/v2.0"
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.device.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(mock_pearl_host)
 
             with respx.mock(assert_all_called=False) as router:
@@ -325,7 +325,7 @@ class TestStartStream:
 
         api_base = f"http://{mock_pearl_host}/api/v2.0"
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.device.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(mock_pearl_host)
 
             with respx.mock(assert_all_called=False) as router:
@@ -349,7 +349,7 @@ class TestStopStream:
 
         api_base = f"http://{mock_pearl_host}/api/v2.0"
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.device.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(mock_pearl_host)
 
             with respx.mock(assert_all_called=False) as router:
@@ -371,7 +371,7 @@ class TestGetStreamStatus:
 
         api_base = f"http://{mock_pearl_host}/api/v2.0"
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.device.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(mock_pearl_host)
 
             with respx.mock(assert_all_called=False) as router:
@@ -395,7 +395,7 @@ class TestGetStreamStatus:
 
         api_base = f"http://{mock_pearl_host}/api/v2.0"
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.device.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(mock_pearl_host)
 
             with respx.mock(assert_all_called=False) as router:
@@ -417,7 +417,7 @@ class TestGetStreamStatus:
 
         api_base = f"http://{mock_pearl_host}/api/v2.0"
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.device.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(mock_pearl_host)
 
             with respx.mock(assert_all_called=False) as router:
@@ -436,7 +436,7 @@ class TestGetStreamStatus:
         """Test stream status with invalid device ID."""
         from epiphan_mcp.server import get_stream_status
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.device.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(devices="")
 
             result = await get_stream_status.fn(
@@ -461,7 +461,7 @@ class TestAddBookmark:
 
         api_base = f"http://{mock_pearl_host}/api/v2.0"
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.device.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(mock_pearl_host)
 
             with respx.mock(assert_all_called=False) as router:
@@ -483,7 +483,7 @@ class TestAddBookmark:
 
         api_base = f"http://{mock_pearl_host}/api/v2.0"
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.device.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(mock_pearl_host)
 
             with respx.mock(assert_all_called=False) as router:
@@ -501,7 +501,7 @@ class TestAddBookmark:
 
         api_base = f"http://{mock_pearl_host}/api/v2.0"
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.device.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(mock_pearl_host)
 
             with respx.mock(assert_all_called=False) as router:
@@ -518,7 +518,7 @@ class TestAddBookmark:
         """Test bookmark with invalid device."""
         from epiphan_mcp.server import add_bookmark
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.device.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(devices="")
 
             result = await add_bookmark.fn(device_id="nonexistent", channel=1)
@@ -541,7 +541,7 @@ class TestListLayouts:
 
         api_base = f"http://{mock_pearl_host}/api/v2.0"
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.device.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(mock_pearl_host)
 
             with respx.mock(assert_all_called=False) as router:
@@ -563,7 +563,7 @@ class TestListLayouts:
 
         api_base = f"http://{mock_pearl_host}/api/v2.0"
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.device.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(mock_pearl_host)
 
             with respx.mock(assert_all_called=False) as router:
@@ -580,7 +580,7 @@ class TestListLayouts:
         """Test layout listing with invalid device."""
         from epiphan_mcp.server import list_layouts
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.device.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(devices="")
 
             result = await list_layouts.fn(device_id="nonexistent", channel=1)
@@ -598,7 +598,7 @@ class TestSwitchLayout:
 
         api_base = f"http://{mock_pearl_host}/api/v2.0"
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.device.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(mock_pearl_host)
 
             with respx.mock(assert_all_called=False) as router:
@@ -616,7 +616,7 @@ class TestSwitchLayout:
         """Test layout switch with missing layout_id."""
         from epiphan_mcp.server import switch_layout
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.device.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(mock_pearl_host)
 
             result = await switch_layout.fn(
@@ -768,7 +768,7 @@ class TestSingleTouchStart:
 
         api_base = f"http://{mock_pearl_host}/api/v2.0"
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.device.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(mock_pearl_host)
 
             with respx.mock(assert_all_called=False) as router:
@@ -787,7 +787,7 @@ class TestSingleTouchStart:
 
         api_base = f"http://{mock_pearl_host}/api/v2.0"
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.device.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(mock_pearl_host)
 
             with respx.mock(assert_all_called=False) as router:
@@ -804,7 +804,7 @@ class TestSingleTouchStart:
         """Test single touch start with invalid device."""
         from epiphan_mcp.server import single_touch_start
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.device.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(devices="")
 
             result = await single_touch_start.fn(device_id="nonexistent")
@@ -822,7 +822,7 @@ class TestSingleTouchStop:
 
         api_base = f"http://{mock_pearl_host}/api/v2.0"
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.device.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(mock_pearl_host)
 
             with respx.mock(assert_all_called=False) as router:
@@ -841,7 +841,7 @@ class TestSingleTouchStop:
 
         api_base = f"http://{mock_pearl_host}/api/v2.0"
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.device.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(mock_pearl_host)
 
             with respx.mock(assert_all_called=False) as router:
@@ -858,7 +858,7 @@ class TestSingleTouchStop:
         """Test single touch stop with invalid device."""
         from epiphan_mcp.server import single_touch_stop
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.device.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(devices="")
 
             result = await single_touch_stop.fn(device_id="nonexistent")
@@ -881,7 +881,7 @@ class TestGetScheduledEvents:
 
         api_base = f"http://{mock_pearl_host}/api/v2.0"
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.device.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(mock_pearl_host)
 
             with respx.mock(assert_all_called=False) as router:
@@ -903,7 +903,7 @@ class TestGetScheduledEvents:
         api_base = f"http://{mock_pearl_host}/api/v2.0"
         empty_response = {"status": "ok", "result": []}
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.device.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(mock_pearl_host)
 
             with respx.mock(assert_all_called=False) as router:
@@ -922,7 +922,7 @@ class TestGetScheduledEvents:
 
         api_base = f"http://{mock_pearl_host}/api/v2.0"
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.device.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(mock_pearl_host)
 
             with respx.mock(assert_all_called=False) as router:
@@ -939,7 +939,7 @@ class TestGetScheduledEvents:
         """Test scheduled events with invalid device."""
         from epiphan_mcp.server import get_scheduled_events
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.device.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(devices="")
 
             result = await get_scheduled_events.fn(device_id="nonexistent")
@@ -1135,7 +1135,7 @@ class TestServerErrorBranches:
 
         api_base = f"http://{mock_pearl_host}/api/v2.0"
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.device.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(mock_pearl_host)
 
             with respx.mock(assert_all_called=False) as router:
@@ -1162,7 +1162,7 @@ class TestServerErrorBranches:
 
         api_base = f"http://{mock_pearl_host}/api/v2.0"
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.device.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(mock_pearl_host)
 
             with respx.mock(assert_all_called=False) as router:
@@ -1179,7 +1179,7 @@ class TestServerErrorBranches:
         """Test stop_recording handles ValueError (no devices configured)."""
         from epiphan_mcp.server import stop_recording
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.device.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(devices="")
             result = await stop_recording.fn(device_id="default", recorder=1)
 
@@ -1192,7 +1192,7 @@ class TestServerErrorBranches:
 
         api_base = f"http://{mock_pearl_host}/api/v2.0"
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.device.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(mock_pearl_host)
 
             with respx.mock(assert_all_called=False) as router:
@@ -1209,7 +1209,7 @@ class TestServerErrorBranches:
         """Test get_recording_status handles ValueError."""
         from epiphan_mcp.server import get_recording_status
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.device.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(devices="")
             result = await get_recording_status.fn(device_id="default", recorder=1)
 
@@ -1222,7 +1222,7 @@ class TestServerErrorBranches:
 
         api_base = f"http://{mock_pearl_host}/api/v2.0"
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.device.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(mock_pearl_host)
 
             with respx.mock(assert_all_called=False) as router:
@@ -1239,7 +1239,7 @@ class TestServerErrorBranches:
         """Test start_stream handles ValueError."""
         from epiphan_mcp.server import start_stream
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.device.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(devices="")
             result = await start_stream.fn(device_id="default", channel=1)
 
@@ -1252,7 +1252,7 @@ class TestServerErrorBranches:
 
         api_base = f"http://{mock_pearl_host}/api/v2.0"
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.device.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(mock_pearl_host)
 
             with respx.mock(assert_all_called=False) as router:
@@ -1269,7 +1269,7 @@ class TestServerErrorBranches:
         """Test stop_stream handles ValueError."""
         from epiphan_mcp.server import stop_stream
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.device.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(devices="")
             result = await stop_stream.fn(device_id="default", channel=1)
 
@@ -1282,7 +1282,7 @@ class TestServerErrorBranches:
 
         api_base = f"http://{mock_pearl_host}/api/v2.0"
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.device.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(mock_pearl_host)
 
             with respx.mock(assert_all_called=False) as router:
@@ -1299,7 +1299,7 @@ class TestServerErrorBranches:
         """Test switch_layout handles ValueError."""
         from epiphan_mcp.server import switch_layout
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.device.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(devices="")
             result = await switch_layout.fn(device_id="default", channel=1, layout_id="layout-1")
 
@@ -1350,7 +1350,7 @@ class TestServerErrorBranches:
         """Test start_recording handles ValueError."""
         from epiphan_mcp.server import start_recording
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.device.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(devices="")
             result = await start_recording.fn(device_id="default", recorder=1)
 
@@ -1398,7 +1398,7 @@ class TestPredictStorageFull:
 
         api_base = f"http://{mock_pearl_host}/api/v2.0"
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.device.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(mock_pearl_host)
 
             with respx.mock(assert_all_called=False) as router:
@@ -1426,7 +1426,7 @@ class TestPredictStorageFull:
 
         api_base = f"http://{mock_pearl_host}/api/v2.0"
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.device.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(mock_pearl_host)
 
             with respx.mock(assert_all_called=False) as router:
@@ -1452,7 +1452,7 @@ class TestPredictStorageFull:
 
         api_base = f"http://{mock_pearl_host}/api/v2.0"
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.device.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(mock_pearl_host)
 
             with respx.mock(assert_all_called=False) as router:
@@ -1477,7 +1477,7 @@ class TestPredictStorageFull:
 
         api_base = f"http://{mock_pearl_host}/api/v2.0"
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.device.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(mock_pearl_host)
 
             with respx.mock(assert_all_called=False) as router:
@@ -1501,7 +1501,7 @@ class TestPredictStorageFull:
         """Test storage prediction with invalid device."""
         from epiphan_mcp.server import predict_storage_full
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.device.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(devices="")
 
             result = await predict_storage_full.fn(device_id="nonexistent")
@@ -1524,7 +1524,7 @@ class TestGetDeviceHealthScore:
 
         api_base = f"http://{mock_pearl_host}/api/v2.0"
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.device.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(mock_pearl_host)
 
             with respx.mock(assert_all_called=False) as router:
@@ -1553,7 +1553,7 @@ class TestGetDeviceHealthScore:
 
         api_base = f"http://{mock_pearl_host}/api/v2.0"
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.device.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(mock_pearl_host)
 
             with respx.mock(assert_all_called=False) as router:
@@ -1580,7 +1580,7 @@ class TestGetDeviceHealthScore:
 
         api_base = f"http://{mock_pearl_host}/api/v2.0"
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.device.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(mock_pearl_host)
 
             with respx.mock(assert_all_called=False) as router:
@@ -1606,7 +1606,7 @@ class TestGetDeviceHealthScore:
 
         api_base = f"http://{mock_pearl_host}/api/v2.0"
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.device.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(mock_pearl_host)
 
             with respx.mock(assert_all_called=False) as router:
@@ -1633,7 +1633,7 @@ class TestGetDeviceHealthScore:
         """Test health score with invalid device (no devices configured)."""
         from epiphan_mcp.server import get_device_health_score
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.device.get_settings") as mock_settings:
             # No devices configured, using "default" should raise ValueError
             mock_settings.return_value = create_test_settings(devices="")
 
@@ -1657,7 +1657,7 @@ class TestListInputs:
 
         api_base = f"http://{mock_pearl_host}/api/v2.0"
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.device.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(mock_pearl_host)
 
             with respx.mock(assert_all_called=False) as router:
@@ -1681,7 +1681,7 @@ class TestListInputs:
         api_base = f"http://{mock_pearl_host}/api/v2.0"
         empty_response = {"status": "ok", "result": []}
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.device.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(mock_pearl_host)
 
             with respx.mock(assert_all_called=False) as router:
@@ -1700,7 +1700,7 @@ class TestListInputs:
 
         api_base = f"http://{mock_pearl_host}/api/v2.0"
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.device.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(mock_pearl_host)
 
             with respx.mock(assert_all_called=False) as router:
@@ -1717,7 +1717,7 @@ class TestListInputs:
         """Test input listing with invalid device."""
         from epiphan_mcp.server import list_inputs
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.device.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(devices="")
 
             result = await list_inputs.fn(device_id="nonexistent")
@@ -1740,7 +1740,7 @@ class TestGetStorageReport:
 
         api_base = f"http://{mock_pearl_host}/api/v2.0"
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.device.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(mock_pearl_host)
 
             with respx.mock(assert_all_called=False) as router:
@@ -1764,7 +1764,7 @@ class TestGetStorageReport:
 
         api_base = f"http://{mock_pearl_host}/api/v2.0"
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.device.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(mock_pearl_host)
 
             with respx.mock(assert_all_called=False) as router:
@@ -1783,7 +1783,7 @@ class TestGetStorageReport:
 
         api_base = f"http://{mock_pearl_host}/api/v2.0"
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.device.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(mock_pearl_host)
 
             with respx.mock(assert_all_called=False) as router:
@@ -1800,7 +1800,7 @@ class TestGetStorageReport:
         """Test storage report with invalid device."""
         from epiphan_mcp.server import get_storage_report
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.device.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(devices="")
 
             result = await get_storage_report.fn(device_id="nonexistent")
@@ -1823,7 +1823,7 @@ class TestGetAfuStatus:
 
         api_base = f"http://{mock_pearl_host}/api/v2.0"
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.device.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(mock_pearl_host)
 
             with respx.mock(assert_all_called=False) as router:
@@ -1868,7 +1868,7 @@ class TestGetAfuStatus:
             ],
         }
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.device.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(mock_pearl_host)
 
             with respx.mock(assert_all_called=False) as router:
@@ -1902,7 +1902,7 @@ class TestGetAfuStatus:
             ],
         }
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.device.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(mock_pearl_host)
 
             with respx.mock(assert_all_called=False) as router:
@@ -1922,7 +1922,7 @@ class TestGetAfuStatus:
         api_base = f"http://{mock_pearl_host}/api/v2.0"
         empty_response = {"status": "ok", "result": []}
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.device.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(mock_pearl_host)
 
             with respx.mock(assert_all_called=False) as router:
@@ -1941,7 +1941,7 @@ class TestGetAfuStatus:
 
         api_base = f"http://{mock_pearl_host}/api/v2.0"
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.device.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(mock_pearl_host)
 
             with respx.mock(assert_all_called=False) as router:
@@ -1958,7 +1958,7 @@ class TestGetAfuStatus:
         """Test AFU status with invalid device."""
         from epiphan_mcp.server import get_afu_status
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.device.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(devices="")
 
             result = await get_afu_status.fn(device_id="nonexistent")

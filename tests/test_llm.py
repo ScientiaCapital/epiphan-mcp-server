@@ -3,27 +3,24 @@
 TDD approach: These tests were written BEFORE the implementation fixes.
 """
 
-import pytest
-from unittest.mock import AsyncMock, patch
 
+import pytest
+
+from epiphan_mcp.llm.analyzer import (
+    ANALYSIS_PROMPTS,
+    AnalysisResult,
+    VideoAnalyzer,
+)
 from epiphan_mcp.llm.config import (
     AnalysisType,
     LLMModel,
     LLMSettings,
-    get_llm_settings,
 )
 from epiphan_mcp.llm.providers import (
-    LLMProvider,
     MockProvider,
     OpenRouterProvider,
     get_provider,
 )
-from epiphan_mcp.llm.analyzer import (
-    AnalysisResult,
-    VideoAnalyzer,
-    ANALYSIS_PROMPTS,
-)
-
 
 # ============================================================
 # Config Tests
@@ -193,14 +190,14 @@ class TestImageValidation:
 
     def test_empty_image_raises_error(self):
         """Empty image data should raise ImageValidationError."""
-        from epiphan_mcp.llm.providers import validate_image, ImageValidationError
+        from epiphan_mcp.llm.providers import ImageValidationError, validate_image
 
         with pytest.raises(ImageValidationError, match="Empty"):
             validate_image(b"")
 
     def test_too_small_image_raises_error(self):
         """Image smaller than minimum should raise error."""
-        from epiphan_mcp.llm.providers import validate_image, ImageValidationError
+        from epiphan_mcp.llm.providers import ImageValidationError, validate_image
 
         with pytest.raises(ImageValidationError, match="too small"):
             validate_image(b"tiny")
@@ -223,7 +220,7 @@ class TestImageValidation:
 
     def test_unsupported_format_raises_error(self):
         """Unsupported image format should raise error."""
-        from epiphan_mcp.llm.providers import validate_image, ImageValidationError
+        from epiphan_mcp.llm.providers import ImageValidationError, validate_image
 
         # GIF magic bytes (not supported)
         gif_data = b"GIF89a" + b"\x00" * 200
@@ -237,10 +234,10 @@ class TestLLMExceptions:
     def test_llm_error_is_base_exception(self):
         """LLMError should be the base for all LLM exceptions."""
         from epiphan_mcp.llm.providers import (
-            LLMError,
-            LLMConnectionError,
-            LLMAPIError,
             ImageValidationError,
+            LLMAPIError,
+            LLMConnectionError,
+            LLMError,
         )
 
         assert issubclass(LLMConnectionError, LLMError)

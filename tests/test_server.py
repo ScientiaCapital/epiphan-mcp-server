@@ -18,12 +18,15 @@ from .fixtures.responses import (
     CONTROL_SUCCESS_RESPONSE,
     DEVICE_RESPONSE,
     ERROR_RESPONSE,
+    EVENTS_RESPONSE,
+    LAYOUTS_RESPONSE,
+    PUBLISHER_STATUS_STOPPED,
+    PUBLISHER_STATUS_STREAMING,
     RECORDER_STATUS_RECORDING,
     RECORDER_STATUS_STOPPED,
-    STORAGE_RESPONSE,
     STORAGE_LOW_SPACE_RESPONSE,
+    STORAGE_RESPONSE,
 )
-
 
 # ============================================================
 # Helper to patch settings
@@ -357,9 +360,231 @@ class TestStopStream:
         assert result["success"] is True
 
 
+class TestGetStreamStatus:
+    """Tests for get_stream_status tool."""
+
+    async def test_get_stream_status_streaming(self, mock_pearl_host: str):
+        """Test getting status of active stream."""
+        from epiphan_mcp.server import get_stream_status
+
+        api_base = f"http://{mock_pearl_host}/api/v2.0"
+
+        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+            mock_settings.return_value = create_test_settings(mock_pearl_host)
+
+            with respx.mock(assert_all_called=False) as router:
+                router.get(f"{api_base}/channels/channel-1/publishers/publisher-1/status").mock(
+                    return_value=Response(200, json=PUBLISHER_STATUS_STREAMING)
+                )
+
+                result = await get_stream_status.fn(
+                    device_id="default", channel=1, publisher="publisher-1"
+                )
+
+        assert result["success"] is True
+        assert result["state"] == "streaming"
+        assert result["duration_seconds"] == 1800
+        assert result["bitrate_bps"] == 6000000
+        assert result["bytes_sent"] == 1350000000
+
+    async def test_get_stream_status_stopped(self, mock_pearl_host: str):
+        """Test getting status of stopped stream."""
+        from epiphan_mcp.server import get_stream_status
+
+        api_base = f"http://{mock_pearl_host}/api/v2.0"
+
+        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+            mock_settings.return_value = create_test_settings(mock_pearl_host)
+
+            with respx.mock(assert_all_called=False) as router:
+                router.get(f"{api_base}/channels/channel-1/publishers/publisher-1/status").mock(
+                    return_value=Response(200, json=PUBLISHER_STATUS_STOPPED)
+                )
+
+                result = await get_stream_status.fn(
+                    device_id="default", channel=1, publisher="publisher-1"
+                )
+
+        assert result["success"] is True
+        assert result["state"] == "stopped"
+        assert result["duration_seconds"] == 0
+
+    async def test_get_stream_status_api_error(self, mock_pearl_host: str):
+        """Test stream status with API error."""
+        from epiphan_mcp.server import get_stream_status
+
+        api_base = f"http://{mock_pearl_host}/api/v2.0"
+
+        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+            mock_settings.return_value = create_test_settings(mock_pearl_host)
+
+            with respx.mock(assert_all_called=False) as router:
+                router.get(f"{api_base}/channels/channel-1/publishers/publisher-1/status").mock(
+                    return_value=Response(200, json=ERROR_RESPONSE)
+                )
+
+                result = await get_stream_status.fn(
+                    device_id="default", channel=1, publisher="publisher-1"
+                )
+
+        assert result["success"] is False
+        assert "error" in result
+
+    async def test_get_stream_status_invalid_device(self):
+        """Test stream status with invalid device ID."""
+        from epiphan_mcp.server import get_stream_status
+
+        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+            mock_settings.return_value = create_test_settings(devices="")
+
+            result = await get_stream_status.fn(
+                device_id="nonexistent", channel=1, publisher="publisher-1"
+            )
+
+        assert result["success"] is False
+        assert "error" in result
+
+
+# ============================================================
+# Bookmark Tool Tests
+# ============================================================
+
+
+class TestAddBookmark:
+    """Tests for add_bookmark tool."""
+
+    async def test_add_bookmark_success(self, mock_pearl_host: str):
+        """Test successful bookmark addition."""
+        from epiphan_mcp.server import add_bookmark
+
+        api_base = f"http://{mock_pearl_host}/api/v2.0"
+
+        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+            mock_settings.return_value = create_test_settings(mock_pearl_host)
+
+            with respx.mock(assert_all_called=False) as router:
+                router.post(f"{api_base}/channels/channel-1/bookmarks").mock(
+                    return_value=Response(200, json=CONTROL_SUCCESS_RESPONSE)
+                )
+
+                result = await add_bookmark.fn(
+                    device_id="default", channel=1, text="Important moment"
+                )
+
+        assert result["success"] is True
+        assert result["channel"] == "channel-1"
+        assert result["text"] == "Important moment"
+
+    async def test_add_bookmark_no_text(self, mock_pearl_host: str):
+        """Test bookmark without text."""
+        from epiphan_mcp.server import add_bookmark
+
+        api_base = f"http://{mock_pearl_host}/api/v2.0"
+
+        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+            mock_settings.return_value = create_test_settings(mock_pearl_host)
+
+            with respx.mock(assert_all_called=False) as router:
+                router.post(f"{api_base}/channels/channel-1/bookmarks").mock(
+                    return_value=Response(200, json=CONTROL_SUCCESS_RESPONSE)
+                )
+
+                result = await add_bookmark.fn(device_id="default", channel=1)
+
+        assert result["success"] is True
+
+    async def test_add_bookmark_api_error(self, mock_pearl_host: str):
+        """Test bookmark with API error."""
+        from epiphan_mcp.server import add_bookmark
+
+        api_base = f"http://{mock_pearl_host}/api/v2.0"
+
+        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+            mock_settings.return_value = create_test_settings(mock_pearl_host)
+
+            with respx.mock(assert_all_called=False) as router:
+                router.post(f"{api_base}/channels/channel-1/bookmarks").mock(
+                    return_value=Response(200, json=ERROR_RESPONSE)
+                )
+
+                result = await add_bookmark.fn(device_id="default", channel=1)
+
+        assert result["success"] is False
+        assert "error" in result
+
+    async def test_add_bookmark_invalid_device(self):
+        """Test bookmark with invalid device."""
+        from epiphan_mcp.server import add_bookmark
+
+        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+            mock_settings.return_value = create_test_settings(devices="")
+
+            result = await add_bookmark.fn(device_id="nonexistent", channel=1)
+
+        assert result["success"] is False
+        assert "error" in result
+
+
 # ============================================================
 # Layout Tool Tests
 # ============================================================
+
+
+class TestListLayouts:
+    """Tests for list_layouts tool."""
+
+    async def test_list_layouts_success(self, mock_pearl_host: str):
+        """Test successful layout listing."""
+        from epiphan_mcp.server import list_layouts
+
+        api_base = f"http://{mock_pearl_host}/api/v2.0"
+
+        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+            mock_settings.return_value = create_test_settings(mock_pearl_host)
+
+            with respx.mock(assert_all_called=False) as router:
+                router.get(f"{api_base}/channels/channel-1/layouts").mock(
+                    return_value=Response(200, json=LAYOUTS_RESPONSE)
+                )
+
+                result = await list_layouts.fn(device_id="default", channel=1)
+
+        assert result["success"] is True
+        assert result["total_layouts"] == 3
+        assert len(result["layouts"]) == 3
+        assert result["layouts"][0]["name"] == "Full Screen"
+        assert result["active_layout"] == "layout-1"
+
+    async def test_list_layouts_api_error(self, mock_pearl_host: str):
+        """Test layout listing with API error."""
+        from epiphan_mcp.server import list_layouts
+
+        api_base = f"http://{mock_pearl_host}/api/v2.0"
+
+        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+            mock_settings.return_value = create_test_settings(mock_pearl_host)
+
+            with respx.mock(assert_all_called=False) as router:
+                router.get(f"{api_base}/channels/channel-1/layouts").mock(
+                    return_value=Response(200, json=ERROR_RESPONSE)
+                )
+
+                result = await list_layouts.fn(device_id="default", channel=1)
+
+        assert result["success"] is False
+        assert "error" in result
+
+    async def test_list_layouts_invalid_device(self):
+        """Test layout listing with invalid device."""
+        from epiphan_mcp.server import list_layouts
+
+        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+            mock_settings.return_value = create_test_settings(devices="")
+
+            result = await list_layouts.fn(device_id="nonexistent", channel=1)
+
+        assert result["success"] is False
+        assert "error" in result
 
 
 class TestSwitchLayout:
@@ -502,8 +727,9 @@ class TestGetFleetStatus:
 
     async def test_get_fleet_status_device_offline(self, mock_pearl_host: str):
         """Test fleet status with offline device."""
-        from epiphan_mcp.server import get_fleet_status
         from httpx import ConnectError
+
+        from epiphan_mcp.server import get_fleet_status
 
         api_base = f"http://{mock_pearl_host}/api/v2.0"
 
@@ -524,6 +750,200 @@ class TestGetFleetStatus:
         assert result["online_devices"] == 0
         assert result["devices"][0]["online"] is False
         assert result["alerts_count"] >= 1
+
+
+# ============================================================
+# Single Touch Tool Tests
+# ============================================================
+
+
+class TestSingleTouchStart:
+    """Tests for single_touch_start tool."""
+
+    async def test_single_touch_start_success(self, mock_pearl_host: str):
+        """Test successful single touch start."""
+        from epiphan_mcp.server import single_touch_start
+
+        api_base = f"http://{mock_pearl_host}/api/v2.0"
+
+        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+            mock_settings.return_value = create_test_settings(mock_pearl_host)
+
+            with respx.mock(assert_all_called=False) as router:
+                router.post(f"{api_base}/singletouch/control/start").mock(
+                    return_value=Response(200, json=CONTROL_SUCCESS_RESPONSE)
+                )
+
+                result = await single_touch_start.fn(device_id="default")
+
+        assert result["success"] is True
+        assert "started" in result["message"].lower()
+
+    async def test_single_touch_start_api_error(self, mock_pearl_host: str):
+        """Test single touch start with API error."""
+        from epiphan_mcp.server import single_touch_start
+
+        api_base = f"http://{mock_pearl_host}/api/v2.0"
+
+        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+            mock_settings.return_value = create_test_settings(mock_pearl_host)
+
+            with respx.mock(assert_all_called=False) as router:
+                router.post(f"{api_base}/singletouch/control/start").mock(
+                    return_value=Response(200, json=ERROR_RESPONSE)
+                )
+
+                result = await single_touch_start.fn(device_id="default")
+
+        assert result["success"] is False
+        assert "error" in result
+
+    async def test_single_touch_start_invalid_device(self):
+        """Test single touch start with invalid device."""
+        from epiphan_mcp.server import single_touch_start
+
+        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+            mock_settings.return_value = create_test_settings(devices="")
+
+            result = await single_touch_start.fn(device_id="nonexistent")
+
+        assert result["success"] is False
+        assert "error" in result
+
+
+class TestSingleTouchStop:
+    """Tests for single_touch_stop tool."""
+
+    async def test_single_touch_stop_success(self, mock_pearl_host: str):
+        """Test successful single touch stop."""
+        from epiphan_mcp.server import single_touch_stop
+
+        api_base = f"http://{mock_pearl_host}/api/v2.0"
+
+        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+            mock_settings.return_value = create_test_settings(mock_pearl_host)
+
+            with respx.mock(assert_all_called=False) as router:
+                router.post(f"{api_base}/singletouch/control/stop").mock(
+                    return_value=Response(200, json=CONTROL_SUCCESS_RESPONSE)
+                )
+
+                result = await single_touch_stop.fn(device_id="default")
+
+        assert result["success"] is True
+        assert "stopped" in result["message"].lower()
+
+    async def test_single_touch_stop_api_error(self, mock_pearl_host: str):
+        """Test single touch stop with API error."""
+        from epiphan_mcp.server import single_touch_stop
+
+        api_base = f"http://{mock_pearl_host}/api/v2.0"
+
+        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+            mock_settings.return_value = create_test_settings(mock_pearl_host)
+
+            with respx.mock(assert_all_called=False) as router:
+                router.post(f"{api_base}/singletouch/control/stop").mock(
+                    return_value=Response(200, json=ERROR_RESPONSE)
+                )
+
+                result = await single_touch_stop.fn(device_id="default")
+
+        assert result["success"] is False
+        assert "error" in result
+
+    async def test_single_touch_stop_invalid_device(self):
+        """Test single touch stop with invalid device."""
+        from epiphan_mcp.server import single_touch_stop
+
+        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+            mock_settings.return_value = create_test_settings(devices="")
+
+            result = await single_touch_stop.fn(device_id="nonexistent")
+
+        assert result["success"] is False
+        assert "error" in result
+
+
+# ============================================================
+# Scheduled Events Tool Tests
+# ============================================================
+
+
+class TestGetScheduledEvents:
+    """Tests for get_scheduled_events tool."""
+
+    async def test_get_scheduled_events_success(self, mock_pearl_host: str):
+        """Test successful retrieval of scheduled events."""
+        from epiphan_mcp.server import get_scheduled_events
+
+        api_base = f"http://{mock_pearl_host}/api/v2.0"
+
+        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+            mock_settings.return_value = create_test_settings(mock_pearl_host)
+
+            with respx.mock(assert_all_called=False) as router:
+                router.get(f"{api_base}/schedule/events").mock(
+                    return_value=Response(200, json=EVENTS_RESPONSE)
+                )
+
+                result = await get_scheduled_events.fn(device_id="default")
+
+        assert result["success"] is True
+        assert result["total_events"] == 2
+        assert len(result["events"]) == 2
+        assert result["events"][0]["name"] == "Morning Lecture"
+
+    async def test_get_scheduled_events_empty(self, mock_pearl_host: str):
+        """Test when no events are scheduled."""
+        from epiphan_mcp.server import get_scheduled_events
+
+        api_base = f"http://{mock_pearl_host}/api/v2.0"
+        empty_response = {"status": "ok", "result": []}
+
+        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+            mock_settings.return_value = create_test_settings(mock_pearl_host)
+
+            with respx.mock(assert_all_called=False) as router:
+                router.get(f"{api_base}/schedule/events").mock(
+                    return_value=Response(200, json=empty_response)
+                )
+
+                result = await get_scheduled_events.fn(device_id="default")
+
+        assert result["success"] is True
+        assert result["total_events"] == 0
+
+    async def test_get_scheduled_events_api_error(self, mock_pearl_host: str):
+        """Test scheduled events with API error."""
+        from epiphan_mcp.server import get_scheduled_events
+
+        api_base = f"http://{mock_pearl_host}/api/v2.0"
+
+        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+            mock_settings.return_value = create_test_settings(mock_pearl_host)
+
+            with respx.mock(assert_all_called=False) as router:
+                router.get(f"{api_base}/schedule/events").mock(
+                    return_value=Response(200, json=ERROR_RESPONSE)
+                )
+
+                result = await get_scheduled_events.fn(device_id="default")
+
+        assert result["success"] is False
+        assert "error" in result
+
+    async def test_get_scheduled_events_invalid_device(self):
+        """Test scheduled events with invalid device."""
+        from epiphan_mcp.server import get_scheduled_events
+
+        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+            mock_settings.return_value = create_test_settings(devices="")
+
+            result = await get_scheduled_events.fn(device_id="nonexistent")
+
+        assert result["success"] is False
+        assert "error" in result
 
 
 class TestBatchStartRecording:
@@ -577,8 +997,9 @@ class TestBatchStartRecording:
 
     async def test_batch_start_partial_failure(self):
         """Test batch start with some failures."""
-        from epiphan_mcp.server import batch_start_recording
         from httpx import ConnectError
+
+        from epiphan_mcp.server import batch_start_recording
 
         devices = "192.168.1.100,192.168.1.101"
         api_base1 = "http://192.168.1.100/api/v2.0"
@@ -885,8 +1306,9 @@ class TestServerErrorBranches:
 
     async def test_batch_stop_recording_partial_failure(self):
         """Test batch_stop_recording with partial failure."""
-        from epiphan_mcp.server import batch_stop_recording
         from httpx import ConnectError
+
+        from epiphan_mcp.server import batch_stop_recording
 
         devices = "192.168.1.100,192.168.1.101"
         api_base1 = "http://192.168.1.100/api/v2.0"
@@ -958,3 +1380,262 @@ class TestServerErrorBranches:
         assert result["success"] is True
         assert result["total_devices"] == 2
         assert result["successful"] == 2
+
+
+# ============================================================
+# Predictive Maintenance Tool Tests
+# ============================================================
+
+
+class TestPredictStorageFull:
+    """Tests for predict_storage_full tool."""
+
+    async def test_predict_storage_recording(self, mock_pearl_host: str):
+        """Test storage prediction while recording."""
+        from epiphan_mcp.server import predict_storage_full
+
+        api_base = f"http://{mock_pearl_host}/api/v2.0"
+
+        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+            mock_settings.return_value = create_test_settings(mock_pearl_host)
+
+            with respx.mock(assert_all_called=False) as router:
+                router.get(f"{api_base}/device").mock(
+                    return_value=Response(200, json=DEVICE_RESPONSE)
+                )
+                router.get(f"{api_base}/storages").mock(
+                    return_value=Response(200, json=STORAGE_RESPONSE)
+                )
+                router.get(f"{api_base}/recorders/recorder-1/status").mock(
+                    return_value=Response(200, json=RECORDER_STATUS_RECORDING)
+                )
+
+                result = await predict_storage_full.fn(device_id="default")
+
+        assert result["success"] is True
+        assert "hours_until_full" in result
+        assert result["hours_until_full"] > 0
+        assert result["is_recording"] is True
+        assert "storage_free_gb" in result
+
+    async def test_predict_storage_not_recording(self, mock_pearl_host: str):
+        """Test storage prediction when not recording."""
+        from epiphan_mcp.server import predict_storage_full
+
+        api_base = f"http://{mock_pearl_host}/api/v2.0"
+
+        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+            mock_settings.return_value = create_test_settings(mock_pearl_host)
+
+            with respx.mock(assert_all_called=False) as router:
+                router.get(f"{api_base}/device").mock(
+                    return_value=Response(200, json=DEVICE_RESPONSE)
+                )
+                router.get(f"{api_base}/storages").mock(
+                    return_value=Response(200, json=STORAGE_RESPONSE)
+                )
+                router.get(f"{api_base}/recorders/recorder-1/status").mock(
+                    return_value=Response(200, json=RECORDER_STATUS_STOPPED)
+                )
+
+                result = await predict_storage_full.fn(device_id="default")
+
+        assert result["success"] is True
+        assert result["is_recording"] is False
+        # Should still provide estimate based on assumed bitrate
+
+    async def test_predict_storage_low_space(self, mock_pearl_host: str):
+        """Test storage prediction with low space warning."""
+        from epiphan_mcp.server import predict_storage_full
+
+        api_base = f"http://{mock_pearl_host}/api/v2.0"
+
+        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+            mock_settings.return_value = create_test_settings(mock_pearl_host)
+
+            with respx.mock(assert_all_called=False) as router:
+                router.get(f"{api_base}/device").mock(
+                    return_value=Response(200, json=DEVICE_RESPONSE)
+                )
+                router.get(f"{api_base}/storages").mock(
+                    return_value=Response(200, json=STORAGE_LOW_SPACE_RESPONSE)
+                )
+                router.get(f"{api_base}/recorders/recorder-1/status").mock(
+                    return_value=Response(200, json=RECORDER_STATUS_RECORDING)
+                )
+
+                result = await predict_storage_full.fn(device_id="default")
+
+        assert result["success"] is True
+        assert result["warning"] is True  # Low space warning
+
+    async def test_predict_storage_api_error(self, mock_pearl_host: str):
+        """Test storage prediction with API error."""
+        from epiphan_mcp.server import predict_storage_full
+
+        api_base = f"http://{mock_pearl_host}/api/v2.0"
+
+        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+            mock_settings.return_value = create_test_settings(mock_pearl_host)
+
+            with respx.mock(assert_all_called=False) as router:
+                router.get(f"{api_base}/device").mock(
+                    return_value=Response(200, json=DEVICE_RESPONSE)
+                )
+                router.get(f"{api_base}/storages").mock(
+                    return_value=Response(200, json=STORAGE_RESPONSE)
+                )
+                # Recorder returns error
+                router.get(f"{api_base}/recorders/recorder-1/status").mock(
+                    return_value=Response(200, json=ERROR_RESPONSE)
+                )
+
+                result = await predict_storage_full.fn(device_id="default")
+
+        assert result["success"] is False
+        assert "error" in result
+
+    async def test_predict_storage_invalid_device(self):
+        """Test storage prediction with invalid device."""
+        from epiphan_mcp.server import predict_storage_full
+
+        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+            mock_settings.return_value = create_test_settings(devices="")
+
+            result = await predict_storage_full.fn(device_id="nonexistent")
+
+        assert result["success"] is False
+        assert "error" in result
+
+
+# ============================================================
+# Device Health Score Tool Tests
+# ============================================================
+
+
+class TestGetDeviceHealthScore:
+    """Tests for get_device_health_score AI tool."""
+
+    async def test_health_score_healthy_device(self, mock_pearl_host: str):
+        """Test health score for a fully healthy device."""
+        from epiphan_mcp.server import get_device_health_score
+
+        api_base = f"http://{mock_pearl_host}/api/v2.0"
+
+        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+            mock_settings.return_value = create_test_settings(mock_pearl_host)
+
+            with respx.mock(assert_all_called=False) as router:
+                router.get(f"{api_base}/device").mock(
+                    return_value=Response(200, json=DEVICE_RESPONSE)
+                )
+                router.get(f"{api_base}/storages").mock(
+                    return_value=Response(200, json=STORAGE_RESPONSE)
+                )
+                router.get(f"{api_base}/recorders/recorder-1/status").mock(
+                    return_value=Response(200, json=RECORDER_STATUS_STOPPED)
+                )
+
+                result = await get_device_health_score.fn(device_id="default")
+
+        assert result["success"] is True
+        assert "score" in result
+        assert 0 <= result["score"] <= 100
+        assert result["score"] >= 80  # Healthy device should score high
+        assert "categories" in result
+        assert "storage" in result["categories"]
+
+    async def test_health_score_low_storage(self, mock_pearl_host: str):
+        """Test health score with low storage warning."""
+        from epiphan_mcp.server import get_device_health_score
+
+        api_base = f"http://{mock_pearl_host}/api/v2.0"
+
+        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+            mock_settings.return_value = create_test_settings(mock_pearl_host)
+
+            with respx.mock(assert_all_called=False) as router:
+                router.get(f"{api_base}/device").mock(
+                    return_value=Response(200, json=DEVICE_RESPONSE)
+                )
+                router.get(f"{api_base}/storages").mock(
+                    return_value=Response(200, json=STORAGE_LOW_SPACE_RESPONSE)
+                )
+                router.get(f"{api_base}/recorders/recorder-1/status").mock(
+                    return_value=Response(200, json=RECORDER_STATUS_STOPPED)
+                )
+
+                result = await get_device_health_score.fn(device_id="default")
+
+        assert result["success"] is True
+        assert result["score"] < 80  # Should be penalized for low storage
+        assert result["categories"]["storage"]["healthy"] is False
+        assert "issues" in result
+
+    async def test_health_score_recording_active(self, mock_pearl_host: str):
+        """Test health score while recording (should still be healthy)."""
+        from epiphan_mcp.server import get_device_health_score
+
+        api_base = f"http://{mock_pearl_host}/api/v2.0"
+
+        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+            mock_settings.return_value = create_test_settings(mock_pearl_host)
+
+            with respx.mock(assert_all_called=False) as router:
+                router.get(f"{api_base}/device").mock(
+                    return_value=Response(200, json=DEVICE_RESPONSE)
+                )
+                router.get(f"{api_base}/storages").mock(
+                    return_value=Response(200, json=STORAGE_RESPONSE)
+                )
+                router.get(f"{api_base}/recorders/recorder-1/status").mock(
+                    return_value=Response(200, json=RECORDER_STATUS_RECORDING)
+                )
+
+                result = await get_device_health_score.fn(device_id="default")
+
+        assert result["success"] is True
+        assert result["score"] >= 80  # Recording is normal operation
+        assert result["is_recording"] is True
+
+    async def test_health_score_api_error(self, mock_pearl_host: str):
+        """Test health score with API error (recorder returns error)."""
+        from epiphan_mcp.server import get_device_health_score
+
+        api_base = f"http://{mock_pearl_host}/api/v2.0"
+
+        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+            mock_settings.return_value = create_test_settings(mock_pearl_host)
+
+            with respx.mock(assert_all_called=False) as router:
+                # Device and storage work
+                router.get(f"{api_base}/device").mock(
+                    return_value=Response(200, json=DEVICE_RESPONSE)
+                )
+                router.get(f"{api_base}/storages").mock(
+                    return_value=Response(200, json=STORAGE_RESPONSE)
+                )
+                # Recorder returns error
+                router.get(f"{api_base}/recorders/recorder-1/status").mock(
+                    return_value=Response(200, json=ERROR_RESPONSE)
+                )
+
+                result = await get_device_health_score.fn(device_id="default")
+
+        # Should succeed with degraded recording score (not a total failure)
+        assert result["success"] is True
+        assert result["categories"]["recording"]["healthy"] is False
+        assert "Could not check recorder status" in result["issues"]
+
+    async def test_health_score_invalid_device(self):
+        """Test health score with invalid device (no devices configured)."""
+        from epiphan_mcp.server import get_device_health_score
+
+        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+            # No devices configured, using "default" should raise ValueError
+            mock_settings.return_value = create_test_settings(devices="")
+
+            result = await get_device_health_score.fn(device_id="default")
+
+        assert result["success"] is False
+        assert "error" in result

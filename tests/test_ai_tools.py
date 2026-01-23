@@ -4,22 +4,20 @@ TDD approach: These tests were written BEFORE implementation fixes.
 Tests use mocked Pearl client and LLM provider.
 """
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 import respx
 from httpx import Response
 
+from epiphan_mcp.llm.config import LLMSettings
 from epiphan_mcp.tools.ai_tools import (
     analyze_channel_scene,
-    extract_text_from_preview,
-    detect_layout_changes,
     check_video_quality,
     clear_change_detection_cache,
-    get_analyzer,
-    _get_channel_preview,
+    detect_layout_changes,
+    extract_text_from_preview,
 )
-from epiphan_mcp.llm.config import LLMSettings
-
 
 # ============================================================
 # Fixtures

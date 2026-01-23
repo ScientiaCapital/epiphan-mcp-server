@@ -468,6 +468,22 @@ class PearlClient:
             details={"channel": channel_id, "text": text},
         )
 
+    async def get_layouts(self, channel_id: str) -> list[dict[str, Any]]:
+        """
+        Get available layouts for a channel.
+
+        GET /channels/{cid}/layouts
+
+        Args:
+            channel_id: Channel ID
+
+        Returns:
+            List of layout objects with id, name, and is_active flag.
+        """
+        data = await self._get(f"/channels/{channel_id}/layouts")
+        result: list[dict[str, Any]] = data.get("result", [])
+        return result
+
     # ========== Publishers (Streams) ==========
 
     async def get_publishers(self, channel_id: str) -> list[dict[str, Any]]:

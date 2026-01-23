@@ -170,6 +170,31 @@ CHANNELS_RESPONSE = {
 }
 
 # ============================================================
+# Layout Responses
+# ============================================================
+
+LAYOUTS_RESPONSE = {
+    "status": "ok",
+    "result": [
+        {
+            "id": "layout-1",
+            "name": "Full Screen",
+            "is_active": True,
+        },
+        {
+            "id": "layout-2",
+            "name": "Picture in Picture",
+            "is_active": False,
+        },
+        {
+            "id": "layout-3",
+            "name": "Side by Side",
+            "is_active": False,
+        },
+    ],
+}
+
+# ============================================================
 # Publisher (Streaming) Responses
 # ============================================================
 

@@ -3,14 +3,12 @@
 Uses respx for HTTP mocking with httpx async client.
 """
 
-import os
 import pytest
 import respx
 from httpx import Response
 
 from epiphan_mcp.client import PearlClient
 from epiphan_mcp.config import Settings
-
 
 # ============================================================
 # Environment Isolation for LLM Tests
@@ -54,6 +52,7 @@ from .fixtures.responses import (
     CONTROL_SUCCESS_RESPONSE,
     DEVICE_RESPONSE,
     INPUTS_RESPONSE,
+    LAYOUTS_RESPONSE,
     PUBLISHER_STATUS_STOPPED,
     PUBLISHER_STATUS_STREAMING,
     PUBLISHERS_RESPONSE,
@@ -62,7 +61,6 @@ from .fixtures.responses import (
     RECORDERS_RESPONSE,
     STORAGE_RESPONSE,
 )
-
 
 # ============================================================
 # Configuration Fixtures
@@ -241,6 +239,10 @@ def mock_channel_routes(respx_mock, mock_api_base: str):
     # Bookmarks
     respx_mock.post(f"{mock_api_base}/channels/channel-1/bookmarks").mock(
         return_value=Response(200, json=CONTROL_SUCCESS_RESPONSE)
+    )
+    # Layouts
+    respx_mock.get(f"{mock_api_base}/channels/channel-1/layouts").mock(
+        return_value=Response(200, json=LAYOUTS_RESPONSE)
     )
     return respx_mock
 

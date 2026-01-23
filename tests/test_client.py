@@ -4,10 +4,9 @@ Tests the Pearl REST API v2.0 client implementation using mocked HTTP responses.
 """
 
 import pytest
-import respx
-from httpx import Response, ConnectError
+from httpx import ConnectError, Response
 
-from epiphan_mcp.client import PearlClient, PearlAPIError
+from epiphan_mcp.client import PearlAPIError, PearlClient
 from epiphan_mcp.models import RecordingState, StreamingState
 
 from .fixtures.responses import (
@@ -16,7 +15,6 @@ from .fixtures.responses import (
     ERROR_RESPONSE,
     RECORDER_STATUS_RECORDING,
 )
-
 
 # ============================================================
 # Client Initialization Tests
@@ -231,6 +229,16 @@ class TestChannelOperations:
 
         assert result.success is True
         assert result.details["text"] == "Important moment"
+
+    async def test_get_layouts(self, pearl_client: PearlClient, mock_channel_routes):
+        """Test getting layouts for a channel."""
+        async with pearl_client as client:
+            layouts = await client.get_layouts("channel-1")
+
+        assert len(layouts) == 3
+        assert layouts[0]["id"] == "layout-1"
+        assert layouts[0]["name"] == "Full Screen"
+        assert layouts[0]["is_active"] is True
 
 
 # ============================================================

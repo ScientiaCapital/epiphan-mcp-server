@@ -76,6 +76,7 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/v')
 
     permissions:
+      contents: read   # Required to checkout private repo
       id-token: write  # Required for trusted publishing
 
     steps:

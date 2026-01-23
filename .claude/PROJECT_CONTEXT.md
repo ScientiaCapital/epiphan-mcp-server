@@ -3,34 +3,41 @@
 **Branch**: main | **Updated**: 2026-01-23
 
 ## Status
-MCP server for Epiphan Pearl video capture devices. Phase 4 (AI-powered video analysis) implemented with OpenRouter integration supporting Claude, Gemini, DeepSeek, and Qwen models. 165 tests passing with 93% coverage.
+MCP server for Epiphan Pearl video capture devices. Sprint 2 complete - added 7 new MCP tools + 2 AI moat features (predictive maintenance). 197 tests passing with 92% coverage. Ready for launch preparation.
 
 ## Today's Focus
-1. [x] Security scan - secrets audit complete, no issues
-2. [x] Dependency audit - pydantic CVE-2024-3772 noted (version already compliant)
-3. [x] Code review - new AI tools reviewed, clean architecture
-4. [x] Tests - 165 passed, 93% coverage
-5. [ ] Commit uncommitted changes (7 modified + 5 new files)
+1. [x] Sprint 2 MCP Tools (get_stream_status, add_bookmark, single_touch_start/stop, get_scheduled_events, list_layouts)
+2. [x] AI Moat Features (predict_storage_full, get_device_health_score)
+3. [x] TDD implementation - all tools test-first
+4. [x] Code review and quality checks
+5. [x] Commit and push to main
 
 ## Done (This Session)
-- Audited 7 modified files + 5 untracked files
-- Verified no hardcoded secrets in codebase or git history
-- Ran full test suite with coverage
-- Created PROJECT_CONTEXT.md
+- Implemented 7 new MCP tools using TDD (31 new tests)
+- Added predict_storage_full (AI predictive maintenance)
+- Added get_device_health_score (AI health scoring 0-100)
+- Fixed ruff and mypy linting issues
+- Committed ee6caab: "feat: Add Sprint 2 MCP tools and AI predictive maintenance"
+- Pushed to origin/main
+- Security audit: no hardcoded secrets in code or git history
+- All 197 tests passing, 92% coverage
 
 ## Blockers
-None - ready for commit
+None
 
 ## Tech Stack
 Python 3.11+ | FastMCP | httpx | Pydantic v2 | OpenRouter (multi-model gateway)
 
-## Recent Changes
-- Added AI-powered analysis tools (5 new MCP tools)
-- LLM integration via OpenRouter (not OpenAI - per project rules)
-- New modules: `src/epiphan_mcp/llm/` and `src/epiphan_mcp/tools/ai_tools.py`
-- Comprehensive tests for all new functionality
+## Metrics
+| Metric | Value |
+|--------|-------|
+| Tests | 197 passing |
+| Coverage | 92% |
+| MCP Tools | 19 total |
+| AI Tools | 6 (4 vision + 2 predictive) |
 
 ## Next Session
-- Consider increasing test coverage for OpenRouter error paths (currently 68%)
-- Pin pydantic to `>=2.4.0` for CVE mitigation
-- Document new AI tools in README.md
+1. Update README.md with new tools documentation
+2. Sprint 3: Additional moat features (if desired)
+3. Consider PyPI publish when ready to exit stealth mode
+4. Outreach to Epiphan Higher Ed accounts

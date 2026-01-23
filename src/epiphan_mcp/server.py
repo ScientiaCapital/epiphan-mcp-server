@@ -5,8 +5,23 @@ from typing import Any
 
 from fastmcp import FastMCP
 
-from .client import PearlClient, PearlAPIError
+from .client import PearlAPIError, PearlClient
 from .config import get_settings
+from .tools.ai_tools import (
+    analyze_channel_scene as _analyze_channel_scene,
+)
+from .tools.ai_tools import (
+    check_video_quality as _check_video_quality,
+)
+from .tools.ai_tools import (
+    clear_change_detection_cache as _clear_change_detection_cache,
+)
+from .tools.ai_tools import (
+    detect_layout_changes as _detect_layout_changes,
+)
+from .tools.ai_tools import (
+    extract_text_from_preview as _extract_text_from_preview,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -526,3 +541,195 @@ async def batch_stop_recording(device_ids: str = "all") -> dict[str, Any]:
         "failed": len(hosts) - success_count,
         "results": results,
     }
+
+
+# ============================================================
+# AI-Powered Analysis Tools (Phase 4)
+# ============================================================
+# These tools use vision LLMs to analyze video content from Pearl channels.
+# Requires OPENROUTER_API_KEY environment variable for real analysis.
+# Falls back to mock responses if not configured.
+
+
+@mcp.tool()
+async def analyze_channel_scene(
+    device_id: str = "default",
+    channel: str = "1",
+    analysis_type: str = "scene_description",
+) -> dict[str, Any]:
+    """
+    Analyze the current scene on a Pearl channel using AI vision.
+
+    Uses a vision-capable LLM to understand what's currently being captured,
+    enabling intelligent automation and monitoring for video production.
+
+    Args:
+        device_id: Pearl device identifier. Use "default" for the first configured device.
+        channel: Channel ID to analyze (e.g., "1", "2").
+        analysis_type: Type of analysis to perform:
+            - "scene_description": General description of what's on screen
+            - "content_detection": Classify content type and subject matter
+            - "quality_check": Technical quality assessment (lighting, focus, framing)
+            - "text_extraction": OCR to extract visible text (slides, graphics)
+            - "presenter_detection": Detect and describe presenters in frame
+
+    Returns:
+        Analysis results including AI description, model used, and metadata.
+
+    Examples:
+        >>> # Describe what's happening on channel 1
+        >>> await analyze_channel_scene(channel="1", analysis_type="scene_description")
+
+        >>> # Check video quality during a live event
+        >>> await analyze_channel_scene(channel="1", analysis_type="quality_check")
+
+        >>> # Extract text from presentation slides
+        >>> await analyze_channel_scene(channel="1", analysis_type="text_extraction")
+    """
+    return await _analyze_channel_scene(
+        device_id=device_id,
+        channel=channel,
+        analysis_type=analysis_type,  # type: ignore
+    )
+
+
+@mcp.tool()
+async def extract_text_from_preview(
+    device_id: str = "default",
+    channel: str = "1",
+) -> dict[str, Any]:
+    """
+    Extract visible text from a Pearl channel preview using AI OCR.
+
+    Uses a vision LLM optimized for text recognition (Qwen VL) to read text
+    from presentations, slides, lower thirds, and other on-screen graphics.
+
+    Useful for:
+    - Automated captioning and transcription
+    - Content indexing and search
+    - Slide detection and chapter markers
+    - Compliance monitoring (detecting required disclosures)
+
+    Args:
+        device_id: Pearl device identifier.
+        channel: Channel ID to analyze.
+
+    Returns:
+        Extracted text content organized by location/type.
+
+    Example:
+        >>> result = await extract_text_from_preview(channel="1")
+        >>> print(result["text"])
+        "Title: Introduction to Machine Learning
+         Subtitle: Chapter 3 - Neural Networks
+         Footer: Presented by Dr. Smith"
+    """
+    return await _extract_text_from_preview(device_id=device_id, channel=channel)
+
+
+@mcp.tool()
+async def detect_layout_changes(
+    device_id: str = "default",
+    channel: str = "1",
+    sensitivity: str = "medium",
+) -> dict[str, Any]:
+    """
+    Detect if the channel content has changed since last check.
+
+    Monitors a channel for significant changes like scene transitions,
+    slide advances, or presenter movement. Uses efficient image hashing
+    for quick comparisons, with AI analysis to describe detected changes.
+
+    Useful for:
+    - Automated recording triggers on scene changes
+    - Event logging and chapter markers
+    - Slide advance detection for presentations
+    - Production monitoring and alerts
+
+    Args:
+        device_id: Pearl device identifier.
+        channel: Channel ID to monitor.
+        sensitivity: Change detection sensitivity:
+            - "low": Only detect major scene changes (cuts, transitions)
+            - "medium": Detect slide changes, significant presenter movement
+            - "high": Detect any visible changes (subtle movements)
+
+    Returns:
+        Change detection results including whether change occurred and description.
+
+    Example:
+        >>> # First call establishes baseline
+        >>> result = await detect_layout_changes(channel="1")
+        >>> print(result["changed"])  # False (first frame)
+
+        >>> # Later call detects changes
+        >>> result = await detect_layout_changes(channel="1")
+        >>> if result["changed"]:
+        ...     print(result["message"])  # "Slide advanced to new content"
+    """
+    return await _detect_layout_changes(
+        device_id=device_id,
+        channel=channel,
+        sensitivity=sensitivity,  # type: ignore
+    )
+
+
+@mcp.tool()
+async def check_video_quality(
+    device_id: str = "default",
+    channel: str = "1",
+) -> dict[str, Any]:
+    """
+    Check video quality on a Pearl channel using AI analysis.
+
+    Analyzes the current frame for technical quality issues and provides
+    actionable feedback for production improvement.
+
+    Checks for:
+    - Lighting issues (over/underexposed areas, uneven lighting)
+    - Focus problems (blur, soft focus)
+    - Framing issues (headroom, rule of thirds, cropping)
+    - Visible artifacts or technical problems
+    - Overall production quality rating
+
+    Args:
+        device_id: Pearl device identifier.
+        channel: Channel ID to check.
+
+    Returns:
+        Quality assessment with specific issues and recommendations.
+
+    Example:
+        >>> result = await check_video_quality(channel="1")
+        >>> print(result["quality_report"])
+        "Video quality assessment:
+        - Lighting: Good, even illumination
+        - Focus: Sharp
+        - Framing: Presenter has adequate headroom
+        - Issues: None detected
+        Overall quality: Excellent"
+    """
+    return await _check_video_quality(device_id=device_id, channel=channel)
+
+
+@mcp.tool()
+async def clear_change_detection_cache(
+    device_id: str | None = None,
+    channel: str | None = None,
+) -> dict[str, Any]:
+    """
+    Clear the change detection cache.
+
+    Resets stored frames used for change detection. Call this when:
+    - Starting a new monitoring session
+    - After intentional content changes
+    - When resetting the baseline for comparison
+
+    Args:
+        device_id: Specific device to clear (None for all devices).
+        channel: Specific channel to clear (None for all channels on device).
+
+    Returns:
+        Confirmation of cache clear.
+    """
+    return await _clear_change_detection_cache(device_id=device_id, channel=channel)

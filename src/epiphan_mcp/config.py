@@ -1,7 +1,6 @@
 """Configuration management for Epiphan MCP Server."""
 
 from functools import lru_cache
-from typing import Optional
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -26,7 +25,7 @@ class Settings(BaseSettings):
     password: str = Field(default="", description="Pearl admin password")
 
     # Optional API key auth (if supported by firmware)
-    api_key: Optional[str] = Field(default=None, description="Pearl API key")
+    api_key: str | None = Field(default=None, description="Pearl API key")
 
     # Connection settings
     use_https: bool = Field(default=False, description="Use HTTPS for connections")
@@ -37,7 +36,7 @@ class Settings(BaseSettings):
     fleet_name: str = Field(default="default", description="Fleet identifier")
 
     # Testing
-    test_ip: Optional[str] = Field(
+    test_ip: str | None = Field(
         default=None, description="Pearl IP for integration tests"
     )
 

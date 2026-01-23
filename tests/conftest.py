@@ -3,12 +3,50 @@
 Uses respx for HTTP mocking with httpx async client.
 """
 
+import os
 import pytest
 import respx
 from httpx import Response
 
 from epiphan_mcp.client import PearlClient
 from epiphan_mcp.config import Settings
+
+
+# ============================================================
+# Environment Isolation for LLM Tests
+# ============================================================
+
+
+@pytest.fixture
+def isolated_llm_env(monkeypatch):
+    """
+    Isolate LLM settings from environment variables.
+
+    Use this fixture when testing LLM config to ensure tests don't
+    pick up real API keys from the environment.
+    """
+    # Remove any LLM-related env vars
+    env_vars_to_clear = [
+        "OPENROUTER_API_KEY",
+        "LLM_MOCK_MODE",
+        "LLM_VISION_MODEL",
+        "LLM_TEXT_MODEL",
+        "LLM_OCR_MODEL",
+        "LLM_QUALITY_MODEL",
+        "LLM_MAX_TOKENS",
+        "LLM_RATE_LIMIT",
+    ]
+    for var in env_vars_to_clear:
+        monkeypatch.delenv(var, raising=False)
+
+    # Also clear the lru_cache on get_llm_settings
+    from epiphan_mcp.llm.config import get_llm_settings
+    get_llm_settings.cache_clear()
+
+    yield
+
+    # Clear cache again after test
+    get_llm_settings.cache_clear()
 
 from .fixtures.responses import (
     ARCHIVE_FILES_RESPONSE,

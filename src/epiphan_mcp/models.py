@@ -6,10 +6,9 @@ https://epiphan-video.github.io/pearl_api_swagger_ui/api/v2.0/openapi.yml
 
 from datetime import datetime
 from enum import Enum
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
-
 
 # ============================================================
 # Enums
@@ -108,9 +107,9 @@ class SystemStatus(BaseModel):
     storage_total_gb: float = Field(default=0, description="Total storage in GB")
     storage_free_gb: float = Field(default=0, description="Free storage in GB")
     storage_used_percent: float = Field(default=0, description="Storage used %")
-    cpu_usage: Optional[float] = Field(default=None, description="CPU usage %")
-    memory_usage: Optional[float] = Field(default=None, description="Memory usage %")
-    temperature: Optional[float] = Field(default=None, description="System temp in C")
+    cpu_usage: float | None = Field(default=None, description="CPU usage %")
+    memory_usage: float | None = Field(default=None, description="Memory usage %")
+    temperature: float | None = Field(default=None, description="System temp in C")
 
     model_config = ConfigDict(extra="allow")
 
@@ -133,7 +132,7 @@ class RecorderInfo(BaseModel):
     id: str = Field(description="Recorder ID (e.g., 'recorder-1')")
     name: str = Field(default="", description="Recorder name")
     type: str = Field(default="", description="Recorder type")
-    channel_id: Optional[str] = Field(default=None, description="Associated channel")
+    channel_id: str | None = Field(default=None, description="Associated channel")
 
 
 class RecorderStatus(BaseModel):
@@ -146,7 +145,7 @@ class RecorderStatus(BaseModel):
     duration_seconds: int = Field(default=0, alias="duration", description="Duration")
     file_size_bytes: int = Field(default=0, alias="file_size", description="File size")
     filename: str = Field(default="", description="Current filename")
-    bitrate: Optional[int] = Field(default=None, description="Recording bitrate")
+    bitrate: int | None = Field(default=None, description="Recording bitrate")
 
 
 # ============================================================
@@ -172,7 +171,7 @@ class ChannelInfo(BaseModel):
     id: str = Field(description="Channel ID")
     name: str = Field(default="", description="Channel name")
     layouts: list[LayoutInfo] = Field(default_factory=list, description="Layouts")
-    active_layout: Optional[str] = Field(default=None, description="Active layout ID")
+    active_layout: str | None = Field(default=None, description="Active layout ID")
 
 
 class ChannelParams(BaseModel):
@@ -181,12 +180,12 @@ class ChannelParams(BaseModel):
     model_config = ConfigDict(extra="allow")
 
     channel_id: int = Field(description="Channel number")
-    name: Optional[str] = Field(default=None, description="Channel name")
+    name: str | None = Field(default=None, description="Channel name")
     rec_enabled: bool = Field(default=False, description="Recording enabled")
-    publish_type: Optional[int] = Field(default=None, description="Publish type")
-    framesize: Optional[str] = Field(default=None, description="Frame size")
-    framerate: Optional[float] = Field(default=None, description="Frame rate")
-    bitrate: Optional[int] = Field(default=None, description="Bitrate in kbps")
+    publish_type: int | None = Field(default=None, description="Publish type")
+    framesize: str | None = Field(default=None, description="Frame size")
+    framerate: float | None = Field(default=None, description="Frame rate")
+    bitrate: int | None = Field(default=None, description="Bitrate in kbps")
 
 
 # ============================================================
@@ -213,11 +212,11 @@ class PublisherStatus(BaseModel):
     id: str = Field(default="", description="Publisher ID")
     state: StreamingState = Field(default=StreamingState.STOPPED, description="State")
     duration_seconds: int = Field(default=0, alias="duration", description="Duration")
-    bitrate_actual: Optional[int] = Field(default=None, description="Actual bitrate")
+    bitrate_actual: int | None = Field(default=None, description="Actual bitrate")
     bytes_sent: int = Field(default=0, description="Total bytes sent")
-    viewers: Optional[int] = Field(default=None, description="Number of viewers")
+    viewers: int | None = Field(default=None, description="Number of viewers")
     destination: str = Field(default="", description="Destination URL")
-    error_message: Optional[str] = Field(default=None, description="Error if any")
+    error_message: str | None = Field(default=None, description="Error if any")
 
 
 class StreamStatus(BaseModel):
@@ -227,10 +226,10 @@ class StreamStatus(BaseModel):
 
     channel_id: int = Field(description="Channel number")
     state: StreamingState = Field(description="Current streaming state")
-    destination: Optional[str] = Field(default=None, description="Stream URL")
-    bitrate_actual: Optional[int] = Field(default=None, description="Actual kbps")
-    viewers: Optional[int] = Field(default=None, description="Number of viewers")
-    uptime_seconds: Optional[int] = Field(default=None, description="Stream uptime")
+    destination: str | None = Field(default=None, description="Stream URL")
+    bitrate_actual: int | None = Field(default=None, description="Actual kbps")
+    viewers: int | None = Field(default=None, description="Number of viewers")
+    uptime_seconds: int | None = Field(default=None, description="Stream uptime")
 
 
 # ============================================================
@@ -247,8 +246,8 @@ class InputSource(BaseModel):
     name: str = Field(default="", description="Source name")
     type: str = Field(default="", alias="source_type", description="Source type")
     connected: bool = Field(default=False, description="Whether connected")
-    resolution: Optional[str] = Field(default=None, description="Input resolution")
-    framerate: Optional[float] = Field(default=None, description="Input framerate")
+    resolution: str | None = Field(default=None, description="Input resolution")
+    framerate: float | None = Field(default=None, description="Input framerate")
     has_signal: bool = Field(default=False, description="Whether has signal")
 
 
@@ -282,8 +281,8 @@ class Recording(BaseModel):
     path: str = Field(default="", description="Full path on device")
     size_bytes: int = Field(default=0, alias="size", description="File size")
     duration_seconds: int = Field(default=0, alias="duration", description="Duration")
-    created_at: Optional[datetime] = Field(default=None, description="Creation time")
-    recorder_id: Optional[str] = Field(default=None, description="Source recorder")
+    created_at: datetime | None = Field(default=None, description="Creation time")
+    recorder_id: str | None = Field(default=None, description="Source recorder")
 
 
 # ============================================================
@@ -299,9 +298,9 @@ class ScheduledEvent(BaseModel):
     id: str = Field(description="Event ID")
     name: str = Field(default="", description="Event name")
     status: str = Field(default="", description="Event status")
-    start_time: Optional[datetime] = Field(default=None, description="Start time")
-    end_time: Optional[datetime] = Field(default=None, description="End time")
-    cms_type: Optional[str] = Field(default=None, description="CMS type")
+    start_time: datetime | None = Field(default=None, description="Start time")
+    end_time: datetime | None = Field(default=None, description="End time")
+    cms_type: str | None = Field(default=None, description="CMS type")
 
 
 # ============================================================
@@ -315,12 +314,12 @@ class DeviceInfo(BaseModel):
     model_config = ConfigDict(extra="allow")
 
     host: str = Field(description="Device hostname or IP")
-    name: Optional[str] = Field(default=None, description="Device name")
-    model: Optional[str] = Field(default=None, description="Pearl model")
-    serial: Optional[str] = Field(default=None, description="Serial number")
-    firmware: Optional[str] = Field(default=None, description="Firmware version")
+    name: str | None = Field(default=None, description="Device name")
+    model: str | None = Field(default=None, description="Pearl model")
+    serial: str | None = Field(default=None, description="Serial number")
+    firmware: str | None = Field(default=None, description="Firmware version")
     online: bool = Field(default=False, description="Whether device is reachable")
-    status: Optional[SystemStatus] = Field(default=None, description="System status")
+    status: SystemStatus | None = Field(default=None, description="System status")
     channels: list[ChannelInfo] = Field(default_factory=list, description="Channels")
     recorders: list[RecorderInfo] = Field(default_factory=list, description="Recorders")
 
@@ -352,7 +351,7 @@ class OperationResult(BaseModel):
     success: bool = Field(description="Whether operation succeeded")
     message: str = Field(description="Result message")
     device: str = Field(default="", description="Device host")
-    details: Optional[dict[str, Any]] = Field(default=None, description="Details")
+    details: dict[str, Any] | None = Field(default=None, description="Details")
 
 
 class BatchOperationResult(BaseModel):
@@ -385,7 +384,7 @@ class Alert(BaseModel):
     severity: str = Field(description="Alert severity: info, warning, error")
     message: str = Field(description="Alert message")
     timestamp: datetime = Field(default_factory=datetime.now, description="Timestamp")
-    details: Optional[dict[str, Any]] = Field(default=None, description="Details")
+    details: dict[str, Any] | None = Field(default=None, description="Details")
 
 
 # ============================================================

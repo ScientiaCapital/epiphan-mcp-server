@@ -7,7 +7,7 @@ Requires firmware 4.14.2+ with password authentication.
 """
 
 import logging
-from typing import Any, Optional
+from typing import Any
 
 import httpx
 
@@ -15,12 +15,10 @@ from .config import Settings, get_settings
 from .models import (
     ChannelInfo,
     InputSource,
-    Layout,
     OperationResult,
     PublisherStatus,
     RecorderInfo,
     RecorderStatus,
-    RecordingState,
     StorageInfo,
     SystemStatus,
 )
@@ -34,7 +32,7 @@ API_V2_BASE = "/api/v2.0"
 class PearlAPIError(Exception):
     """Exception raised for Pearl API errors."""
 
-    def __init__(self, message: str, status_code: Optional[int] = None, api_status: Optional[str] = None):
+    def __init__(self, message: str, status_code: int | None = None, api_status: str | None = None):
         super().__init__(message)
         self.status_code = status_code
         self.api_status = api_status  # 'ok', 'error', or 'busy'
@@ -84,10 +82,10 @@ class PearlClient:
         self.auth = httpx.BasicAuth(username, password)
         self.timeout = timeout
         self.verify_ssl = verify_ssl
-        self._client: Optional[httpx.AsyncClient] = None
+        self._client: httpx.AsyncClient | None = None
 
     @classmethod
-    def from_settings(cls, host: str, settings: Optional[Settings] = None) -> "PearlClient":
+    def from_settings(cls, host: str, settings: Settings | None = None) -> "PearlClient":
         """Create client from settings."""
         settings = settings or get_settings()
         return cls(
@@ -146,7 +144,7 @@ class PearlClient:
         if "application/json" not in content_type:
             return {"status": "ok", "result": response.content}
 
-        data = response.json()
+        data: dict[str, Any] = response.json()
         status = data.get("status", "ok")
 
         if status == "error":
@@ -160,7 +158,7 @@ class PearlClient:
 
         return data
 
-    async def _get(self, path: str, params: Optional[dict[str, Any]] = None) -> dict[str, Any]:
+    async def _get(self, path: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
         """Make GET request to API v2.0 endpoint."""
         try:
             response = await self.client.get(path, params=params)
@@ -170,7 +168,7 @@ class PearlClient:
             raise PearlAPIError(str(e)) from e
 
     async def _post(
-        self, path: str, params: Optional[dict[str, Any]] = None, json: Optional[dict[str, Any]] = None
+        self, path: str, params: dict[str, Any] | None = None, json: dict[str, Any] | None = None
     ) -> dict[str, Any]:
         """Make POST request to API v2.0 endpoint."""
         try:
@@ -181,7 +179,7 @@ class PearlClient:
             raise PearlAPIError(str(e)) from e
 
     async def _put(
-        self, path: str, params: Optional[dict[str, Any]] = None, json: Optional[dict[str, Any]] = None
+        self, path: str, params: dict[str, Any] | None = None, json: dict[str, Any] | None = None
     ) -> dict[str, Any]:
         """Make PUT request to API v2.0 endpoint."""
         try:
@@ -193,7 +191,7 @@ class PearlClient:
 
     # ========== Recorders ==========
 
-    async def get_recorders(self, ids: Optional[list[str]] = None) -> list[RecorderInfo]:
+    async def get_recorders(self, ids: list[str] | None = None) -> list[RecorderInfo]:
         """
         Get list of available recorders with their properties.
 
@@ -210,7 +208,7 @@ class PearlClient:
         result = data.get("result", [])
         return [RecorderInfo.model_validate(r) for r in result]
 
-    async def get_all_recorder_status(self, ids: Optional[list[str]] = None) -> list[RecorderStatus]:
+    async def get_all_recorder_status(self, ids: list[str] | None = None) -> list[RecorderStatus]:
         """
         Get status for all recorders.
 
@@ -243,7 +241,7 @@ class PearlClient:
         result = data.get("result", {})
         return RecorderStatus.model_validate(result)
 
-    async def start_all_recorders(self, ids: Optional[list[str]] = None) -> OperationResult:
+    async def start_all_recorders(self, ids: list[str] | None = None) -> OperationResult:
         """
         Start all recorders (or filtered by IDs).
 
@@ -265,7 +263,7 @@ class PearlClient:
             details={"recorders": ids or "all"},
         )
 
-    async def stop_all_recorders(self, ids: Optional[list[str]] = None) -> OperationResult:
+    async def stop_all_recorders(self, ids: list[str] | None = None) -> OperationResult:
         """
         Stop all recorders (or filtered by IDs).
 
@@ -349,13 +347,14 @@ class PearlClient:
             f"/recorders/{recorder_id}/archive/files",
             params={"from_index": from_index, "limit": limit},
         )
-        return data.get("result", [])
+        result: list[dict[str, Any]] = data.get("result", [])
+        return result
 
     # ========== Channels ==========
 
     async def get_channels(
         self,
-        ids: Optional[list[str]] = None,
+        ids: list[str] | None = None,
         include_publishers: bool = False,
         include_encoders: bool = False,
         include_layouts: bool = False,
@@ -482,7 +481,8 @@ class PearlClient:
             List of publisher objects with settings.
         """
         data = await self._get(f"/channels/{channel_id}/publishers")
-        return data.get("result", [])
+        result: list[dict[str, Any]] = data.get("result", [])
+        return result
 
     async def get_publisher_status(self, channel_id: str, publisher_id: str) -> PublisherStatus:
         """
@@ -590,7 +590,7 @@ class PearlClient:
     # ========== Inputs ==========
 
     async def get_inputs(
-        self, types: Optional[list[str]] = None, ids: Optional[list[str]] = None
+        self, types: list[str] | None = None, ids: list[str] | None = None
     ) -> list[InputSource]:
         """
         Get list of available inputs.
@@ -642,7 +642,7 @@ class PearlClient:
 
     # ========== Storage ==========
 
-    async def get_storages(self, ids: Optional[list[str]] = None) -> list[StorageInfo]:
+    async def get_storages(self, ids: list[str] | None = None) -> list[StorageInfo]:
         """
         Get storage information.
 
@@ -736,10 +736,10 @@ class PearlClient:
 
     async def get_events(
         self,
-        from_time: Optional[str] = None,
-        to_time: Optional[str] = None,
+        from_time: str | None = None,
+        to_time: str | None = None,
         limit: int = 100,
-        status: Optional[str] = None,
+        status: str | None = None,
     ) -> list[dict[str, Any]]:
         """
         Get scheduled events (Kaltura/Panopto/Opencast).
@@ -764,7 +764,8 @@ class PearlClient:
             params["status"] = status
 
         data = await self._get("/schedule/events", params=params)
-        return data.get("result", [])
+        result: list[dict[str, Any]] = data.get("result", [])
+        return result
 
     async def start_event(self, event_id: str) -> OperationResult:
         """
@@ -818,7 +819,8 @@ class PearlClient:
             List of AFU status objects.
         """
         data = await self._get("/afu/status")
-        return data.get("result", [])
+        result: list[dict[str, Any]] = data.get("result", [])
+        return result
 
     # ========== Single Touch Control ==========
 

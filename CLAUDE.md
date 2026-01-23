@@ -302,21 +302,21 @@ chore: Changes to build process or auxiliary tools
 ## Success Criteria
 
 ### MVP (Week 1)
-- [ ] Connect to single Pearl device via v2.0 API
-- [ ] Get device status
-- [ ] Start/stop recording
-- [ ] Works with Claude Code
+- [x] Connect to single Pearl device via v2.0 API
+- [x] Get device status
+- [x] Start/stop recording
+- [x] Works with Claude Code
 
 ### v0.2 (Week 2)
-- [ ] Multi-device support
-- [ ] Streaming control (publishers)
-- [ ] Layout switching
-- [ ] Fleet status
+- [x] Multi-device support
+- [x] Streaming control (publishers)
+- [x] Layout switching
+- [x] Fleet status
 
 ### v1.0 (Month 1)
-- [ ] Full fleet management
-- [ ] Batch operations
-- [ ] CMS event control (Kaltura/Panopto/Opencast)
+- [x] Full fleet management
+- [x] Batch operations
+- [x] CMS event control (Kaltura/Panopto/Opencast)
 - [ ] AFU status monitoring
 - [ ] Published to PyPI
-- [ ] GitHub Actions CI
+- [x] GitHub Actions CI

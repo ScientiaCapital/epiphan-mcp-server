@@ -19,6 +19,7 @@ from .fixtures.responses import (
     DEVICE_RESPONSE,
     ERROR_RESPONSE,
     EVENTS_RESPONSE,
+    INPUTS_RESPONSE,
     LAYOUTS_RESPONSE,
     PUBLISHER_STATUS_STOPPED,
     PUBLISHER_STATUS_STREAMING,
@@ -1636,6 +1637,172 @@ class TestGetDeviceHealthScore:
             mock_settings.return_value = create_test_settings(devices="")
 
             result = await get_device_health_score.fn(device_id="default")
+
+        assert result["success"] is False
+        assert "error" in result
+
+
+# ============================================================
+# Input Source Tool Tests
+# ============================================================
+
+
+class TestListInputs:
+    """Tests for list_inputs tool."""
+
+    async def test_list_inputs_success(self, mock_pearl_host: str):
+        """Test successful input listing."""
+        from epiphan_mcp.server import list_inputs
+
+        api_base = f"http://{mock_pearl_host}/api/v2.0"
+
+        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+            mock_settings.return_value = create_test_settings(mock_pearl_host)
+
+            with respx.mock(assert_all_called=False) as router:
+                router.get(f"{api_base}/inputs").mock(
+                    return_value=Response(200, json=INPUTS_RESPONSE)
+                )
+
+                result = await list_inputs.fn(device_id="default")
+
+        assert result["success"] is True
+        assert result["total_inputs"] == 3
+        assert len(result["inputs"]) == 3
+        # Verify first input (model uses 'id' and 'type' as field names)
+        assert result["inputs"][0]["id"] == "hdmi-1"
+        assert result["inputs"][0]["type"] == "hdmi"
+
+    async def test_list_inputs_empty(self, mock_pearl_host: str):
+        """Test input listing with no inputs."""
+        from epiphan_mcp.server import list_inputs
+
+        api_base = f"http://{mock_pearl_host}/api/v2.0"
+        empty_response = {"status": "ok", "result": []}
+
+        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+            mock_settings.return_value = create_test_settings(mock_pearl_host)
+
+            with respx.mock(assert_all_called=False) as router:
+                router.get(f"{api_base}/inputs").mock(
+                    return_value=Response(200, json=empty_response)
+                )
+
+                result = await list_inputs.fn(device_id="default")
+
+        assert result["success"] is True
+        assert result["total_inputs"] == 0
+
+    async def test_list_inputs_api_error(self, mock_pearl_host: str):
+        """Test input listing with API error."""
+        from epiphan_mcp.server import list_inputs
+
+        api_base = f"http://{mock_pearl_host}/api/v2.0"
+
+        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+            mock_settings.return_value = create_test_settings(mock_pearl_host)
+
+            with respx.mock(assert_all_called=False) as router:
+                router.get(f"{api_base}/inputs").mock(
+                    return_value=Response(200, json=ERROR_RESPONSE)
+                )
+
+                result = await list_inputs.fn(device_id="default")
+
+        assert result["success"] is False
+        assert "error" in result
+
+    async def test_list_inputs_invalid_device(self):
+        """Test input listing with invalid device."""
+        from epiphan_mcp.server import list_inputs
+
+        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+            mock_settings.return_value = create_test_settings(devices="")
+
+            result = await list_inputs.fn(device_id="nonexistent")
+
+        assert result["success"] is False
+        assert "error" in result
+
+
+# ============================================================
+# Storage Report Tool Tests
+# ============================================================
+
+
+class TestGetStorageReport:
+    """Tests for get_storage_report tool."""
+
+    async def test_get_storage_report_success(self, mock_pearl_host: str):
+        """Test successful storage report."""
+        from epiphan_mcp.server import get_storage_report
+
+        api_base = f"http://{mock_pearl_host}/api/v2.0"
+
+        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+            mock_settings.return_value = create_test_settings(mock_pearl_host)
+
+            with respx.mock(assert_all_called=False) as router:
+                router.get(f"{api_base}/storages").mock(
+                    return_value=Response(200, json=STORAGE_RESPONSE)
+                )
+
+                result = await get_storage_report.fn(device_id="default")
+
+        assert result["success"] is True
+        assert result["total_storages"] == 1
+        assert len(result["storages"]) == 1
+        assert "summary" in result
+        assert result["summary"]["total_gb"] > 0
+        assert result["summary"]["free_gb"] > 0
+        assert result["summary"]["used_percent"] == 20.0
+
+    async def test_get_storage_report_low_space(self, mock_pearl_host: str):
+        """Test storage report with low space."""
+        from epiphan_mcp.server import get_storage_report
+
+        api_base = f"http://{mock_pearl_host}/api/v2.0"
+
+        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+            mock_settings.return_value = create_test_settings(mock_pearl_host)
+
+            with respx.mock(assert_all_called=False) as router:
+                router.get(f"{api_base}/storages").mock(
+                    return_value=Response(200, json=STORAGE_LOW_SPACE_RESPONSE)
+                )
+
+                result = await get_storage_report.fn(device_id="default")
+
+        assert result["success"] is True
+        assert result["summary"]["used_percent"] == 90.0
+
+    async def test_get_storage_report_api_error(self, mock_pearl_host: str):
+        """Test storage report with API error."""
+        from epiphan_mcp.server import get_storage_report
+
+        api_base = f"http://{mock_pearl_host}/api/v2.0"
+
+        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+            mock_settings.return_value = create_test_settings(mock_pearl_host)
+
+            with respx.mock(assert_all_called=False) as router:
+                router.get(f"{api_base}/storages").mock(
+                    return_value=Response(200, json=ERROR_RESPONSE)
+                )
+
+                result = await get_storage_report.fn(device_id="default")
+
+        assert result["success"] is False
+        assert "error" in result
+
+    async def test_get_storage_report_invalid_device(self):
+        """Test storage report with invalid device."""
+        from epiphan_mcp.server import get_storage_report
+
+        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+            mock_settings.return_value = create_test_settings(devices="")
+
+            result = await get_storage_report.fn(device_id="nonexistent")
 
         assert result["success"] is False
         assert "error" in result

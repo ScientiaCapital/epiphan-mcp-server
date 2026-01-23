@@ -135,11 +135,21 @@ Claude: [Calls get_fleet_status] Fleet "classroom-pearls" has 12 devices:
 |------|-------------|
 | `start_stream` | Start streaming to configured destination |
 | `stop_stream` | Stop streaming |
+| `get_stream_status` | Get current stream state and duration |
 
-### Layout
+### Layout & Channels
 | Tool | Description |
 |------|-------------|
 | `switch_layout` | Change active layout/scene |
+| `list_layouts` | List available layouts for a channel |
+| `add_bookmark` | Add timestamp bookmark to recording |
+
+### Scheduling & Batch Control
+| Tool | Description |
+|------|-------------|
+| `get_scheduled_events` | Get CMS scheduled events (Kaltura/Panopto/Opencast) |
+| `single_touch_start` | Start all recorders and streams at once |
+| `single_touch_stop` | Stop all recorders and streams at once |
 
 ### AI-Powered Analysis
 | Tool | Description |
@@ -149,6 +159,12 @@ Claude: [Calls get_fleet_status] Fleet "classroom-pearls" has 12 devices:
 | `detect_layout_changes` | Monitor channel for scene transitions and slide advances |
 | `check_video_quality` | AI assessment of lighting, focus, framing, and production quality |
 | `clear_change_detection_cache` | Reset change detection baseline |
+
+### AI Predictive Maintenance
+| Tool | Description |
+|------|-------------|
+| `predict_storage_full` | Estimate hours until storage is full based on recording bitrate |
+| `get_device_health_score` | Aggregate health score (0-100) with category breakdown |
 
 #### AI Analysis Types
 
@@ -181,6 +197,18 @@ Claude: [Calls extract_text_from_preview] Extracted text:
         - Revenue: $4.2M (+15% YoY)
         - New customers: 847
         - NPS Score: 72
+
+You: How's the device health?
+Claude: [Calls get_device_health_score] Health Score: 85/100
+        - Storage: 50/50 (healthy, 65% free)
+        - Recording: 35/50 (degraded - check input signal)
+        Recommendation: Device has minor issues - review when convenient
+
+You: How long until storage fills up?
+Claude: [Calls predict_storage_full] At current 8 Mbps bitrate:
+        - 127.3 hours until full (~5 days)
+        - 847 GB free of 1 TB
+        Storage capacity is sufficient.
 ```
 
 ## Supported Devices
@@ -226,7 +254,7 @@ tests/
 └── test_ai_tools.py     # AI-powered tool tests
 ```
 
-**165 tests** with **93% coverage**. All tests use mocked HTTP responses - no real Pearl hardware or API keys required.
+**197 tests** with **92% coverage**. All tests use mocked HTTP responses - no real Pearl hardware or API keys required.
 
 ## API Reference
 

@@ -15,6 +15,7 @@ from httpx import Response
 from epiphan_mcp.config import Settings
 
 from .fixtures.responses import (
+    AFU_STATUS_RESPONSE,
     CONTROL_SUCCESS_RESPONSE,
     DEVICE_RESPONSE,
     ERROR_RESPONSE,
@@ -1803,6 +1804,164 @@ class TestGetStorageReport:
             mock_settings.return_value = create_test_settings(devices="")
 
             result = await get_storage_report.fn(device_id="nonexistent")
+
+        assert result["success"] is False
+        assert "error" in result
+
+
+# ============================================================
+# AFU Status Tool Tests
+# ============================================================
+
+
+class TestGetAfuStatus:
+    """Tests for get_afu_status tool."""
+
+    async def test_get_afu_status_success(self, mock_pearl_host: str):
+        """Test successful AFU status retrieval."""
+        from epiphan_mcp.server import get_afu_status
+
+        api_base = f"http://{mock_pearl_host}/api/v2.0"
+
+        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+            mock_settings.return_value = create_test_settings(mock_pearl_host)
+
+            with respx.mock(assert_all_called=False) as router:
+                router.get(f"{api_base}/afu/status").mock(
+                    return_value=Response(200, json=AFU_STATUS_RESPONSE)
+                )
+
+                result = await get_afu_status.fn(device_id="default")
+
+        assert result["success"] is True
+        assert result["total_destinations"] == 1
+        assert len(result["destinations"]) == 1
+        assert result["destinations"][0]["id"] == "afu-1"
+        assert result["destinations"][0]["protocol"] == "s3"
+        assert "summary" in result
+        assert result["summary"]["total_queued_files"] == 0
+
+    async def test_get_afu_status_with_uploads(self, mock_pearl_host: str):
+        """Test AFU status with active uploads."""
+        from epiphan_mcp.server import get_afu_status
+
+        api_base = f"http://{mock_pearl_host}/api/v2.0"
+        uploading_response = {
+            "status": "ok",
+            "result": [
+                {
+                    "id": "afu-1",
+                    "name": "S3 Upload",
+                    "protocol": "s3",
+                    "state": "uploading",
+                    "queue_count": 3,
+                    "destination": "s3://my-bucket/recordings/",
+                },
+                {
+                    "id": "afu-2",
+                    "name": "FTP Backup",
+                    "protocol": "ftp",
+                    "state": "idle",
+                    "queue_count": 0,
+                    "destination": "ftp://backup.example.com/",
+                },
+            ],
+        }
+
+        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+            mock_settings.return_value = create_test_settings(mock_pearl_host)
+
+            with respx.mock(assert_all_called=False) as router:
+                router.get(f"{api_base}/afu/status").mock(
+                    return_value=Response(200, json=uploading_response)
+                )
+
+                result = await get_afu_status.fn(device_id="default")
+
+        assert result["success"] is True
+        assert result["total_destinations"] == 2
+        assert result["summary"]["total_queued_files"] == 3
+        assert result["summary"]["uploading_count"] == 1
+
+    async def test_get_afu_status_with_errors(self, mock_pearl_host: str):
+        """Test AFU status with error state."""
+        from epiphan_mcp.server import get_afu_status
+
+        api_base = f"http://{mock_pearl_host}/api/v2.0"
+        error_response = {
+            "status": "ok",
+            "result": [
+                {
+                    "id": "afu-1",
+                    "name": "S3 Upload",
+                    "protocol": "s3",
+                    "state": "error",
+                    "queue_count": 5,
+                    "destination": "s3://my-bucket/recordings/",
+                },
+            ],
+        }
+
+        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+            mock_settings.return_value = create_test_settings(mock_pearl_host)
+
+            with respx.mock(assert_all_called=False) as router:
+                router.get(f"{api_base}/afu/status").mock(
+                    return_value=Response(200, json=error_response)
+                )
+
+                result = await get_afu_status.fn(device_id="default")
+
+        assert result["success"] is True
+        assert result["summary"]["error_count"] == 1
+
+    async def test_get_afu_status_empty(self, mock_pearl_host: str):
+        """Test AFU status with no destinations configured."""
+        from epiphan_mcp.server import get_afu_status
+
+        api_base = f"http://{mock_pearl_host}/api/v2.0"
+        empty_response = {"status": "ok", "result": []}
+
+        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+            mock_settings.return_value = create_test_settings(mock_pearl_host)
+
+            with respx.mock(assert_all_called=False) as router:
+                router.get(f"{api_base}/afu/status").mock(
+                    return_value=Response(200, json=empty_response)
+                )
+
+                result = await get_afu_status.fn(device_id="default")
+
+        assert result["success"] is True
+        assert result["total_destinations"] == 0
+
+    async def test_get_afu_status_api_error(self, mock_pearl_host: str):
+        """Test AFU status with API error."""
+        from epiphan_mcp.server import get_afu_status
+
+        api_base = f"http://{mock_pearl_host}/api/v2.0"
+
+        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+            mock_settings.return_value = create_test_settings(mock_pearl_host)
+
+            with respx.mock(assert_all_called=False) as router:
+                router.get(f"{api_base}/afu/status").mock(
+                    return_value=Response(200, json=ERROR_RESPONSE)
+                )
+
+                result = await get_afu_status.fn(device_id="default")
+
+        assert result["success"] is False
+        assert "error" in result
+
+    async def test_get_afu_status_invalid_device(self):
+        """Test AFU status with invalid device."""
+        from epiphan_mcp.server import get_afu_status
+
+        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+            mock_settings.return_value = create_test_settings(devices="")
+
+            result = await get_afu_status.fn(device_id="nonexistent")
 
         assert result["success"] is False
         assert "error" in result

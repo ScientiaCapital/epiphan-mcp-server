@@ -317,6 +317,6 @@ chore: Changes to build process or auxiliary tools
 - [x] Full fleet management
 - [x] Batch operations
 - [x] CMS event control (Kaltura/Panopto/Opencast)
-- [ ] AFU status monitoring
+- [x] AFU status monitoring
 - [ ] Published to PyPI
 - [x] GitHub Actions CI

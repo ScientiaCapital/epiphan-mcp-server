@@ -756,6 +756,64 @@ async def get_scheduled_events(
 
 
 # ============================================================
+# AFU (Automatic File Upload) Tools
+# ============================================================
+
+
+@mcp.tool()
+async def get_afu_status(device_id: str = "default") -> dict[str, Any]:
+    """
+    Get status of Automatic File Upload (AFU) destinations on an Epiphan Pearl device.
+
+    AFU automatically uploads completed recordings to cloud storage or network
+    destinations (S3, FTP, SFTP, Aspera, etc.).
+
+    Args:
+        device_id: Device identifier. Use "default" for the primary configured device.
+
+    Returns:
+        AFU status including:
+        - Destination ID and name
+        - Protocol (s3, ftp, sftp, aspera, etc.)
+        - Current state (idle, uploading, error)
+        - Queue count (files waiting to upload)
+        - Destination URL
+    """
+    try:
+        async with get_client(device_id) as client:
+            afu_status = await client.get_afu_status()
+
+            # Calculate summary stats
+            total_queued = sum(item.get("queue_count", 0) for item in afu_status)
+            uploading_count = sum(1 for item in afu_status if item.get("state") == "uploading")
+            error_count = sum(1 for item in afu_status if item.get("state") == "error")
+
+            return {
+                "success": True,
+                "device": client.host,
+                "total_destinations": len(afu_status),
+                "destinations": afu_status,
+                "summary": {
+                    "total_queued_files": total_queued,
+                    "uploading_count": uploading_count,
+                    "error_count": error_count,
+                },
+            }
+    except PearlAPIError as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "device": device_id,
+        }
+    except ValueError as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "device": device_id,
+        }
+
+
+# ============================================================
 # Predictive Maintenance Tools
 # ============================================================
 

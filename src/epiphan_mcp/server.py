@@ -416,30 +416,38 @@ async def get_fleet_status() -> dict[str, Any]:
 
                 # Check for alerts (storage threshold: 80%)
                 if status.storage_used_percent > 80:
-                    alerts.append({
-                        "device": host,
-                        "severity": "warning",
-                        "message": f"Storage at {status.storage_used_percent:.1f}%",
-                    })
+                    alerts.append(
+                        {
+                            "device": host,
+                            "severity": "warning",
+                            "message": f"Storage at {status.storage_used_percent:.1f}%",
+                        }
+                    )
 
-                results.append({
-                    "host": host,
-                    "online": True,
-                    "recording": recorder.state.value == "recording",
-                    "storage_percent": status.storage_used_percent,
-                })
+                results.append(
+                    {
+                        "host": host,
+                        "online": True,
+                        "recording": recorder.state.value == "recording",
+                        "storage_percent": status.storage_used_percent,
+                    }
+                )
 
         except Exception as e:
-            results.append({
-                "host": host,
-                "online": False,
-                "error": str(e),
-            })
-            alerts.append({
-                "device": host,
-                "severity": "error",
-                "message": f"Device offline: {e}",
-            })
+            results.append(
+                {
+                    "host": host,
+                    "online": False,
+                    "error": str(e),
+                }
+            )
+            alerts.append(
+                {
+                    "device": host,
+                    "severity": "error",
+                    "message": f"Device offline: {e}",
+                }
+            )
 
     return {
         "success": True,

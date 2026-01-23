@@ -36,9 +36,7 @@ class Settings(BaseSettings):
     fleet_name: str = Field(default="default", description="Fleet identifier")
 
     # Testing
-    test_ip: str | None = Field(
-        default=None, description="Pearl IP for integration tests"
-    )
+    test_ip: str | None = Field(default=None, description="Pearl IP for integration tests")
 
     def get_device_list(self) -> list[str]:
         """Get list of configured device hosts."""

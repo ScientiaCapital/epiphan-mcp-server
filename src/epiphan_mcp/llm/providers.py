@@ -60,23 +60,18 @@ def validate_image(image_data: bytes) -> str:
 
     if len(image_data) < MIN_PNG_SIZE:
         raise ImageValidationError(
-            f"Image data too small ({len(image_data)} bytes). "
-            f"Minimum is {MIN_PNG_SIZE} bytes."
+            f"Image data too small ({len(image_data)} bytes). Minimum is {MIN_PNG_SIZE} bytes."
         )
 
     # Check magic bytes
     if image_data[:3] == b"\xff\xd8\xff":
         if len(image_data) < MIN_JPEG_SIZE:
-            raise ImageValidationError(
-                f"JPEG image too small ({len(image_data)} bytes)"
-            )
+            raise ImageValidationError(f"JPEG image too small ({len(image_data)} bytes)")
         return "image/jpeg"
     elif image_data[:8] == b"\x89PNG\r\n\x1a\n":
         return "image/png"
     else:
-        raise ImageValidationError(
-            "Unsupported image format. Expected JPEG or PNG."
-        )
+        raise ImageValidationError("Unsupported image format. Expected JPEG or PNG.")
 
 
 class LLMProvider(ABC):
@@ -208,8 +203,7 @@ class OpenRouterProvider(LLMProvider):
         """
         if not self._api_key:
             raise LLMAPIError(
-                "OpenRouter API key not configured. "
-                "Set OPENROUTER_API_KEY environment variable."
+                "OpenRouter API key not configured. Set OPENROUTER_API_KEY environment variable."
             )
 
         # Validate image and get media type
@@ -281,8 +275,7 @@ class OpenRouterProvider(LLMProvider):
         """
         if not self._api_key:
             raise LLMAPIError(
-                "OpenRouter API key not configured. "
-                "Set OPENROUTER_API_KEY environment variable."
+                "OpenRouter API key not configured. Set OPENROUTER_API_KEY environment variable."
             )
 
         model = model or self._settings.default_text_model

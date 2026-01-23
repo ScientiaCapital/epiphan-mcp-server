@@ -14,6 +14,7 @@ MCP (Model Context Protocol) server for controlling Epiphan Pearl video capture 
 - 🎨 **Layout Switching** - Change scenes and video layouts
 - 🏢 **Fleet Management** - Control multiple Pearl devices from one interface
 - 🤖 **Natural Language** - "Start recording in Room 201" just works
+- 🔍 **AI Video Analysis** - Scene understanding, OCR, quality checks, change detection via vision LLMs
 
 ## Quick Start
 
@@ -43,7 +44,36 @@ PEARL_PASSWORD=your_password
 
 # Multiple devices (comma-separated)
 PEARL_DEVICES=192.168.1.100,192.168.1.101,192.168.1.102
+
+# AI Analysis (optional - enables AI-powered tools)
+OPENROUTER_API_KEY=sk-or-v1-your-key-here
 ```
+
+### AI Configuration (Optional)
+
+To enable AI-powered video analysis tools, add OpenRouter credentials:
+
+```bash
+# Required for AI features
+OPENROUTER_API_KEY=sk-or-v1-your-key-here
+
+# Optional: Override default models
+LLM_VISION_MODEL=google/gemini-2.0-flash-001      # Scene analysis
+LLM_OCR_MODEL=qwen/qwen2.5-vl-72b-instruct        # Text extraction
+LLM_QUALITY_MODEL=google/gemini-2.0-flash-001     # Quality checks
+LLM_TEXT_MODEL=deepseek/deepseek-chat-v3-0324     # Reasoning
+
+# Optional: Testing without API
+LLM_MOCK_MODE=true  # Returns mock responses
+```
+
+**Supported Vision Models** (via [OpenRouter](https://openrouter.ai)):
+- Google Gemini Flash - Fast, cost-effective (default)
+- Qwen VL 72B - Best for OCR/text extraction
+- Claude Sonnet - Premium quality reasoning
+- DeepSeek VL - Scientific/technical content
+
+> **Note**: AI features work without `OPENROUTER_API_KEY` in mock mode (`LLM_MOCK_MODE=true`), useful for testing.
 
 ### Usage with Claude Code
 
@@ -111,6 +141,48 @@ Claude: [Calls get_fleet_status] Fleet "classroom-pearls" has 12 devices:
 |------|-------------|
 | `switch_layout` | Change active layout/scene |
 
+### AI-Powered Analysis
+| Tool | Description |
+|------|-------------|
+| `analyze_channel_scene` | AI vision analysis of channel content (scene description, content detection, presenter detection) |
+| `extract_text_from_preview` | OCR text extraction from slides, graphics, and lower thirds |
+| `detect_layout_changes` | Monitor channel for scene transitions and slide advances |
+| `check_video_quality` | AI assessment of lighting, focus, framing, and production quality |
+| `clear_change_detection_cache` | Reset change detection baseline |
+
+#### AI Analysis Types
+
+The `analyze_channel_scene` tool supports multiple analysis modes:
+
+- **scene_description** - General description of what's on screen
+- **content_detection** - Classify content type (educational, corporate, etc.)
+- **quality_check** - Technical quality assessment
+- **text_extraction** - OCR to extract visible text
+- **presenter_detection** - Detect and describe presenters in frame
+
+#### Example AI Usage
+
+```
+You: What's happening on channel 1?
+Claude: [Calls analyze_channel_scene] The channel shows a corporate presentation
+        with a presenter on the left third of frame. A slide titled "Q4 Results"
+        is visible with bullet points and a bar chart.
+
+You: Is the video quality okay?
+Claude: [Calls check_video_quality] Quality assessment:
+        - Lighting: Good, even illumination
+        - Focus: Sharp
+        - Framing: Presenter has adequate headroom
+        Overall: Excellent production quality
+
+You: What text is on the slide?
+Claude: [Calls extract_text_from_preview] Extracted text:
+        Title: Q4 Results Summary
+        - Revenue: $4.2M (+15% YoY)
+        - New customers: 847
+        - NPS Score: 72
+```
+
 ## Supported Devices
 
 - Pearl Nano
@@ -148,11 +220,13 @@ tests/
 ├── conftest.py          # Shared fixtures, mock configurations
 ├── fixtures/
 │   └── responses.py     # Mock API v2.0 responses
-├── test_client.py       # PearlClient API tests (46 tests)
-└── test_server.py       # MCP tool tests (33 tests)
+├── test_client.py       # PearlClient API tests
+├── test_server.py       # MCP tool tests
+├── test_llm.py          # LLM provider and analyzer tests
+└── test_ai_tools.py     # AI-powered tool tests
 ```
 
-All tests use mocked HTTP responses via `respx` - no real Pearl hardware required.
+**165 tests** with **93% coverage**. All tests use mocked HTTP responses - no real Pearl hardware or API keys required.
 
 ## API Reference
 

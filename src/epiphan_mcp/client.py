@@ -154,7 +154,9 @@ class PearlClient:
 
         if status == "busy":
             logger.warning(f"Resource busy for {path}")
-            raise PearlAPIError("Resource busy, try again later", response.status_code, api_status="busy")
+            raise PearlAPIError(
+                "Resource busy, try again later", response.status_code, api_status="busy"
+            )
 
         return data
 
@@ -692,7 +694,9 @@ class PearlClient:
                 firmware_version=result.get("firmware", ""),
                 storage_total_gb=total_bytes / (1024**3) if total_bytes else 0,
                 storage_free_gb=free_bytes / (1024**3) if free_bytes else 0,
-                storage_used_percent=((total_bytes - free_bytes) / total_bytes * 100) if total_bytes else 0,
+                storage_used_percent=((total_bytes - free_bytes) / total_bytes * 100)
+                if total_bytes
+                else 0,
             )
         except PearlAPIError as e:
             logger.warning(f"Error getting system status: {e}")

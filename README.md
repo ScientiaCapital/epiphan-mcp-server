@@ -211,6 +211,144 @@ Claude: [Calls predict_storage_full] At current 8 Mbps bitrate:
         Storage capacity is sufficient.
 ```
 
+## AI Tools Deep Dive
+
+### Tool Reference
+
+#### `analyze_channel_scene`
+
+General-purpose AI vision analysis of channel content.
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `device_id` | string | `"default"` | Pearl device identifier |
+| `channel` | string | `"1"` | Channel ID (e.g., "1", "2") |
+| `analysis_type` | string | `"scene_description"` | Type of analysis (see below) |
+
+**Returns:**
+```json
+{
+  "success": true,
+  "analysis": "Scene shows a presenter at a podium...",
+  "analysis_type": "scene_description",
+  "model_used": "google/gemini-2.0-flash-001",
+  "timestamp": "2025-01-23T10:30:00.000Z",
+  "image_hash": "a1b2c3d4...",
+  "device_id": "default",
+  "channel": "1"
+}
+```
+
+#### `extract_text_from_preview`
+
+OCR-optimized text extraction for slides, graphics, and lower thirds.
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `device_id` | string | `"default"` | Pearl device identifier |
+| `channel` | string | `"1"` | Channel ID |
+
+**Returns:** `{ "success": true, "text": "Extracted text...", "model_used": "...", ... }`
+
+**Best for:** Presentation slides, whiteboards, title cards, lower-third graphics.
+
+#### `detect_layout_changes`
+
+Monitors a channel for scene transitions and content changes.
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `device_id` | string | `"default"` | Pearl device identifier |
+| `channel` | string | `"1"` | Channel ID |
+| `sensitivity` | string | `"medium"` | Detection sensitivity: `"low"`, `"medium"`, `"high"` |
+
+**Sensitivity levels:**
+- `low` - Only major scene changes (camera switches, black frames)
+- `medium` - Slide advances, presenter movement, graphics changes
+- `high` - Any visible change including subtle movements
+
+**Returns:** `{ "success": true, "changed": true/false, "change_type": "...", "message": "..." }`
+
+**Use case:** Automated recording triggers, event logging, slide counting.
+
+#### `check_video_quality`
+
+Technical quality assessment for production monitoring.
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `device_id` | string | `"default"` | Pearl device identifier |
+| `channel` | string | `"1"` | Channel ID |
+
+**Returns:** `{ "success": true, "quality_report": "Detailed assessment...", ... }`
+
+**Checks:** Lighting, focus, framing, exposure, color balance, artifacts.
+
+#### `clear_change_detection_cache`
+
+Resets the change detection baseline.
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `device_id` | string | `None` | Device to clear (None = all devices) |
+| `channel` | string | `None` | Channel to clear (None = all channels) |
+
+**Use when:** Starting new sessions, after intentional scene changes, resetting monitoring.
+
+### Analysis Types Reference
+
+| Type | Use Case | Default Model |
+|------|----------|---------------|
+| `scene_description` | General understanding of what's on screen | Gemini Flash |
+| `content_detection` | Classify content (educational, corporate, entertainment) | Gemini Flash |
+| `quality_check` | Technical quality assessment | Gemini Flash |
+| `text_extraction` | OCR for slides, graphics, captions | Qwen VL 72B |
+| `presenter_detection` | Find and describe people in frame | Gemini Flash |
+
+### Model Selection
+
+Models are selected automatically based on task, but can be overridden:
+
+| Environment Variable | Purpose | Default |
+|---------------------|---------|---------|
+| `LLM_VISION_MODEL` | General scene analysis | `google/gemini-2.0-flash-001` |
+| `LLM_OCR_MODEL` | Text extraction (OCR) | `qwen/qwen2.5-vl-72b-instruct` |
+| `LLM_QUALITY_MODEL` | Quality assessment | `google/gemini-2.0-flash-001` |
+| `LLM_TEXT_MODEL` | Reasoning/planning | `deepseek/deepseek-chat-v3-0324` |
+
+**Model recommendations:**
+- **Gemini Flash** - Fast, cost-effective, good general vision
+- **Qwen VL 72B** - Superior OCR and text extraction
+- **Claude Sonnet** - Premium reasoning for complex analysis
+- **DeepSeek VL** - Technical/scientific content
+
+### Troubleshooting
+
+#### Mock Mode (No API Key)
+
+When `OPENROUTER_API_KEY` is not set, AI tools automatically use mock mode:
+- Returns realistic sample responses
+- Useful for development and testing
+- No API costs incurred
+
+Enable explicitly: `LLM_MOCK_MODE=true`
+
+#### Common Issues
+
+| Issue | Cause | Solution |
+|-------|-------|----------|
+| "API key not configured" | Missing `OPENROUTER_API_KEY` | Add key to `.env` file |
+| Empty analysis results | Invalid image from Pearl | Check Pearl preview is working |
+| Slow responses | Large images or complex analysis | Use faster models (Gemini Flash) |
+| Rate limiting | Too many requests | Add delays between calls |
+
+#### Cost Optimization
+
+- **Default models are cost-optimized** - Gemini Flash is ~$0.10/1M tokens
+- **OCR uses Qwen** - Better accuracy reduces retries
+- **Change detection uses hashing** - Only calls AI when changes detected
+- **Preview images are 720p** - Balances quality with token usage
+
 ## Supported Devices
 
 - Pearl Nano

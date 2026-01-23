@@ -460,3 +460,253 @@ class TestAnalysisPrompts:
         """Presenter detection prompt should mention presenter."""
         prompt = ANALYSIS_PROMPTS[AnalysisType.PRESENTER_DETECTION]
         assert "presenter" in prompt.lower() or "person" in prompt.lower()
+
+
+# ============================================================
+# OpenRouter Error Path Tests
+# ============================================================
+
+
+class TestOpenRouterNetworkErrors:
+    """Tests for OpenRouter network error handling."""
+
+    @pytest.fixture
+    def valid_jpeg(self):
+        """Valid JPEG image data for testing."""
+        return b"\xff\xd8\xff" + b"\x00" * 200
+
+    @pytest.mark.asyncio
+    async def test_analyze_image_connection_error(self, isolated_llm_env, valid_jpeg, respx_mock):
+        """Should raise LLMConnectionError on connection failure."""
+        import httpx
+        import respx
+        from epiphan_mcp.llm.providers import LLMConnectionError, OpenRouterProvider
+
+        respx_mock.post("https://openrouter.ai/api/v1/chat/completions").mock(
+            side_effect=httpx.ConnectError("Connection refused")
+        )
+
+        provider = OpenRouterProvider(api_key="sk-test-key")
+        with pytest.raises(LLMConnectionError, match="connect"):
+            await provider.analyze_image(valid_jpeg, "Describe this image")
+
+    @pytest.mark.asyncio
+    async def test_analyze_image_timeout_error(self, isolated_llm_env, valid_jpeg, respx_mock):
+        """Should raise LLMConnectionError on timeout."""
+        import httpx
+        from epiphan_mcp.llm.providers import LLMConnectionError, OpenRouterProvider
+
+        respx_mock.post("https://openrouter.ai/api/v1/chat/completions").mock(
+            side_effect=httpx.TimeoutException("Request timed out")
+        )
+
+        provider = OpenRouterProvider(api_key="sk-test-key")
+        with pytest.raises(LLMConnectionError, match="Timeout"):
+            await provider.analyze_image(valid_jpeg, "Describe this image")
+
+    @pytest.mark.asyncio
+    async def test_complete_connection_error(self, isolated_llm_env, respx_mock):
+        """Should raise LLMConnectionError on connection failure for text completion."""
+        import httpx
+        from epiphan_mcp.llm.providers import LLMConnectionError, OpenRouterProvider
+
+        respx_mock.post("https://openrouter.ai/api/v1/chat/completions").mock(
+            side_effect=httpx.ConnectError("Connection refused")
+        )
+
+        provider = OpenRouterProvider(api_key="sk-test-key")
+        with pytest.raises(LLMConnectionError, match="connect"):
+            await provider.complete("What should I do?")
+
+    @pytest.mark.asyncio
+    async def test_complete_timeout_error(self, isolated_llm_env, respx_mock):
+        """Should raise LLMConnectionError on timeout for text completion."""
+        import httpx
+        from epiphan_mcp.llm.providers import LLMConnectionError, OpenRouterProvider
+
+        respx_mock.post("https://openrouter.ai/api/v1/chat/completions").mock(
+            side_effect=httpx.TimeoutException("Request timed out")
+        )
+
+        provider = OpenRouterProvider(api_key="sk-test-key")
+        with pytest.raises(LLMConnectionError, match="Timeout"):
+            await provider.complete("What should I do?")
+
+
+class TestOpenRouterHTTPErrors:
+    """Tests for OpenRouter HTTP status error handling."""
+
+    @pytest.fixture
+    def valid_jpeg(self):
+        """Valid JPEG image data for testing."""
+        return b"\xff\xd8\xff" + b"\x00" * 200
+
+    @pytest.mark.asyncio
+    async def test_analyze_image_api_error_401(self, isolated_llm_env, valid_jpeg, respx_mock):
+        """Should raise LLMAPIError with status_code on 401."""
+        import httpx
+        from epiphan_mcp.llm.providers import LLMAPIError, OpenRouterProvider
+
+        respx_mock.post("https://openrouter.ai/api/v1/chat/completions").mock(
+            return_value=httpx.Response(401, json={"error": "Invalid API key"})
+        )
+
+        provider = OpenRouterProvider(api_key="sk-invalid-key")
+        with pytest.raises(LLMAPIError) as exc_info:
+            await provider.analyze_image(valid_jpeg, "Describe this image")
+        assert exc_info.value.status_code == 401
+
+    @pytest.mark.asyncio
+    async def test_analyze_image_api_error_429(self, isolated_llm_env, valid_jpeg, respx_mock):
+        """Should raise LLMAPIError with status_code on 429 rate limit."""
+        import httpx
+        from epiphan_mcp.llm.providers import LLMAPIError, OpenRouterProvider
+
+        respx_mock.post("https://openrouter.ai/api/v1/chat/completions").mock(
+            return_value=httpx.Response(429, json={"error": "Rate limit exceeded"})
+        )
+
+        provider = OpenRouterProvider(api_key="sk-test-key")
+        with pytest.raises(LLMAPIError) as exc_info:
+            await provider.analyze_image(valid_jpeg, "Describe this image")
+        assert exc_info.value.status_code == 429
+
+    @pytest.mark.asyncio
+    async def test_analyze_image_api_error_500(self, isolated_llm_env, valid_jpeg, respx_mock):
+        """Should raise LLMAPIError with status_code on 500 server error."""
+        import httpx
+        from epiphan_mcp.llm.providers import LLMAPIError, OpenRouterProvider
+
+        respx_mock.post("https://openrouter.ai/api/v1/chat/completions").mock(
+            return_value=httpx.Response(500, json={"error": "Internal server error"})
+        )
+
+        provider = OpenRouterProvider(api_key="sk-test-key")
+        with pytest.raises(LLMAPIError) as exc_info:
+            await provider.analyze_image(valid_jpeg, "Describe this image")
+        assert exc_info.value.status_code == 500
+
+    @pytest.mark.asyncio
+    async def test_complete_api_error_401(self, isolated_llm_env, respx_mock):
+        """Should raise LLMAPIError with status_code on 401 for text completion."""
+        import httpx
+        from epiphan_mcp.llm.providers import LLMAPIError, OpenRouterProvider
+
+        respx_mock.post("https://openrouter.ai/api/v1/chat/completions").mock(
+            return_value=httpx.Response(401, json={"error": "Invalid API key"})
+        )
+
+        provider = OpenRouterProvider(api_key="sk-invalid-key")
+        with pytest.raises(LLMAPIError) as exc_info:
+            await provider.complete("What should I do?")
+        assert exc_info.value.status_code == 401
+
+
+class TestOpenRouterResponseParsing:
+    """Tests for OpenRouter response parsing error handling."""
+
+    @pytest.fixture
+    def valid_jpeg(self):
+        """Valid JPEG image data for testing."""
+        return b"\xff\xd8\xff" + b"\x00" * 200
+
+    @pytest.mark.asyncio
+    async def test_analyze_image_missing_choices_field(self, isolated_llm_env, valid_jpeg, respx_mock):
+        """Should raise KeyError when 'choices' field is missing."""
+        import httpx
+        from epiphan_mcp.llm.providers import OpenRouterProvider
+
+        respx_mock.post("https://openrouter.ai/api/v1/chat/completions").mock(
+            return_value=httpx.Response(200, json={"id": "123", "object": "chat.completion"})
+        )
+
+        provider = OpenRouterProvider(api_key="sk-test-key")
+        with pytest.raises(KeyError):
+            await provider.analyze_image(valid_jpeg, "Describe this image")
+
+    @pytest.mark.asyncio
+    async def test_analyze_image_empty_choices_array(self, isolated_llm_env, valid_jpeg, respx_mock):
+        """Should raise IndexError when 'choices' array is empty."""
+        import httpx
+        from epiphan_mcp.llm.providers import OpenRouterProvider
+
+        respx_mock.post("https://openrouter.ai/api/v1/chat/completions").mock(
+            return_value=httpx.Response(200, json={"choices": []})
+        )
+
+        provider = OpenRouterProvider(api_key="sk-test-key")
+        with pytest.raises(IndexError):
+            await provider.analyze_image(valid_jpeg, "Describe this image")
+
+    @pytest.mark.asyncio
+    async def test_complete_missing_choices_field(self, isolated_llm_env, respx_mock):
+        """Should raise KeyError when 'choices' field is missing in text completion."""
+        import httpx
+        from epiphan_mcp.llm.providers import OpenRouterProvider
+
+        respx_mock.post("https://openrouter.ai/api/v1/chat/completions").mock(
+            return_value=httpx.Response(200, json={"id": "123"})
+        )
+
+        provider = OpenRouterProvider(api_key="sk-test-key")
+        with pytest.raises(KeyError):
+            await provider.complete("What should I do?")
+
+    @pytest.mark.asyncio
+    async def test_complete_empty_choices_array(self, isolated_llm_env, respx_mock):
+        """Should raise IndexError when 'choices' array is empty in text completion."""
+        import httpx
+        from epiphan_mcp.llm.providers import OpenRouterProvider
+
+        respx_mock.post("https://openrouter.ai/api/v1/chat/completions").mock(
+            return_value=httpx.Response(200, json={"choices": []})
+        )
+
+        provider = OpenRouterProvider(api_key="sk-test-key")
+        with pytest.raises(IndexError):
+            await provider.complete("What should I do?")
+
+
+class TestOpenRouterEdgeCases:
+    """Tests for OpenRouter edge cases."""
+
+    @pytest.mark.asyncio
+    async def test_complete_without_api_key(self, isolated_llm_env):
+        """Should raise LLMAPIError when completing without API key."""
+        from epiphan_mcp.llm.providers import LLMAPIError, OpenRouterProvider
+
+        provider = OpenRouterProvider(api_key=None)
+        with pytest.raises(LLMAPIError, match="API key"):
+            await provider.complete("What should I do?")
+
+    @pytest.mark.asyncio
+    async def test_close_method_idempotent(self, isolated_llm_env):
+        """Should be safe to call close() multiple times."""
+        from epiphan_mcp.llm.providers import OpenRouterProvider
+
+        provider = OpenRouterProvider(api_key="sk-test-key")
+        # Access client to create it
+        _ = provider.client
+        assert provider._client is not None
+
+        # Close twice - should not raise
+        await provider.close()
+        await provider.close()
+        assert provider._client is None
+
+    @pytest.mark.asyncio
+    async def test_error_chaining_preserved(self, isolated_llm_env, respx_mock):
+        """Should preserve original exception in error chain."""
+        import httpx
+        from epiphan_mcp.llm.providers import LLMConnectionError, OpenRouterProvider
+
+        respx_mock.post("https://openrouter.ai/api/v1/chat/completions").mock(
+            side_effect=httpx.ConnectError("Original error")
+        )
+
+        provider = OpenRouterProvider(api_key="sk-test-key")
+        try:
+            await provider.complete("What should I do?")
+        except LLMConnectionError as e:
+            assert e.__cause__ is not None
+            assert isinstance(e.__cause__, httpx.ConnectError)

@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2025-01-24
+
+### Added
+
+- **Fleet Health Monitoring**
+  - `fleet_health_report`: AI-summarized fleet health with recommendations
+  - Per-device `health_score` (0-100) in fleet status
+  - Per-device `health_issues` list for quick triage
+  - Fleet-level `average_health` aggregate metric
+  - Fleet-level `unhealthy_devices` count (score < 60)
+- Health scoring based on storage usage and recorder accessibility
+
+### Changed
+
+- Enhanced `get_fleet_status` to include health metrics
+- Added 7 new tests for health features (322 total tests)
+
 ## [0.4.0] - 2025-01-23
 
 ### Added

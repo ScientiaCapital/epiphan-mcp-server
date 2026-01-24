@@ -191,11 +191,11 @@ class TestMCPToolRegistration:
     """Tests for MCP tool registration."""
 
     def test_all_tools_registered(self):
-        """Test that all 27 MCP tools are still registered after refactoring."""
+        """Test that all 28 MCP tools are still registered after refactoring."""
         from epiphan_mcp.server import mcp
 
         tools = list(mcp._tool_manager._tools.keys())
-        assert len(tools) == 27, f"Expected 27 tools, got {len(tools)}: {tools}"
+        assert len(tools) == 28, f"Expected 28 tools, got {len(tools)}: {tools}"
 
     def test_expected_tools_registered(self):
         """Test that all expected tools are registered with MCP."""
@@ -232,6 +232,7 @@ class TestMCPToolRegistration:
             "get_fleet_status",
             "batch_start_recording",
             "batch_stop_recording",
+            "fleet_health_report",
             # AI tools
             "analyze_channel_scene",
             "extract_text_from_preview",
@@ -245,7 +246,7 @@ class TestMCPToolRegistration:
             assert expected in tools, f"Missing tool: {expected}"
 
     def test_tool_count_unchanged(self):
-        """Test that the tool count is exactly 27 (no additions/removals)."""
+        """Test that the tool count is exactly 28 (no additions/removals)."""
         from epiphan_mcp.server import mcp
 
         expected_tools = [
@@ -271,6 +272,7 @@ class TestMCPToolRegistration:
             "get_fleet_status",
             "batch_start_recording",
             "batch_stop_recording",
+            "fleet_health_report",
             "analyze_channel_scene",
             "extract_text_from_preview",
             "detect_layout_changes",

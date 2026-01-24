@@ -511,3 +511,294 @@ class TestFleetErrorHandling:
         assert result["success"] is True
         assert result["total_devices"] == 1
         assert result["online_devices"] == 1
+
+
+# ============================================================
+# Health Score Tests
+# ============================================================
+
+
+class TestFleetHealthScores:
+    """Tests for fleet health scoring features."""
+
+    async def test_fleet_status_includes_health_scores(self):
+        """Verify fleet status includes health_score per device and fleet-level metrics."""
+        from epiphan_mcp.server import get_fleet_status
+
+        devices = "192.168.1.100,192.168.1.101"
+
+        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+            mock_settings.return_value = create_test_settings(devices=devices)
+
+            with respx.mock(assert_all_called=False) as router:
+                # Both devices healthy
+                for i in [100, 101]:
+                    api_base = f"http://192.168.1.{i}/api/v2.0"
+                    router.get(f"{api_base}/device").mock(
+                        return_value=Response(200, json=DEVICE_RESPONSE)
+                    )
+                    router.get(f"{api_base}/storages").mock(
+                        return_value=Response(200, json=STORAGE_RESPONSE)
+                    )
+                    router.get(f"{api_base}/recorders/recorder-1/status").mock(
+                        return_value=Response(200, json=RECORDER_STATUS_STOPPED)
+                    )
+
+                result = await get_fleet_status.fn()
+
+        assert result["success"] is True
+        assert result["total_devices"] == 2
+        assert result["online_devices"] == 2
+
+        # Verify fleet-level health metrics
+        assert "average_health" in result
+        assert "unhealthy_devices" in result
+        assert result["average_health"] == 100.0  # Both healthy
+        assert result["unhealthy_devices"] == 0
+
+        # Verify per-device health scores
+        for device in result["devices"]:
+            assert "health_score" in device
+            assert "health_issues" in device
+            assert device["health_score"] == 100  # Full marks
+            assert device["health_issues"] == []  # No issues
+
+    async def test_fleet_status_health_with_storage_warning(self):
+        """Verify health score decreases when storage is high."""
+        from epiphan_mcp.server import get_fleet_status
+
+        # Create a response with high storage usage - use correct API format
+        high_storage_response = {
+            "status": "ok",
+            "result": [
+                {
+                    "id": "storage-1",
+                    "name": "Internal Storage",
+                    "type": "internal",
+                    "total_bytes": 500000000000,  # 500GB
+                    "used_bytes": 450000000000,   # 90% used
+                    "free_bytes": 50000000000,    # 50GB (10% free)
+                    "percent_used": 90.0,
+                    "mounted": True,
+                }
+            ]
+        }
+
+        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+            mock_settings.return_value = create_test_settings(devices="192.168.1.100")
+
+            with respx.mock(assert_all_called=False) as router:
+                api_base = "http://192.168.1.100/api/v2.0"
+                router.get(f"{api_base}/device").mock(
+                    return_value=Response(200, json=DEVICE_RESPONSE)
+                )
+                router.get(f"{api_base}/storages").mock(
+                    return_value=Response(200, json=high_storage_response)
+                )
+                router.get(f"{api_base}/recorders/recorder-1/status").mock(
+                    return_value=Response(200, json=RECORDER_STATUS_STOPPED)
+                )
+
+                result = await get_fleet_status.fn()
+
+        assert result["success"] is True
+        device = result["devices"][0]
+
+        # Health should be reduced due to storage (90% used triggers critical)
+        assert device["health_score"] < 100
+        assert any("storage" in issue.lower() for issue in device["health_issues"])
+
+    async def test_fleet_status_health_offline_device(self):
+        """Verify offline devices are handled correctly in health calculations."""
+        from epiphan_mcp.server import get_fleet_status
+
+        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+            mock_settings.return_value = create_test_settings(devices="192.168.1.100")
+
+            with respx.mock(assert_all_called=False) as router:
+                api_base = "http://192.168.1.100/api/v2.0"
+                router.get(f"{api_base}/device").mock(
+                    side_effect=ConnectError("Connection refused")
+                )
+                router.get(f"{api_base}/storages").mock(
+                    side_effect=ConnectError("Connection refused")
+                )
+
+                result = await get_fleet_status.fn()
+
+        assert result["success"] is True
+        device = result["devices"][0]
+
+        # Device is offline
+        assert device["online"] is False
+        assert "error" in device
+
+        # Fleet-level health should be 0 since no devices are online
+        assert result["average_health"] == 0.0
+        assert result["online_devices"] == 0
+
+
+class TestFleetHealthReport:
+    """Tests for fleet_health_report AI-summarized reports."""
+
+    async def test_fleet_health_report_success(self):
+        """Verify fleet_health_report returns correct structure with mocked LLM."""
+        from epiphan_mcp.server import fleet_health_report
+
+        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+            mock_settings.return_value = create_test_settings(
+                devices="192.168.1.100,192.168.1.101"
+            )
+
+            with respx.mock(assert_all_called=False) as router:
+                for i in [100, 101]:
+                    api_base = f"http://192.168.1.{i}/api/v2.0"
+                    router.get(f"{api_base}/device").mock(
+                        return_value=Response(200, json=DEVICE_RESPONSE)
+                    )
+                    router.get(f"{api_base}/storages").mock(
+                        return_value=Response(200, json=STORAGE_RESPONSE)
+                    )
+                    router.get(f"{api_base}/recorders/recorder-1/status").mock(
+                        return_value=Response(200, json=RECORDER_STATUS_STOPPED)
+                    )
+
+                # Mock the LLM provider
+                with patch("epiphan_mcp.server.get_provider") as mock_provider:
+                    mock_llm = AsyncMock()
+                    mock_llm.complete = AsyncMock(
+                        return_value="Fleet is healthy with all devices online.\n\n1. Continue monitoring\n2. Schedule maintenance"
+                    )
+                    mock_llm.close = AsyncMock()
+                    mock_provider.return_value = mock_llm
+
+                    result = await fleet_health_report.fn()
+
+        assert result["success"] is True
+        assert "fleet_name" in result
+        assert "generated_at" in result
+        assert "summary" in result
+        assert "health_score" in result
+        assert "attention_required" in result
+        assert "recommendations" in result
+        assert isinstance(result["recommendations"], list)
+
+    async def test_fleet_health_report_with_unhealthy_device(self):
+        """Verify report identifies unhealthy devices needing attention."""
+        from epiphan_mcp.server import fleet_health_report
+
+        # High storage response (90% used) - correct API format
+        high_storage_response = {
+            "status": "ok",
+            "result": [
+                {
+                    "id": "storage-1",
+                    "name": "Internal Storage",
+                    "type": "internal",
+                    "total_bytes": 500000000000,
+                    "used_bytes": 450000000000,
+                    "free_bytes": 50000000000,
+                    "percent_used": 90.0,
+                    "mounted": True,
+                }
+            ]
+        }
+
+        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+            mock_settings.return_value = create_test_settings(
+                devices="192.168.1.100,192.168.1.101"
+            )
+
+            with respx.mock(assert_all_called=False) as router:
+                # Device 1: Healthy
+                api_base1 = "http://192.168.1.100/api/v2.0"
+                router.get(f"{api_base1}/device").mock(
+                    return_value=Response(200, json=DEVICE_RESPONSE)
+                )
+                router.get(f"{api_base1}/storages").mock(
+                    return_value=Response(200, json=STORAGE_RESPONSE)
+                )
+                router.get(f"{api_base1}/recorders/recorder-1/status").mock(
+                    return_value=Response(200, json=RECORDER_STATUS_STOPPED)
+                )
+
+                # Device 2: Unhealthy (high storage)
+                api_base2 = "http://192.168.1.101/api/v2.0"
+                router.get(f"{api_base2}/device").mock(
+                    return_value=Response(200, json=DEVICE_RESPONSE)
+                )
+                router.get(f"{api_base2}/storages").mock(
+                    return_value=Response(200, json=high_storage_response)
+                )
+                router.get(f"{api_base2}/recorders/recorder-1/status").mock(
+                    return_value=Response(200, json=RECORDER_STATUS_STOPPED)
+                )
+
+                # Mock the LLM provider
+                with patch("epiphan_mcp.server.get_provider") as mock_provider:
+                    mock_llm = AsyncMock()
+                    mock_llm.complete = AsyncMock(
+                        return_value="Fleet has issues.\n\n1. Clear storage on 192.168.1.101"
+                    )
+                    mock_llm.close = AsyncMock()
+                    mock_provider.return_value = mock_llm
+
+                    result = await fleet_health_report.fn()
+
+        assert result["success"] is True
+        assert len(result["attention_required"]) >= 1
+
+        # Find the unhealthy device in attention list
+        unhealthy_device = next(
+            (d for d in result["attention_required"] if "192.168.1.101" in d["device"]),
+            None,
+        )
+        assert unhealthy_device is not None
+        assert "storage" in unhealthy_device["issue"].lower()
+
+    async def test_fleet_health_report_empty_fleet(self):
+        """Verify report handles empty fleet gracefully."""
+        from epiphan_mcp.server import fleet_health_report
+
+        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+            mock_settings.return_value = create_test_settings(devices="")
+
+            result = await fleet_health_report.fn()
+
+        assert result["success"] is True
+        assert "No devices configured" in result["summary"]
+        assert result["health_score"] == 0
+
+    async def test_fleet_health_report_llm_fallback(self):
+        """Verify report falls back gracefully when LLM fails."""
+        from epiphan_mcp.server import fleet_health_report
+        from epiphan_mcp.llm.providers import LLMError
+
+        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+            mock_settings.return_value = create_test_settings(devices="192.168.1.100")
+
+            with respx.mock(assert_all_called=False) as router:
+                api_base = "http://192.168.1.100/api/v2.0"
+                router.get(f"{api_base}/device").mock(
+                    return_value=Response(200, json=DEVICE_RESPONSE)
+                )
+                router.get(f"{api_base}/storages").mock(
+                    return_value=Response(200, json=STORAGE_RESPONSE)
+                )
+                router.get(f"{api_base}/recorders/recorder-1/status").mock(
+                    return_value=Response(200, json=RECORDER_STATUS_STOPPED)
+                )
+
+                # Mock the LLM provider to raise an error
+                with patch("epiphan_mcp.server.get_provider") as mock_provider:
+                    mock_llm = AsyncMock()
+                    mock_llm.complete = AsyncMock(side_effect=LLMError("API error"))
+                    mock_provider.return_value = mock_llm
+
+                    result = await fleet_health_report.fn()
+
+        # Should still succeed with fallback summary
+        assert result["success"] is True
+        assert "summary" in result
+        assert len(result["summary"]) > 0
+        assert "recommendations" in result

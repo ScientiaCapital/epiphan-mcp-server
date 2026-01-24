@@ -119,7 +119,8 @@ Claude: [Calls get_fleet_status] Fleet "classroom-pearls" has 12 devices:
 |------|-------------|
 | `get_device_status` | Get health, storage, and activity of a device |
 | `list_devices` | List all configured devices |
-| `get_fleet_status` | Get status of entire fleet |
+| `get_fleet_status` | Get status of entire fleet with health scores |
+| `fleet_health_report` | AI-summarized fleet health with recommendations |
 
 ### Recording
 | Tool | Description |
@@ -165,6 +166,24 @@ Claude: [Calls get_fleet_status] Fleet "classroom-pearls" has 12 devices:
 |------|-------------|
 | `predict_storage_full` | Estimate hours until storage is full based on recording bitrate |
 | `get_device_health_score` | Aggregate health score (0-100) with category breakdown |
+| `fleet_health_report` | AI-summarized fleet health with prioritized recommendations |
+
+#### Health Score Thresholds
+
+| Score | Status | Action |
+|-------|--------|--------|
+| 80-100 | Healthy | No action needed |
+| 60-79 | Minor Issues | Review when convenient |
+| 40-59 | Needs Attention | Address issues soon |
+| 0-39 | Unhealthy | Immediate attention required |
+
+**Scoring breakdown (0-100):**
+- **Storage (50 pts max)**: 50 = healthy, 30 = >75% used, 10 = >90% used
+- **Recording (50 pts max)**: 50 = accessible, 25 = degraded
+
+Fleet-level metrics:
+- `average_health`: Mean health score of online devices
+- `unhealthy_devices`: Count of devices with score < 60
 
 #### AI Analysis Types
 

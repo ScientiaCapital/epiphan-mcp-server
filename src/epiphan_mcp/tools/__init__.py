@@ -38,6 +38,17 @@ from .schedule import (
 )
 from .storage import get_afu_status, get_storage_report, list_inputs
 from .streaming import get_stream_status, start_stream, stop_stream
+from .panopto import (
+    create_panopto_folder,
+    create_panopto_session,
+    delete_panopto_session,
+    get_panopto_folder,
+    get_panopto_session,
+    get_panopto_upload_status,
+    list_panopto_folders,
+    list_panopto_sessions,
+    upload_to_panopto,
+)
 
 __all__ = [
     # Device tools
@@ -92,4 +103,14 @@ __all__ = [
     "update_input_settings",
     "list_outputs",
     "set_output_source",
+    # Panopto CMS integration tools
+    "list_panopto_folders",
+    "get_panopto_folder",
+    "create_panopto_folder",
+    "list_panopto_sessions",
+    "get_panopto_session",
+    "create_panopto_session",
+    "upload_to_panopto",
+    "get_panopto_upload_status",
+    "delete_panopto_session",
 ]

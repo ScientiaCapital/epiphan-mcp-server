@@ -174,6 +174,34 @@ class TestToolsInputsImports:
         assert callable(set_output_source)
 
 
+class TestToolsPanoptoImports:
+    """Tests for Panopto CMS integration tool imports."""
+
+    def test_tools_panopto_imports(self):
+        """Test that Panopto tools can be imported from the panopto module."""
+        from epiphan_mcp.tools.panopto import (
+            create_panopto_folder,
+            create_panopto_session,
+            delete_panopto_session,
+            get_panopto_folder,
+            get_panopto_session,
+            get_panopto_upload_status,
+            list_panopto_folders,
+            list_panopto_sessions,
+            upload_to_panopto,
+        )
+
+        assert callable(list_panopto_folders)
+        assert callable(get_panopto_folder)
+        assert callable(create_panopto_folder)
+        assert callable(list_panopto_sessions)
+        assert callable(get_panopto_session)
+        assert callable(create_panopto_session)
+        assert callable(upload_to_panopto)
+        assert callable(get_panopto_upload_status)
+        assert callable(delete_panopto_session)
+
+
 class TestToolsInitImports:
     """Tests for tools __init__.py exports."""
 
@@ -184,8 +212,11 @@ class TestToolsInitImports:
             batch_start_recording,
             batch_stop_recording,
             create_network_input,
+            create_panopto_folder,
+            create_panopto_session,
             create_publisher,
             create_scheduled_event,
+            delete_panopto_session,
             delete_publisher,
             get_afu_status,
             get_client,
@@ -193,6 +224,9 @@ class TestToolsInitImports:
             get_device_status,
             get_fleet_status,
             get_input_settings,
+            get_panopto_folder,
+            get_panopto_session,
+            get_panopto_upload_status,
             get_publisher_settings,
             get_recording_status,
             get_scheduled_events,
@@ -202,6 +236,8 @@ class TestToolsInitImports:
             list_inputs,
             list_layouts,
             list_outputs,
+            list_panopto_folders,
+            list_panopto_sessions,
             list_publisher_types,
             pause_event,
             predict_storage_full,
@@ -217,6 +253,7 @@ class TestToolsInitImports:
             switch_layout,
             update_input_settings,
             update_publisher_settings,
+            upload_to_panopto,
         )
 
         # Verify all are callable
@@ -261,6 +298,16 @@ class TestToolsInitImports:
             update_input_settings,
             list_outputs,
             set_output_source,
+            # Panopto CMS integration tools
+            list_panopto_folders,
+            get_panopto_folder,
+            create_panopto_folder,
+            list_panopto_sessions,
+            get_panopto_session,
+            create_panopto_session,
+            upload_to_panopto,
+            get_panopto_upload_status,
+            delete_panopto_session,
         ]
         for tool in all_tools:
             assert callable(tool)
@@ -270,11 +317,11 @@ class TestMCPToolRegistration:
     """Tests for MCP tool registration."""
 
     def test_all_tools_registered(self):
-        """Test that all 46 MCP tools are registered after API expansion."""
+        """Test that all 55 MCP tools are registered (46 Pearl + 9 Panopto CMS)."""
         from epiphan_mcp.server import mcp
 
         tools = list(mcp._tool_manager._tools.keys())
-        assert len(tools) == 46, f"Expected 46 tools, got {len(tools)}: {tools}"
+        assert len(tools) == 55, f"Expected 55 tools, got {len(tools)}: {tools}"
 
     def test_expected_tools_registered(self):
         """Test that all expected tools are registered with MCP."""
@@ -339,6 +386,16 @@ class TestMCPToolRegistration:
             "update_input_settings",
             "list_outputs",
             "set_output_source",
+            # Panopto CMS integration tools
+            "list_panopto_folders",
+            "get_panopto_folder",
+            "create_panopto_folder",
+            "list_panopto_sessions",
+            "get_panopto_session",
+            "create_panopto_session",
+            "upload_to_panopto",
+            "get_panopto_upload_status",
+            "delete_panopto_session",
         ]
 
         tools = list(mcp._tool_manager._tools.keys())
@@ -346,7 +403,7 @@ class TestMCPToolRegistration:
             assert expected in tools, f"Missing tool: {expected}"
 
     def test_tool_count_unchanged(self):
-        """Test that the tool count is exactly 46 after API expansion."""
+        """Test that the tool count is exactly 55 (46 Pearl + 9 Panopto CMS)."""
         from epiphan_mcp.server import mcp
 
         expected_tools = [
@@ -392,16 +449,26 @@ class TestMCPToolRegistration:
             "update_publisher_settings",
             "list_publisher_types",
             "rename_publisher",
-            # Input/output management tools (5 tools - includes bonus set_output_source)
+            # Input/output management tools
             "create_network_input",
             "get_input_settings",
             "update_input_settings",
             "list_outputs",
             "set_output_source",
+            # Panopto CMS integration tools
+            "list_panopto_folders",
+            "get_panopto_folder",
+            "create_panopto_folder",
+            "list_panopto_sessions",
+            "get_panopto_session",
+            "create_panopto_session",
+            "upload_to_panopto",
+            "get_panopto_upload_status",
+            "delete_panopto_session",
         ]
 
         tools = list(mcp._tool_manager._tools.keys())
-        # Total: 32 original + 3 event + 6 publisher + 5 input/output = 46
+        # Total: 46 Pearl tools + 9 Panopto CMS tools = 55
         assert len(tools) == len(expected_tools), (
             f"Tool count mismatch: expected {len(expected_tools)}, got {len(tools)}"
         )

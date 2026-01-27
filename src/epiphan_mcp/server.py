@@ -80,6 +80,35 @@ from .tools.maintenance import (
 from .tools.maintenance import (
     predict_storage_full as _predict_storage_full,
 )
+
+# Panopto CMS integration tools
+from .tools.panopto import (
+    create_panopto_folder as _create_panopto_folder,
+)
+from .tools.panopto import (
+    create_panopto_session as _create_panopto_session,
+)
+from .tools.panopto import (
+    delete_panopto_session as _delete_panopto_session,
+)
+from .tools.panopto import (
+    get_panopto_folder as _get_panopto_folder,
+)
+from .tools.panopto import (
+    get_panopto_session as _get_panopto_session,
+)
+from .tools.panopto import (
+    get_panopto_upload_status as _get_panopto_upload_status,
+)
+from .tools.panopto import (
+    list_panopto_folders as _list_panopto_folders,
+)
+from .tools.panopto import (
+    list_panopto_sessions as _list_panopto_sessions,
+)
+from .tools.panopto import (
+    upload_to_panopto as _upload_to_panopto,
+)
 from .tools.publishers import (
     create_publisher as _create_publisher,
 )
@@ -1761,3 +1790,195 @@ async def generate_shift_handoff(
         - fleet_status: Current fleet health snapshot
     """
     return await _generate_shift_handoff(shift_hours=shift_hours)
+
+
+# =============================================================================
+# Panopto CMS Integration Tools
+# =============================================================================
+
+
+@mcp.tool()
+async def list_panopto_folders(
+    parent_folder_id: str = "",
+    search_query: str = "",
+) -> dict[str, Any]:
+    """
+    List folders in Panopto video platform.
+
+    Retrieves folders accessible to the configured service account.
+    Can filter by parent folder or search by name.
+
+    Args:
+        parent_folder_id: Optional parent folder UUID to list children.
+        search_query: Optional search term to filter folders.
+
+    Returns:
+        Dict with folders list and count.
+
+    Requires PANOPTO_HOST, PANOPTO_CLIENT_ID, PANOPTO_USERNAME, PANOPTO_PASSWORD
+    environment variables to be set.
+    """
+    return await _list_panopto_folders(
+        parent_folder_id=parent_folder_id,
+        search_query=search_query,
+    )
+
+
+@mcp.tool()
+async def get_panopto_folder(folder_id: str) -> dict[str, Any]:
+    """
+    Get details of a specific Panopto folder.
+
+    Args:
+        folder_id: Folder UUID.
+
+    Returns:
+        Folder details including name, description, parent.
+    """
+    return await _get_panopto_folder(folder_id=folder_id)
+
+
+@mcp.tool()
+async def create_panopto_folder(
+    name: str,
+    parent_folder_id: str = "",
+    description: str = "",
+) -> dict[str, Any]:
+    """
+    Create a new folder in Panopto.
+
+    Args:
+        name: Folder name.
+        parent_folder_id: Optional parent folder UUID (root if empty).
+        description: Optional folder description.
+
+    Returns:
+        Created folder details.
+    """
+    return await _create_panopto_folder(
+        name=name,
+        parent_folder_id=parent_folder_id,
+        description=description,
+    )
+
+
+@mcp.tool()
+async def list_panopto_sessions(
+    folder_id: str = "",
+    search_query: str = "",
+) -> dict[str, Any]:
+    """
+    List sessions (recordings) in Panopto.
+
+    Args:
+        folder_id: Optional folder UUID to filter sessions.
+        search_query: Optional search term.
+
+    Returns:
+        Dict with sessions list and count.
+    """
+    return await _list_panopto_sessions(
+        folder_id=folder_id,
+        search_query=search_query,
+    )
+
+
+@mcp.tool()
+async def get_panopto_session(session_id: str) -> dict[str, Any]:
+    """
+    Get details of a specific Panopto session.
+
+    Args:
+        session_id: Session UUID.
+
+    Returns:
+        Session details including name, duration, folder, streams.
+    """
+    return await _get_panopto_session(session_id=session_id)
+
+
+@mcp.tool()
+async def create_panopto_session(
+    folder_id: str,
+    name: str,
+    description: str = "",
+) -> dict[str, Any]:
+    """
+    Create a new session (recording placeholder) in Panopto.
+
+    Creates an empty session that can receive uploaded video content.
+
+    Args:
+        folder_id: Target folder UUID.
+        name: Session name.
+        description: Optional session description.
+
+    Returns:
+        Created session details.
+    """
+    return await _create_panopto_session(
+        folder_id=folder_id,
+        name=name,
+        description=description,
+    )
+
+
+@mcp.tool()
+async def upload_to_panopto(
+    folder_id: str,
+    file_path: str,
+    session_name: str = "",
+    wait_for_processing: bool = False,
+) -> dict[str, Any]:
+    """
+    Upload a video file to Panopto.
+
+    Handles the complete upload workflow:
+    1. Creates upload session
+    2. Uploads file to S3
+    3. Signals upload complete
+    4. Optionally waits for processing
+
+    Args:
+        folder_id: Target folder UUID.
+        file_path: Local path to video file.
+        session_name: Optional session name (defaults to filename).
+        wait_for_processing: Wait for Panopto to finish processing.
+
+    Returns:
+        Upload status and session details.
+    """
+    return await _upload_to_panopto(
+        folder_id=folder_id,
+        file_path=file_path,
+        session_name=session_name,
+        wait_for_processing=wait_for_processing,
+    )
+
+
+@mcp.tool()
+async def get_panopto_upload_status(upload_id: str) -> dict[str, Any]:
+    """
+    Check the status of a Panopto upload.
+
+    Args:
+        upload_id: Upload session ID.
+
+    Returns:
+        Upload status including processing state.
+    """
+    return await _get_panopto_upload_status(upload_id=upload_id)
+
+
+@mcp.tool()
+async def delete_panopto_session(session_id: str) -> dict[str, Any]:
+    """
+    Delete a session from Panopto.
+
+    Args:
+        session_id: Session UUID to delete.
+
+    Returns:
+        Confirmation of deletion.
+    """
+    return await _delete_panopto_session(session_id=session_id)

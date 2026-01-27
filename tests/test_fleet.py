@@ -802,3 +802,308 @@ class TestFleetHealthReport:
         assert "summary" in result
         assert len(result["summary"]) > 0
         assert "recommendations" in result
+
+
+# ============================================================
+# Fleet Intelligence Tests (Sprint 3)
+# ============================================================
+
+
+class TestSuggestMaintenanceWindow:
+    """Tests for suggest_maintenance_window tool."""
+
+    async def test_suggest_maintenance_returns_success(self):
+        """Verify suggest_maintenance_window returns correct structure."""
+        from epiphan_mcp.server import suggest_maintenance_window
+
+        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+            mock_settings.return_value = create_test_settings(
+                devices="192.168.1.100,192.168.1.101"
+            )
+
+            with respx.mock(assert_all_called=False) as router:
+                for i in [100, 101]:
+                    api_base = f"http://192.168.1.{i}/api/v2.0"
+                    router.get(f"{api_base}/device").mock(
+                        return_value=Response(200, json=DEVICE_RESPONSE)
+                    )
+                    router.get(f"{api_base}/storages").mock(
+                        return_value=Response(200, json=STORAGE_RESPONSE)
+                    )
+                    router.get(f"{api_base}/recorders/recorder-1/status").mock(
+                        return_value=Response(200, json=RECORDER_STATUS_STOPPED)
+                    )
+
+                # Mock the LLM provider
+                with patch("epiphan_mcp.tools.fleet.get_provider") as mock_provider:
+                    mock_llm = AsyncMock()
+                    mock_llm.complete = AsyncMock(
+                        return_value="Tonight 10pm-2am would be ideal.\nConfidence: high\nAll devices are idle."
+                    )
+                    mock_llm.close = AsyncMock()
+                    mock_provider.return_value = mock_llm
+
+                    result = await suggest_maintenance_window.fn(min_duration_hours=2.0)
+
+        assert result["success"] is True
+        assert "suggested_window" in result
+        assert "confidence" in result
+        assert "reasoning" in result
+        assert "devices_affected" in result
+        assert "current_activity" in result
+
+    async def test_suggest_maintenance_empty_fleet(self):
+        """Verify handling of empty fleet."""
+        from epiphan_mcp.server import suggest_maintenance_window
+
+        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+            mock_settings.return_value = create_test_settings(devices="")
+
+            result = await suggest_maintenance_window.fn(min_duration_hours=2.0)
+
+        assert result["success"] is True
+        assert result["devices_affected"] == 0
+        assert "no devices" in result["suggested_window"].lower()
+
+
+class TestPredictFleetIssues:
+    """Tests for predict_fleet_issues tool."""
+
+    async def test_predict_fleet_issues_returns_success(self):
+        """Verify predict_fleet_issues returns correct structure."""
+        from epiphan_mcp.server import predict_fleet_issues
+
+        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+            mock_settings.return_value = create_test_settings(
+                devices="192.168.1.100,192.168.1.101"
+            )
+
+            with respx.mock(assert_all_called=False) as router:
+                for i in [100, 101]:
+                    api_base = f"http://192.168.1.{i}/api/v2.0"
+                    router.get(f"{api_base}/device").mock(
+                        return_value=Response(200, json=DEVICE_RESPONSE)
+                    )
+                    router.get(f"{api_base}/storages").mock(
+                        return_value=Response(200, json=STORAGE_RESPONSE)
+                    )
+                    router.get(f"{api_base}/recorders/recorder-1/status").mock(
+                        return_value=Response(200, json=RECORDER_STATUS_STOPPED)
+                    )
+
+                # Mock the LLM provider for summary
+                with patch("epiphan_mcp.tools.fleet.get_provider") as mock_provider:
+                    mock_llm = AsyncMock()
+                    mock_llm.complete = AsyncMock(
+                        return_value="Fleet is healthy with no predicted issues."
+                    )
+                    mock_llm.close = AsyncMock()
+                    mock_provider.return_value = mock_llm
+
+                    result = await predict_fleet_issues.fn(hours_ahead=24)
+
+        assert result["success"] is True
+        assert "predictions" in result
+        assert isinstance(result["predictions"], list)
+        assert "risk_level" in result
+        assert result["risk_level"] in ["low", "medium", "high", "critical"]
+        assert "devices_at_risk" in result
+        assert "summary" in result
+
+    async def test_predict_fleet_issues_with_offline_device(self):
+        """Verify offline devices are predicted as critical."""
+        from epiphan_mcp.server import predict_fleet_issues
+
+        with patch("epiphan_mcp.tools.fleet.get_settings") as mock_settings:
+            mock_settings.return_value = create_test_settings(
+                devices="192.168.1.100,192.168.1.101"
+            )
+
+            with respx.mock(assert_all_called=False) as router:
+                # Device 1: Healthy
+                api_base1 = "http://192.168.1.100/api/v2.0"
+                router.get(f"{api_base1}/device").mock(
+                    return_value=Response(200, json=DEVICE_RESPONSE)
+                )
+                router.get(f"{api_base1}/storages").mock(
+                    return_value=Response(200, json=STORAGE_RESPONSE)
+                )
+                router.get(f"{api_base1}/recorders/recorder-1/status").mock(
+                    return_value=Response(200, json=RECORDER_STATUS_STOPPED)
+                )
+
+                # Device 2: Offline
+                api_base2 = "http://192.168.1.101/api/v2.0"
+                router.get(f"{api_base2}/device").mock(
+                    side_effect=ConnectError("Connection refused")
+                )
+                router.get(f"{api_base2}/storages").mock(
+                    side_effect=ConnectError("Connection refused")
+                )
+
+                # Mock the LLM provider
+                with patch("epiphan_mcp.tools.fleet.get_provider") as mock_provider:
+                    mock_llm = AsyncMock()
+                    mock_llm.complete = AsyncMock(
+                        return_value="Device 192.168.1.101 is offline and needs attention."
+                    )
+                    mock_llm.close = AsyncMock()
+                    mock_provider.return_value = mock_llm
+
+                    result = await predict_fleet_issues.fn(hours_ahead=24)
+
+        assert result["success"] is True
+        assert result["devices_at_risk"] >= 1
+        assert any(p["severity"] == "critical" for p in result["predictions"])
+
+    async def test_predict_fleet_issues_empty_fleet(self):
+        """Verify handling of empty fleet."""
+        from epiphan_mcp.server import predict_fleet_issues
+
+        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+            mock_settings.return_value = create_test_settings(devices="")
+
+            result = await predict_fleet_issues.fn(hours_ahead=24)
+
+        assert result["success"] is True
+        assert result["predictions"] == []
+        assert result["risk_level"] == "low"
+
+
+class TestGenerateShiftHandoff:
+    """Tests for generate_shift_handoff tool."""
+
+    async def test_generate_shift_handoff_returns_success(self):
+        """Verify generate_shift_handoff returns correct structure."""
+        from epiphan_mcp.server import generate_shift_handoff
+
+        with patch("epiphan_mcp.tools.fleet.get_settings") as mock_settings:
+            mock_settings.return_value = create_test_settings(
+                devices="192.168.1.100,192.168.1.101"
+            )
+
+            with respx.mock(assert_all_called=False) as router:
+                for i in [100, 101]:
+                    api_base = f"http://192.168.1.{i}/api/v2.0"
+                    router.get(f"{api_base}/device").mock(
+                        return_value=Response(200, json=DEVICE_RESPONSE)
+                    )
+                    router.get(f"{api_base}/storages").mock(
+                        return_value=Response(200, json=STORAGE_RESPONSE)
+                    )
+                    router.get(f"{api_base}/recorders/recorder-1/status").mock(
+                        return_value=Response(200, json=RECORDER_STATUS_RECORDING)
+                    )
+
+                # Mock the LLM provider
+                with patch("epiphan_mcp.tools.fleet.get_provider") as mock_provider:
+                    mock_llm = AsyncMock()
+                    mock_llm.complete = AsyncMock(
+                        return_value="Shift completed with 2 devices online. All systems normal."
+                    )
+                    mock_llm.close = AsyncMock()
+                    mock_provider.return_value = mock_llm
+
+                    result = await generate_shift_handoff.fn(shift_hours=8)
+
+        assert result["success"] is True
+        assert "summary" in result
+        assert "activity_summary" in result
+        assert "attention_required" in result
+        assert "fleet_status" in result
+        assert "shift_period" in result
+
+    async def test_generate_shift_handoff_with_issues(self):
+        """Verify handoff includes attention items for unhealthy devices."""
+        from epiphan_mcp.server import generate_shift_handoff
+
+        # High storage response
+        high_storage_response = {
+            "status": "ok",
+            "result": [
+                {
+                    "id": "storage-1",
+                    "name": "Internal Storage",
+                    "type": "internal",
+                    "total_bytes": 500000000000,
+                    "used_bytes": 450000000000,
+                    "free_bytes": 50000000000,
+                    "percent_used": 90.0,
+                    "mounted": True,
+                }
+            ]
+        }
+
+        with patch("epiphan_mcp.tools.fleet.get_settings") as mock_settings:
+            mock_settings.return_value = create_test_settings(devices="192.168.1.100")
+
+            with respx.mock(assert_all_called=False) as router:
+                api_base = "http://192.168.1.100/api/v2.0"
+                router.get(f"{api_base}/device").mock(
+                    return_value=Response(200, json=DEVICE_RESPONSE)
+                )
+                router.get(f"{api_base}/storages").mock(
+                    return_value=Response(200, json=high_storage_response)
+                )
+                router.get(f"{api_base}/recorders/recorder-1/status").mock(
+                    return_value=Response(200, json=RECORDER_STATUS_STOPPED)
+                )
+
+                # Mock the LLM provider
+                with patch("epiphan_mcp.tools.fleet.get_provider") as mock_provider:
+                    mock_llm = AsyncMock()
+                    mock_llm.complete = AsyncMock(
+                        return_value="Shift ending with storage concerns. Clear storage on 192.168.1.100."
+                    )
+                    mock_llm.close = AsyncMock()
+                    mock_provider.return_value = mock_llm
+
+                    result = await generate_shift_handoff.fn(shift_hours=8)
+
+        assert result["success"] is True
+        assert len(result["attention_required"]) >= 1
+
+    async def test_generate_shift_handoff_empty_fleet(self):
+        """Verify handling of empty fleet."""
+        from epiphan_mcp.server import generate_shift_handoff
+
+        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+            mock_settings.return_value = create_test_settings(devices="")
+
+            result = await generate_shift_handoff.fn(shift_hours=8)
+
+        assert result["success"] is True
+        assert "No devices configured" in result["summary"]
+
+    async def test_generate_shift_handoff_llm_fallback(self):
+        """Verify fallback when LLM fails."""
+        from epiphan_mcp.server import generate_shift_handoff
+        from epiphan_mcp.llm.providers import LLMError
+
+        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+            mock_settings.return_value = create_test_settings(devices="192.168.1.100")
+
+            with respx.mock(assert_all_called=False) as router:
+                api_base = "http://192.168.1.100/api/v2.0"
+                router.get(f"{api_base}/device").mock(
+                    return_value=Response(200, json=DEVICE_RESPONSE)
+                )
+                router.get(f"{api_base}/storages").mock(
+                    return_value=Response(200, json=STORAGE_RESPONSE)
+                )
+                router.get(f"{api_base}/recorders/recorder-1/status").mock(
+                    return_value=Response(200, json=RECORDER_STATUS_STOPPED)
+                )
+
+                # Mock the LLM provider to raise an error
+                with patch("epiphan_mcp.tools.fleet.get_provider") as mock_provider:
+                    mock_llm = AsyncMock()
+                    mock_llm.complete = AsyncMock(side_effect=LLMError("API error"))
+                    mock_provider.return_value = mock_llm
+
+                    result = await generate_shift_handoff.fn(shift_hours=8)
+
+        # Should still succeed with fallback summary
+        assert result["success"] is True
+        assert "summary" in result
+        assert len(result["summary"]) > 0

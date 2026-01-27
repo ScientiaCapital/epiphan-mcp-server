@@ -191,11 +191,11 @@ class TestMCPToolRegistration:
     """Tests for MCP tool registration."""
 
     def test_all_tools_registered(self):
-        """Test that all 28 MCP tools are still registered after refactoring."""
+        """Test that all 32 MCP tools are still registered after refactoring."""
         from epiphan_mcp.server import mcp
 
         tools = list(mcp._tool_manager._tools.keys())
-        assert len(tools) == 28, f"Expected 28 tools, got {len(tools)}: {tools}"
+        assert len(tools) == 32, f"Expected 32 tools, got {len(tools)}: {tools}"
 
     def test_expected_tools_registered(self):
         """Test that all expected tools are registered with MCP."""
@@ -239,6 +239,11 @@ class TestMCPToolRegistration:
             "detect_layout_changes",
             "check_video_quality",
             "clear_change_detection_cache",
+            # Sprint 3 AI Moat tools
+            "detect_recording_issues",
+            "suggest_maintenance_window",
+            "predict_fleet_issues",
+            "generate_shift_handoff",
         ]
 
         tools = list(mcp._tool_manager._tools.keys())
@@ -246,7 +251,7 @@ class TestMCPToolRegistration:
             assert expected in tools, f"Missing tool: {expected}"
 
     def test_tool_count_unchanged(self):
-        """Test that the tool count is exactly 28 (no additions/removals)."""
+        """Test that the tool count is exactly 32 (no additions/removals)."""
         from epiphan_mcp.server import mcp
 
         expected_tools = [
@@ -278,6 +283,10 @@ class TestMCPToolRegistration:
             "detect_layout_changes",
             "check_video_quality",
             "clear_change_detection_cache",
+            "detect_recording_issues",
+            "suggest_maintenance_window",
+            "predict_fleet_issues",
+            "generate_shift_handoff",
         ]
 
         tools = list(mcp._tool_manager._tools.keys())

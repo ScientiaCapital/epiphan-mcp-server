@@ -372,3 +372,137 @@ async def clear_change_detection_cache(
             "success": False,
             "error": str(e),
         }
+
+
+async def detect_recording_issues(
+    device_id: str = "default",
+    channel: str = "1",
+) -> dict[str, Any]:
+    """
+    Detect video quality issues during an active recording.
+
+    Performs proactive monitoring by analyzing the current frame for common
+    production problems. Use this during recordings to catch issues early
+    before they affect the entire capture.
+
+    Checks for:
+    - Black frames (camera off, signal loss)
+    - Frozen video (static image, no motion)
+    - Poor lighting (too dark, overexposed)
+    - Focus issues (blurry, soft image)
+    - Framing problems (empty frame, cut-off subjects)
+
+    Args:
+        device_id: Pearl device identifier
+        channel: Channel ID to monitor
+
+    Returns:
+        dict containing:
+            - success: bool
+            - issues_detected: bool - True if any problems found
+            - issues: list of detected issues with severity
+            - quality_score: 0-100 overall quality rating
+            - recommendation: Suggested action if issues found
+            - device_id: Device that was checked
+            - channel: Channel that was checked
+
+    Example:
+        >>> result = await detect_recording_issues(device_id="room-201", channel="1")
+        >>> if result["issues_detected"]:
+        ...     print(f"Alert: {result['issues'][0]['description']}")
+    """
+    try:
+        image_data = await _get_channel_preview(device_id, channel)
+
+        analyzer = await get_analyzer()
+
+        # Use quality check analysis to detect issues
+        result = await analyzer.analyze_scene(
+            image_data=image_data,
+            analysis_type=AnalysisType.QUALITY_CHECK,
+        )
+
+        # Parse the quality report for specific issues
+        issues = _parse_quality_issues(result.content)
+        issues_detected = len(issues) > 0
+
+        # Calculate quality score based on issues
+        quality_score = _calculate_quality_score(issues)
+
+        # Generate recommendation
+        if quality_score >= 80:
+            recommendation = "Video quality is good - no action needed"
+        elif quality_score >= 60:
+            recommendation = "Minor issues detected - monitor and adjust if needed"
+        elif quality_score >= 40:
+            recommendation = "Quality issues detected - consider pausing to fix"
+        else:
+            recommendation = "Significant issues detected - immediate attention required"
+
+        return {
+            "success": True,
+            "issues_detected": issues_detected,
+            "issues": issues,
+            "quality_score": quality_score,
+            "recommendation": recommendation,
+            "model_used": result.model_used,
+            "timestamp": result.timestamp.isoformat(),
+            "device_id": device_id,
+            "channel": channel,
+        }
+
+    except Exception as e:
+        logger.exception(f"Recording issue detection failed: {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "device_id": device_id,
+            "channel": channel,
+        }
+
+
+def _parse_quality_issues(quality_report: str) -> list[dict[str, Any]]:
+    """Parse quality report text to extract specific issues."""
+    issues = []
+    report_lower = quality_report.lower()
+
+    # Check for common issues mentioned in the report
+    issue_patterns = [
+        ("black", "Black frame detected", "critical", "Check camera power and signal connection"),
+        ("dark", "Poor lighting - too dark", "warning", "Increase lighting or adjust camera settings"),
+        ("overexposed", "Overexposure detected", "warning", "Reduce lighting or adjust exposure"),
+        ("blur", "Focus issue - image is blurry", "warning", "Check camera focus settings"),
+        ("frozen", "Video appears frozen", "critical", "Check signal source and cable connections"),
+        ("empty", "Frame appears empty", "warning", "Verify camera is pointed at subject"),
+        ("cut off", "Subject may be cut off", "info", "Adjust camera framing"),
+        ("noise", "Video noise detected", "info", "Consider improving lighting"),
+    ]
+
+    for keyword, description, severity, action in issue_patterns:
+        if keyword in report_lower:
+            issues.append({
+                "type": keyword,
+                "description": description,
+                "severity": severity,
+                "action": action,
+            })
+
+    return issues
+
+
+def _calculate_quality_score(issues: list[dict[str, Any]]) -> int:
+    """Calculate quality score based on detected issues."""
+    score = 100
+
+    severity_penalties = {
+        "critical": 40,
+        "warning": 15,
+        "info": 5,
+    }
+
+    for issue in issues:
+        severity = issue.get("severity", "info")
+        penalty = severity_penalties.get(severity, 5)
+        score -= penalty
+
+    return max(0, score)

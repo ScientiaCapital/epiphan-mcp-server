@@ -29,7 +29,19 @@ from .tools.ai_tools import (
     detect_layout_changes as _detect_layout_changes,
 )
 from .tools.ai_tools import (
+    detect_recording_issues as _detect_recording_issues,
+)
+from .tools.ai_tools import (
     extract_text_from_preview as _extract_text_from_preview,
+)
+from .tools.fleet import (
+    generate_shift_handoff as _generate_shift_handoff,
+)
+from .tools.fleet import (
+    predict_fleet_issues as _predict_fleet_issues,
+)
+from .tools.fleet import (
+    suggest_maintenance_window as _suggest_maintenance_window,
 )
 
 # Import tool implementations from modules
@@ -1220,3 +1232,105 @@ async def clear_change_detection_cache(
         Confirmation of cache clear.
     """
     return await _clear_change_detection_cache(device_id=device_id, channel=channel)
+
+
+# ============================================================
+# Fleet Intelligence Tools (Sprint 3 - Pearl Copilot)
+# ============================================================
+# These tools provide proactive monitoring, prediction, and operational intelligence.
+
+
+@mcp.tool()
+async def detect_recording_issues(
+    device_id: str = "default",
+    channel: str = "1",
+) -> dict[str, Any]:
+    """
+    Detect video quality issues during an active recording.
+
+    Performs proactive monitoring by analyzing the current frame for common
+    production problems like black frames, frozen video, poor lighting, and focus issues.
+
+    Use this during recordings to catch issues early before they affect the entire capture.
+
+    Args:
+        device_id: Pearl device identifier.
+        channel: Channel ID to monitor.
+
+    Returns:
+        Detection results including:
+        - issues_detected: True if any problems found
+        - issues: List of issues with severity and recommended actions
+        - quality_score: 0-100 rating
+        - recommendation: Overall suggested action
+    """
+    return await _detect_recording_issues(device_id=device_id, channel=channel)
+
+
+@mcp.tool()
+async def suggest_maintenance_window(
+    min_duration_hours: float = 2.0,
+) -> dict[str, Any]:
+    """
+    Suggest optimal maintenance window based on fleet usage patterns.
+
+    Analyzes current fleet status and activity to recommend the best time
+    for maintenance with minimal disruption to operations.
+
+    Args:
+        min_duration_hours: Minimum maintenance window duration needed (default 2 hours).
+
+    Returns:
+        Maintenance suggestion including:
+        - suggested_window: Recommended time window
+        - confidence: How confident in the recommendation (high/medium/low)
+        - reasoning: Explanation for the suggestion
+        - devices_affected: Count of devices that would be impacted
+    """
+    return await _suggest_maintenance_window(min_duration_hours=min_duration_hours)
+
+
+@mcp.tool()
+async def predict_fleet_issues(
+    hours_ahead: int = 24,
+) -> dict[str, Any]:
+    """
+    Predict fleet issues for the next 24/48/72 hours.
+
+    Analyzes current health scores, storage trends, and patterns to forecast
+    potential problems before they occur.
+
+    Args:
+        hours_ahead: How many hours ahead to predict (24, 48, or 72).
+
+    Returns:
+        Predictions including:
+        - predictions: List of predicted issues with timeframes
+        - risk_level: Overall risk level (low/medium/high/critical)
+        - devices_at_risk: Count of devices with predicted issues
+        - summary: AI-generated summary of predictions
+    """
+    return await _predict_fleet_issues(hours_ahead=hours_ahead)
+
+
+@mcp.tool()
+async def generate_shift_handoff(
+    shift_hours: int = 8,
+) -> dict[str, Any]:
+    """
+    Generate end-of-shift handoff summary for AV operations teams.
+
+    Creates a comprehensive summary of fleet activity, resolved issues,
+    and items requiring attention for the next shift.
+
+    Args:
+        shift_hours: Length of shift to summarize (default 8 hours).
+
+    Returns:
+        Handoff report including:
+        - summary: AI-generated shift summary
+        - activity_summary: Recording/streaming statistics
+        - attention_required: Items needing attention for next shift
+        - fleet_status: Current fleet health snapshot
+    """
+    return await _generate_shift_handoff(shift_hours=shift_hours)

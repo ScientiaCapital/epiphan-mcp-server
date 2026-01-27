@@ -1,7 +1,15 @@
 """MCP tool implementations for Epiphan Pearl devices."""
 
+from .ai_tools import detect_recording_issues
 from .device import get_client, get_device_status, list_devices
-from .fleet import batch_start_recording, batch_stop_recording, get_fleet_status
+from .fleet import (
+    batch_start_recording,
+    batch_stop_recording,
+    generate_shift_handoff,
+    get_fleet_status,
+    predict_fleet_issues,
+    suggest_maintenance_window,
+)
 from .layout import add_bookmark, list_layouts, switch_layout
 from .maintenance import get_device_health_score, predict_storage_full
 from .recording import get_recording_status, start_recording, stop_recording
@@ -37,6 +45,11 @@ __all__ = [
     "get_fleet_status",
     "batch_start_recording",
     "batch_stop_recording",
+    # Fleet intelligence tools (Sprint 3)
+    "detect_recording_issues",
+    "suggest_maintenance_window",
+    "predict_fleet_issues",
+    "generate_shift_handoff",
     # Schedule tools
     "get_scheduled_events",
     "single_touch_start",

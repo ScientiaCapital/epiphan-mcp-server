@@ -16,6 +16,7 @@ from epiphan_mcp.tools.ai_tools import (
     check_video_quality,
     clear_change_detection_cache,
     detect_layout_changes,
+    detect_recording_issues,
     extract_text_from_preview,
 )
 
@@ -380,3 +381,107 @@ class TestAIToolsIntegration:
             assert "analysis" in result
             assert "model_used" in result
             assert "timestamp" in result
+
+
+# ============================================================
+# detect_recording_issues Tests (Sprint 3)
+# ============================================================
+
+
+class TestDetectRecordingIssues:
+    """Tests for detect_recording_issues tool."""
+
+    @pytest.mark.asyncio
+    async def test_returns_success_dict(
+        self, mock_pearl_settings, mock_pearl_client, mock_analyzer
+    ):
+        """Should return dict with success=True on successful detection."""
+        result = await detect_recording_issues(
+            device_id="default",
+            channel="1",
+        )
+
+        assert isinstance(result, dict)
+        assert result["success"] is True
+
+    @pytest.mark.asyncio
+    async def test_includes_issues_detected_flag(
+        self, mock_pearl_settings, mock_pearl_client, mock_analyzer
+    ):
+        """Should include issues_detected boolean in response."""
+        result = await detect_recording_issues(
+            device_id="default",
+            channel="1",
+        )
+
+        assert "issues_detected" in result
+        assert isinstance(result["issues_detected"], bool)
+
+    @pytest.mark.asyncio
+    async def test_includes_quality_score(
+        self, mock_pearl_settings, mock_pearl_client, mock_analyzer
+    ):
+        """Should include quality_score 0-100 in response."""
+        result = await detect_recording_issues(
+            device_id="default",
+            channel="1",
+        )
+
+        assert "quality_score" in result
+        assert isinstance(result["quality_score"], int)
+        assert 0 <= result["quality_score"] <= 100
+
+    @pytest.mark.asyncio
+    async def test_includes_issues_list(
+        self, mock_pearl_settings, mock_pearl_client, mock_analyzer
+    ):
+        """Should include issues list in response."""
+        result = await detect_recording_issues(
+            device_id="default",
+            channel="1",
+        )
+
+        assert "issues" in result
+        assert isinstance(result["issues"], list)
+
+    @pytest.mark.asyncio
+    async def test_includes_recommendation(
+        self, mock_pearl_settings, mock_pearl_client, mock_analyzer
+    ):
+        """Should include recommendation string in response."""
+        result = await detect_recording_issues(
+            device_id="default",
+            channel="1",
+        )
+
+        assert "recommendation" in result
+        assert isinstance(result["recommendation"], str)
+        assert len(result["recommendation"]) > 0
+
+    @pytest.mark.asyncio
+    async def test_includes_device_and_channel(
+        self, mock_pearl_settings, mock_pearl_client, mock_analyzer
+    ):
+        """Should include device_id and channel in response."""
+        result = await detect_recording_issues(
+            device_id="my-device",
+            channel="2",
+        )
+
+        assert result["device_id"] == "my-device"
+        assert result["channel"] == "2"
+
+    @pytest.mark.asyncio
+    async def test_returns_error_on_pearl_failure(self, mock_pearl_settings):
+        """Should return error dict when Pearl client fails."""
+        with patch("epiphan_mcp.tools.ai_tools.PearlClient") as mock_class:
+            mock_client = AsyncMock()
+            mock_client.get_channel_preview.side_effect = Exception("Connection failed")
+            mock_client.__aenter__.return_value = mock_client
+            mock_client.__aexit__.return_value = None
+            mock_class.return_value = mock_client
+
+            result = await detect_recording_issues(device_id="default", channel="1")
+
+            assert result["success"] is False
+            assert "error" in result

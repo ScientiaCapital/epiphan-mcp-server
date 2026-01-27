@@ -2,8 +2,8 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
-[![Tests](https://img.shields.io/badge/tests-329_passing-brightgreen.svg)](tests/)
-[![Tools](https://img.shields.io/badge/MCP_tools-28-blue.svg)](src/epiphan_mcp/server.py)
+[![Tests](https://img.shields.io/badge/tests-400_passing-brightgreen.svg)](tests/)
+[![Tools](https://img.shields.io/badge/MCP_tools-55-blue.svg)](src/epiphan_mcp/server.py)
 
 MCP (Model Context Protocol) server for controlling Epiphan Pearl video capture devices through AI assistants like Claude.
 
@@ -43,6 +43,7 @@ LLM_TEXT_MODEL=deepseek/deepseek-chat-v3-0324     # Fleet intelligence
 - 🏢 **Fleet Management** - Control multiple Pearl devices from one interface
 - 🤖 **Natural Language** - "Start recording in Room 201" just works
 - 🔍 **AI Video Analysis** - Scene understanding, OCR, quality checks, change detection via vision LLMs
+- 🎓 **CMS Integration** - Direct Panopto integration for lecture capture workflows
 
 ## Quick Start
 
@@ -102,6 +103,21 @@ LLM_MOCK_MODE=true  # Returns mock responses
 - DeepSeek VL - Scientific/technical content
 
 > **Note**: AI features work without `OPENROUTER_API_KEY` in mock mode (`LLM_MOCK_MODE=true`), useful for testing.
+
+### Panopto CMS Integration (Optional)
+
+To enable Panopto lecture capture integration:
+
+```bash
+# Required for Panopto features
+PANOPTO_HOST=panopto.university.edu
+PANOPTO_CLIENT_ID=your-client-id
+PANOPTO_USERNAME=service@university.edu
+PANOPTO_PASSWORD=your-password
+
+# Optional: For confidential OAuth2 clients
+PANOPTO_CLIENT_SECRET=your-client-secret
+```
 
 ### Usage with Claude Code
 
@@ -195,6 +211,19 @@ Claude: [Calls get_fleet_status] Fleet "classroom-pearls" has 12 devices:
 | `predict_storage_full` | Estimate hours until storage is full based on recording bitrate |
 | `get_device_health_score` | Aggregate health score (0-100) with category breakdown |
 | `fleet_health_report` | AI-summarized fleet health with prioritized recommendations |
+
+### Panopto CMS Integration
+| Tool | Description |
+|------|-------------|
+| `list_panopto_folders` | Browse folder hierarchy |
+| `get_panopto_folder` | Get folder details |
+| `create_panopto_folder` | Create new folders |
+| `list_panopto_sessions` | List recordings |
+| `get_panopto_session` | Get session details |
+| `create_panopto_session` | Create recording placeholder |
+| `upload_to_panopto` | Full S3-based upload workflow |
+| `get_panopto_upload_status` | Check processing status |
+| `delete_panopto_session` | Remove session |
 
 #### Health Score Thresholds
 

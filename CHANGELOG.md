@@ -29,6 +29,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `pause_event`: Pause active event
   - `resume_event`: Resume paused event
 
+- **Panopto CMS Integration** (9 new tools)
+  - `list_panopto_folders`: Browse folder hierarchy
+  - `get_panopto_folder`: Get folder details
+  - `create_panopto_folder`: Create new folders
+  - `list_panopto_sessions`: List recordings
+  - `get_panopto_session`: Get session details
+  - `create_panopto_session`: Create recording placeholder
+  - `upload_to_panopto`: Full S3-based upload workflow
+  - `get_panopto_upload_status`: Check processing status
+  - `delete_panopto_session`: Remove session
+  - OAuth2 Password Grant authentication
+  - Environment config: `PANOPTO_HOST`, `PANOPTO_CLIENT_ID`, `PANOPTO_USERNAME`, `PANOPTO_PASSWORD`
+
 - **Security Hardening**
   - Audit logging module (`src/epiphan_mcp/audit.py`)
   - Fleet operation concurrency limits (Semaphore(10))
@@ -40,8 +53,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - **API Coverage**: 61% → 96% (31/51 → 49/51 endpoints)
-- **MCP Tools**: 32 → 46 total
-- **Tests**: 338 → 361+ passing
+- **MCP Tools**: 32 → 55 total (46 Pearl + 9 Panopto CMS)
+- **Tests**: 338 → 400 passing
 
 ---
 

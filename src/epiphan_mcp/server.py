@@ -12,10 +12,9 @@ from typing import Any
 
 from fastmcp import FastMCP
 
-from .llm.providers import LLMError, get_provider
-
 from .client import PearlClient
 from .config import Settings, get_settings
+from .llm.providers import LLMError, get_provider
 from .tools.ai_tools import (
     analyze_channel_scene as _analyze_channel_scene,
 )
@@ -34,6 +33,14 @@ from .tools.ai_tools import (
 from .tools.ai_tools import (
     extract_text_from_preview as _extract_text_from_preview,
 )
+
+# Import tool implementations from modules
+from .tools.device import (
+    get_device_status as _get_device_status,
+)
+from .tools.device import (
+    list_devices as _list_devices,
+)
 from .tools.fleet import (
     generate_shift_handoff as _generate_shift_handoff,
 )
@@ -43,13 +50,20 @@ from .tools.fleet import (
 from .tools.fleet import (
     suggest_maintenance_window as _suggest_maintenance_window,
 )
-
-# Import tool implementations from modules
-from .tools.device import (
-    get_device_status as _get_device_status,
+from .tools.inputs import (
+    create_network_input as _create_network_input,
 )
-from .tools.device import (
-    list_devices as _list_devices,
+from .tools.inputs import (
+    get_input_settings as _get_input_settings,
+)
+from .tools.inputs import (
+    list_outputs as _list_outputs,
+)
+from .tools.inputs import (
+    set_output_source as _set_output_source,
+)
+from .tools.inputs import (
+    update_input_settings as _update_input_settings,
 )
 from .tools.layout import (
     add_bookmark as _add_bookmark,
@@ -66,6 +80,24 @@ from .tools.maintenance import (
 from .tools.maintenance import (
     predict_storage_full as _predict_storage_full,
 )
+from .tools.publishers import (
+    create_publisher as _create_publisher,
+)
+from .tools.publishers import (
+    delete_publisher as _delete_publisher,
+)
+from .tools.publishers import (
+    get_publisher_settings as _get_publisher_settings,
+)
+from .tools.publishers import (
+    list_publisher_types as _list_publisher_types,
+)
+from .tools.publishers import (
+    rename_publisher as _rename_publisher,
+)
+from .tools.publishers import (
+    update_publisher_settings as _update_publisher_settings,
+)
 from .tools.recording import (
     get_recording_status as _get_recording_status,
 )
@@ -76,7 +108,16 @@ from .tools.recording import (
     stop_recording as _stop_recording,
 )
 from .tools.schedule import (
+    create_scheduled_event as _create_scheduled_event,
+)
+from .tools.schedule import (
     get_scheduled_events as _get_scheduled_events,
+)
+from .tools.schedule import (
+    pause_event as _pause_event,
+)
+from .tools.schedule import (
+    resume_event as _resume_event,
 )
 from .tools.schedule import (
     single_touch_start as _single_touch_start,
@@ -116,6 +157,9 @@ mcp = FastMCP(
 # Parallel Fleet Execution Helper
 # ============================================================
 
+# Security: Limit concurrent device operations to prevent fleet DoS
+FLEET_SEMAPHORE = asyncio.Semaphore(10)  # Max 10 concurrent device operations
+
 
 async def _execute_on_fleet(
     hosts: list[str],
@@ -125,6 +169,9 @@ async def _execute_on_fleet(
 ) -> list[dict[str, Any]]:
     """
     Execute operation on all devices in parallel using asyncio.gather.
+
+    Concurrency is limited by FLEET_SEMAPHORE to prevent overwhelming
+    the network or devices with too many simultaneous connections.
 
     Args:
         hosts: List of device hostnames/IPs to operate on.
@@ -139,35 +186,36 @@ async def _execute_on_fleet(
     """
 
     async def _device_op(host: str) -> dict[str, Any]:
-        """Execute operation on a single device with timeout and error handling."""
-        try:
-            async with asyncio.timeout(timeout_per_device):
-                async with PearlClient.from_settings(host, settings) as client:
-                    return await operation(client)
-        except TimeoutError:
-            return {
-                "host": host,
-                "success": False,
-                "online": False,
-                "error": "Device timeout",
-                "alert": {
-                    "device": host,
-                    "severity": "error",
-                    "message": "Device timeout",
-                },
-            }
-        except Exception as e:
-            return {
-                "host": host,
-                "success": False,
-                "online": False,
-                "error": str(e),
-                "alert": {
-                    "device": host,
-                    "severity": "error",
-                    "message": f"Device offline: {e}",
-                },
-            }
+        """Execute operation on a single device with timeout, semaphore, and error handling."""
+        async with FLEET_SEMAPHORE:  # Limit concurrent operations
+            try:
+                async with asyncio.timeout(timeout_per_device):
+                    async with PearlClient.from_settings(host, settings) as client:
+                        return await operation(client)
+            except TimeoutError:
+                return {
+                    "host": host,
+                    "success": False,
+                    "online": False,
+                    "error": "Device timeout",
+                    "alert": {
+                        "device": host,
+                        "severity": "error",
+                        "message": "Device timeout",
+                    },
+                }
+            except Exception as e:
+                return {
+                    "host": host,
+                    "success": False,
+                    "online": False,
+                    "error": str(e),
+                    "alert": {
+                        "device": host,
+                        "severity": "error",
+                        "message": f"Device offline: {e}",
+                    },
+                }
 
     tasks = [_device_op(host) for host in hosts]
     return await asyncio.gather(*tasks, return_exceptions=False)
@@ -523,6 +571,385 @@ async def get_scheduled_events(
         - Current status
     """
     return await _get_scheduled_events(device_id=device_id, limit=limit)
+
+
+@mcp.tool()
+async def create_scheduled_event(
+    device_id: str = "default",
+    name: str = "",
+    start_time: str | None = None,
+    end_time: str | None = None,
+    recorders: str | None = None,
+    publishers: str | None = None,
+) -> dict[str, Any]:
+    """
+    Create an ad-hoc recording event.
+
+    Creates an event that can be scheduled to start at a specific time,
+    or starts immediately if no start_time is provided.
+
+    Args:
+        device_id: Device identifier. Use "default" for the primary configured device.
+        name: Event name (required).
+        start_time: Start time in ISO format (e.g., "2024-01-15T10:00:00").
+                    If not provided, event starts immediately.
+        end_time: End time in ISO format. If not provided, event runs until stopped.
+        recorders: Comma-separated list of recorder IDs (e.g., "recorder-1,recorder-2").
+        publishers: Comma-separated list of publisher IDs (e.g., "publisher-1").
+
+    Returns:
+        Created event info including the assigned ID.
+    """
+    return await _create_scheduled_event(
+        device_id=device_id,
+        name=name,
+        start_time=start_time,
+        end_time=end_time,
+        recorders=recorders,
+        publishers=publishers,
+    )
+
+
+@mcp.tool()
+async def pause_event(
+    device_id: str = "default",
+    event_id: str = "",
+) -> dict[str, Any]:
+    """
+    Pause an active recording event.
+
+    Temporarily pauses the event - recording and streaming continue but
+    can be resumed without creating a new event.
+
+    Args:
+        device_id: Device identifier. Use "default" for the primary configured device.
+        event_id: Event ID to pause.
+
+    Returns:
+        Confirmation that the event was paused.
+    """
+    return await _pause_event(device_id=device_id, event_id=event_id)
+
+
+@mcp.tool()
+async def resume_event(
+    device_id: str = "default",
+    event_id: str = "",
+) -> dict[str, Any]:
+    """
+    Resume a paused recording event.
+
+    Continues a previously paused event.
+
+    Args:
+        device_id: Device identifier. Use "default" for the primary configured device.
+        event_id: Event ID to resume.
+
+    Returns:
+        Confirmation that the event was resumed.
+    """
+    return await _resume_event(device_id=device_id, event_id=event_id)
+
+
+# ============================================================
+# Publisher Management Tools (API Expansion Phase 1)
+# ============================================================
+
+
+@mcp.tool()
+async def create_publisher(
+    device_id: str = "default",
+    channel: int = 1,
+    name: str = "",
+    publisher_type: str = "rtmp",
+    url: str | None = None,
+    stream_key: str | None = None,
+    bitrate: int | None = None,
+) -> dict[str, Any]:
+    """
+    Create a new streaming destination on a Pearl channel.
+
+    Args:
+        device_id: Device identifier. Use "default" for the primary configured device.
+        channel: Channel number (1-based).
+        name: Display name for the publisher.
+        publisher_type: Stream protocol - rtmp, srt, hls, rtsp, or mpeg_ts.
+        url: Destination URL (e.g., rtmp://live.twitch.tv/app).
+        stream_key: Stream key for RTMP destinations.
+        bitrate: Target bitrate in bps (optional).
+
+    Returns:
+        Created publisher info including the assigned ID.
+    """
+    return await _create_publisher(
+        device_id=device_id,
+        channel=channel,
+        name=name,
+        publisher_type=publisher_type,
+        url=url,
+        stream_key=stream_key,
+        bitrate=bitrate,
+    )
+
+
+@mcp.tool()
+async def delete_publisher(
+    device_id: str = "default",
+    channel: int = 1,
+    publisher: str = "publisher-1",
+) -> dict[str, Any]:
+    """
+    Delete a streaming destination from a Pearl channel.
+
+    Args:
+        device_id: Device identifier. Use "default" for the primary configured device.
+        channel: Channel number (1-based).
+        publisher: Publisher ID to delete (e.g., "publisher-1").
+
+    Returns:
+        Confirmation of deletion.
+    """
+    return await _delete_publisher(
+        device_id=device_id, channel=channel, publisher=publisher
+    )
+
+
+@mcp.tool()
+async def get_publisher_settings(
+    device_id: str = "default",
+    channel: int = 1,
+    publisher: str = "publisher-1",
+) -> dict[str, Any]:
+    """
+    Get configuration settings for a streaming destination.
+
+    Args:
+        device_id: Device identifier. Use "default" for the primary configured device.
+        channel: Channel number (1-based).
+        publisher: Publisher ID (e.g., "publisher-1").
+
+    Returns:
+        Publisher settings including URL, stream key, bitrate, etc.
+    """
+    return await _get_publisher_settings(
+        device_id=device_id, channel=channel, publisher=publisher
+    )
+
+
+@mcp.tool()
+async def update_publisher_settings(
+    device_id: str = "default",
+    channel: int = 1,
+    publisher: str = "publisher-1",
+    url: str | None = None,
+    stream_key: str | None = None,
+    bitrate: int | None = None,
+    enabled: bool | None = None,
+) -> dict[str, Any]:
+    """
+    Update settings for a streaming destination (partial update).
+
+    Only provided settings will be changed; other settings remain unchanged.
+
+    Args:
+        device_id: Device identifier. Use "default" for the primary configured device.
+        channel: Channel number (1-based).
+        publisher: Publisher ID (e.g., "publisher-1").
+        url: New destination URL.
+        stream_key: New stream key.
+        bitrate: New target bitrate in bps.
+        enabled: Enable or disable the publisher.
+
+    Returns:
+        Confirmation of settings update.
+    """
+    return await _update_publisher_settings(
+        device_id=device_id,
+        channel=channel,
+        publisher=publisher,
+        url=url,
+        stream_key=stream_key,
+        bitrate=bitrate,
+        enabled=enabled,
+    )
+
+
+@mcp.tool()
+async def list_publisher_types(
+    device_id: str = "default",
+    channel: int = 1,
+) -> dict[str, Any]:
+    """
+    List available streaming protocols for a channel.
+
+    Returns the types of publishers that can be created on this channel.
+
+    Args:
+        device_id: Device identifier. Use "default" for the primary configured device.
+        channel: Channel number (1-based).
+
+    Returns:
+        List of available publisher types (rtmp, srt, hls, etc.).
+    """
+    return await _list_publisher_types(device_id=device_id, channel=channel)
+
+
+@mcp.tool()
+async def rename_publisher(
+    device_id: str = "default",
+    channel: int = 1,
+    publisher: str = "publisher-1",
+    name: str = "",
+) -> dict[str, Any]:
+    """
+    Rename a streaming destination.
+
+    Args:
+        device_id: Device identifier. Use "default" for the primary configured device.
+        channel: Channel number (1-based).
+        publisher: Publisher ID (e.g., "publisher-1").
+        name: New display name for the publisher.
+
+    Returns:
+        Confirmation of rename operation.
+    """
+    return await _rename_publisher(
+        device_id=device_id, channel=channel, publisher=publisher, name=name
+    )
+
+
+# ============================================================
+# Input/Output Management Tools (API Expansion Phase 2)
+# ============================================================
+
+
+@mcp.tool()
+async def create_network_input(
+    device_id: str = "default",
+    name: str = "",
+    input_type: str = "srt",
+    url: str | None = None,
+    passphrase: str | None = None,
+    latency: int | None = None,
+) -> dict[str, Any]:
+    """
+    Create a new network input source (SRT, RTSP, or NDI).
+
+    Network inputs allow Pearl to receive video from network sources
+    instead of physical inputs like HDMI or SDI.
+
+    Args:
+        device_id: Device identifier. Use "default" for the primary configured device.
+        name: Display name for the input.
+        input_type: Input type - srt, rtsp, or ndi.
+        url: Source URL (for SRT/RTSP inputs).
+        passphrase: Encryption passphrase (for SRT inputs).
+        latency: Buffer latency in milliseconds.
+
+    Returns:
+        Created input info including the assigned ID.
+    """
+    return await _create_network_input(
+        device_id=device_id,
+        name=name,
+        input_type=input_type,
+        url=url,
+        passphrase=passphrase,
+        latency=latency,
+    )
+
+
+@mcp.tool()
+async def get_input_settings(
+    device_id: str = "default",
+    input_id: str = "",
+) -> dict[str, Any]:
+    """
+    Get configuration settings for an input source.
+
+    Args:
+        device_id: Device identifier. Use "default" for the primary configured device.
+        input_id: Input source ID (e.g., "srt-1", "hdmi-1").
+
+    Returns:
+        Input settings including URL, passphrase, latency, etc.
+    """
+    return await _get_input_settings(device_id=device_id, input_id=input_id)
+
+
+@mcp.tool()
+async def update_input_settings(
+    device_id: str = "default",
+    input_id: str = "",
+    url: str | None = None,
+    passphrase: str | None = None,
+    latency: int | None = None,
+) -> dict[str, Any]:
+    """
+    Update settings for an input source (partial update).
+
+    Only provided settings will be changed; other settings remain unchanged.
+
+    Args:
+        device_id: Device identifier. Use "default" for the primary configured device.
+        input_id: Input source ID.
+        url: New source URL (for network inputs).
+        passphrase: New encryption passphrase (for SRT inputs).
+        latency: New buffer latency in milliseconds.
+
+    Returns:
+        Confirmation of settings update.
+    """
+    return await _update_input_settings(
+        device_id=device_id,
+        input_id=input_id,
+        url=url,
+        passphrase=passphrase,
+        latency=latency,
+    )
+
+
+@mcp.tool()
+async def list_outputs(
+    device_id: str = "default",
+) -> dict[str, Any]:
+    """
+    List available output ports on a Pearl device.
+
+    Output ports include HDMI and SDI outputs that can be configured
+    to display channel content.
+
+    Args:
+        device_id: Device identifier. Use "default" for the primary configured device.
+
+    Returns:
+        List of output ports including type, name, and current source.
+    """
+    return await _list_outputs(device_id=device_id)
+
+
+@mcp.tool()
+async def set_output_source(
+    device_id: str = "default",
+    output_id: str = "",
+    source_channel: int | None = None,
+) -> dict[str, Any]:
+    """
+    Set the source channel for an output port.
+
+    Configure which channel content is displayed on an HDMI or SDI output.
+
+    Args:
+        device_id: Device identifier. Use "default" for the primary configured device.
+        output_id: Output ID (e.g., "hdmi-1", "sdi-1").
+        source_channel: Channel number (1-based) to display, or None to disable.
+
+    Returns:
+        Confirmation of output configuration.
+    """
+    return await _set_output_source(
+        device_id=device_id, output_id=output_id, source_channel=source_channel
+    )
 
 
 # ============================================================

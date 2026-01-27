@@ -197,6 +197,57 @@ async def stop_stream(device_id: str, channel: str, publisher: str) -> dict: ...
 async def switch_layout(device_id: str, channel: str, layout_id: str) -> dict: ...
 ```
 
+### Publisher Management (NEW - 2026-01-27)
+```python
+@mcp.tool()
+async def create_publisher(device_id: str, channel: int, name: str, publisher_type: str, ...) -> dict: ...
+
+@mcp.tool()
+async def delete_publisher(device_id: str, channel: int, publisher: str) -> dict: ...
+
+@mcp.tool()
+async def get_publisher_settings(device_id: str, channel: int, publisher: str) -> dict: ...
+
+@mcp.tool()
+async def update_publisher_settings(device_id: str, channel: int, publisher: str, ...) -> dict: ...
+
+@mcp.tool()
+async def list_publisher_types(device_id: str, channel: int) -> dict: ...
+
+@mcp.tool()
+async def rename_publisher(device_id: str, channel: int, publisher: str, name: str) -> dict: ...
+```
+
+### Input/Output Management (NEW - 2026-01-27)
+```python
+@mcp.tool()
+async def create_network_input(device_id: str, name: str, input_type: str, ...) -> dict: ...
+
+@mcp.tool()
+async def get_input_settings(device_id: str, input_id: str) -> dict: ...
+
+@mcp.tool()
+async def update_input_settings(device_id: str, input_id: str, ...) -> dict: ...
+
+@mcp.tool()
+async def list_outputs(device_id: str) -> dict: ...
+
+@mcp.tool()
+async def set_output_source(device_id: str, output_id: str, source_channel: int) -> dict: ...
+```
+
+### Event Control (NEW - 2026-01-27)
+```python
+@mcp.tool()
+async def create_scheduled_event(device_id: str, name: str, ...) -> dict: ...
+
+@mcp.tool()
+async def pause_event(device_id: str, event_id: str) -> dict: ...
+
+@mcp.tool()
+async def resume_event(device_id: str, event_id: str) -> dict: ...
+```
+
 ---
 
 ## Development Commands
@@ -320,3 +371,11 @@ chore: Changes to build process or auxiliary tools
 - [x] AFU status monitoring
 - [ ] Published to PyPI
 - [x] GitHub Actions CI
+
+### v1.1 (API Expansion - 2026-01-27)
+- [x] DELETE/PATCH HTTP methods
+- [x] Publisher CRUD (6 tools)
+- [x] Input/Output management (5 tools)
+- [x] Event control: create/pause/resume (3 tools)
+- [x] Security: audit logging, concurrency limits, image validation
+- [x] **46 total MCP tools** (was 32)

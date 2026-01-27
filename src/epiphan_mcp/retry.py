@@ -6,7 +6,8 @@ configurable exponential backoff.
 
 import asyncio
 import logging
-from typing import Awaitable, Callable, TypeVar
+from collections.abc import Awaitable, Callable
+from typing import TypeVar
 
 import httpx
 

@@ -7,8 +7,8 @@ through natural language AI assistants.
 
 __version__ = "0.1.0"
 
-from .server import mcp
 from .retry import with_retry
+from .server import mcp
 
 
 def main() -> None:

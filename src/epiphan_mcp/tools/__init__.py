@@ -10,10 +10,32 @@ from .fleet import (
     predict_fleet_issues,
     suggest_maintenance_window,
 )
+from .inputs import (
+    create_network_input,
+    get_input_settings,
+    list_outputs,
+    set_output_source,
+    update_input_settings,
+)
 from .layout import add_bookmark, list_layouts, switch_layout
 from .maintenance import get_device_health_score, predict_storage_full
+from .publishers import (
+    create_publisher,
+    delete_publisher,
+    get_publisher_settings,
+    list_publisher_types,
+    rename_publisher,
+    update_publisher_settings,
+)
 from .recording import get_recording_status, start_recording, stop_recording
-from .schedule import get_scheduled_events, single_touch_start, single_touch_stop
+from .schedule import (
+    create_scheduled_event,
+    get_scheduled_events,
+    pause_event,
+    resume_event,
+    single_touch_start,
+    single_touch_stop,
+)
 from .storage import get_afu_status, get_storage_report, list_inputs
 from .streaming import get_stream_status, start_stream, stop_stream
 
@@ -54,4 +76,20 @@ __all__ = [
     "get_scheduled_events",
     "single_touch_start",
     "single_touch_stop",
+    "create_scheduled_event",
+    "pause_event",
+    "resume_event",
+    # Publisher management tools (API Expansion Phase 1)
+    "create_publisher",
+    "delete_publisher",
+    "get_publisher_settings",
+    "update_publisher_settings",
+    "list_publisher_types",
+    "rename_publisher",
+    # Input/output management tools (API Expansion Phase 2)
+    "create_network_input",
+    "get_input_settings",
+    "update_input_settings",
+    "list_outputs",
+    "set_output_source",
 ]

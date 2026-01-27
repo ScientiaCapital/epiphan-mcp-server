@@ -4,7 +4,7 @@ import logging
 from typing import Any
 
 from ..client import PearlAPIError, PearlClient
-from ..config import Settings, get_settings
+from ..config import get_settings
 
 logger = logging.getLogger(__name__)
 

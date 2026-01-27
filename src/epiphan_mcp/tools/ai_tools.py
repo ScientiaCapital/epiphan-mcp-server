@@ -11,9 +11,29 @@ from epiphan_mcp.llm.config import AnalysisType
 
 logger = logging.getLogger(__name__)
 
+# Security: Maximum image size for LLM analysis (10MB)
+MAX_IMAGE_SIZE_BYTES = 10 * 1024 * 1024
+
 # Module-level analyzer instance (lazy initialization with lock for thread safety)
 _analyzer: VideoAnalyzer | None = None
 _analyzer_lock = asyncio.Lock()
+
+
+def validate_image_size(image_data: bytes) -> None:
+    """
+    Validate that image data is within size limits for LLM analysis.
+
+    Args:
+        image_data: Binary image data to validate.
+
+    Raises:
+        ValueError: If image exceeds MAX_IMAGE_SIZE_BYTES.
+    """
+    if len(image_data) > MAX_IMAGE_SIZE_BYTES:
+        raise ValueError(
+            f"Image too large for LLM analysis: {len(image_data)} bytes "
+            f"(max: {MAX_IMAGE_SIZE_BYTES} bytes / {MAX_IMAGE_SIZE_BYTES // (1024*1024)}MB)"
+        )
 
 
 async def get_analyzer() -> VideoAnalyzer:
@@ -37,6 +57,9 @@ async def _get_channel_preview(device_id: str, channel: str) -> bytes:
 
     Returns:
         Binary image data
+
+    Raises:
+        ValueError: If image exceeds size limits.
     """
     settings = get_settings()
     host = settings.get_device_host(device_id)
@@ -49,11 +72,14 @@ async def _get_channel_preview(device_id: str, channel: str) -> bytes:
         verify_ssl=settings.verify_ssl,
         timeout=settings.timeout,
     ) as client:
-        return await client.get_channel_preview(
+        image_data = await client.get_channel_preview(
             channel_id=channel,
             resolution="1280x720",  # Higher res for better analysis
             format="jpg",
         )
+        # Security: Validate image size before LLM processing
+        validate_image_size(image_data)
+        return image_data
 
 
 async def analyze_channel_scene(

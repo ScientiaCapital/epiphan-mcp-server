@@ -666,7 +666,7 @@ async def suggest_maintenance_window(
     elif activity_percent > 0:
         current_activity = f"Moderate activity: {recording_devices}/{online_devices} devices recording"
     else:
-        current_activity = f"Low activity: No devices currently recording"
+        current_activity = "Low activity: No devices currently recording"
 
     # Build prompt for AI reasoning
     prompt = f"""Suggest an optimal maintenance window for an AV fleet.

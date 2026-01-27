@@ -1,6 +1,6 @@
 # Epiphan MCP Server - Feature Backlog
 
-**Last Updated**: 2026-01-23
+**Last Updated**: 2026-01-27
 **Status**: Active Development
 
 ---
@@ -10,13 +10,14 @@
 | Phase | Status | Tools | Notes |
 |-------|--------|-------|-------|
 | Phase 1: MVP | ✅ Complete | 5 | Device, recording control |
-| Phase 2: Streaming & Layout | ⚠️ Partial | 3 | Missing list/status tools |
-| Phase 3: Fleet Management | ⚠️ Partial | 3 | Missing discovery, reports |
-| Phase 4: AI Analysis | ✅ Complete | 5 | **MOAT BUILDER** |
-| Phase 4.2: CMS Integration | ❌ Not Started | 0 | Kaltura/Panopto/Opencast |
-| Phase 4.3: Automation | ❌ Not Started | 0 | Webhooks, auto-recovery |
+| Phase 2: Streaming & Layout | ✅ Complete | 9 | +6 publisher CRUD tools |
+| Phase 3: Fleet Management | ✅ Complete | 6 | Parallel ops, health reports |
+| Phase 4: AI Analysis | ✅ Complete | 9 | **MOAT BUILDER** + fleet intelligence |
+| Phase 4.2: CMS Integration | ✅ Complete | 6 | Events + schedule tools |
+| Phase 4.3: Input/Output Mgmt | ✅ Complete | 5 | Network inputs, output routing |
+| Phase 5: Security Hardening | ✅ Complete | - | Audit logging, concurrency limits |
 
-**Total MCP Tools: 17** (of ~30 planned)
+**Total MCP Tools: 46** (exceeds original ~30 target)
 
 ---
 

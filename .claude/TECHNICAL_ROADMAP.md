@@ -5,22 +5,29 @@
 
 ---
 
-## Current State (v0.4.0)
+## Current State (v0.5.0 - 2026-01-27)
 
 | Metric | Status |
 |--------|--------|
-| MCP Tools | 27 |
-| Tests | 226 (95% coverage) |
-| API Coverage | ~60% |
-| Production Ready | No |
+| MCP Tools | 46 |
+| Tests | 361+ (95% coverage) |
+| API Coverage | ~96% |
+| Production Ready | Nearly |
 
-**Key Gaps Identified by Review**:
-- No retry logic / circuit breaker
-- Sequential fleet operations (slow)
-- Hardcoded assumptions (recorder-1, thresholds)
-- Missing CRUD operations (streams, inputs)
+**Completed (2026-01-27 API Expansion)**:
+- ✅ Retry logic with exponential backoff
+- ✅ Parallel fleet operations (asyncio.Semaphore)
+- ✅ Publisher CRUD operations (6 tools)
+- ✅ Input/Output management (5 tools)
+- ✅ Event control (3 tools)
+- ✅ Audit logging for sensitive operations
+- ✅ Image size validation for AI tools
+- ✅ DELETE/PATCH HTTP methods added
+
+**Remaining Gaps**:
 - No webhooks / event-driven architecture
-- No structured logging / observability
+- No device discovery (mDNS/SSDP)
+- Per-device credentials not implemented
 
 ---
 

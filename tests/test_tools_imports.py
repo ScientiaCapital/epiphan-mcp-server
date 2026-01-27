@@ -116,7 +116,10 @@ class TestToolsScheduleImports:
     def test_tools_schedule_imports(self):
         """Test that schedule tools can be imported from the schedule module."""
         from epiphan_mcp.tools.schedule import (
+            create_scheduled_event,
             get_scheduled_events,
+            pause_event,
+            resume_event,
             single_touch_start,
             single_touch_stop,
         )
@@ -124,6 +127,51 @@ class TestToolsScheduleImports:
         assert callable(get_scheduled_events)
         assert callable(single_touch_start)
         assert callable(single_touch_stop)
+        assert callable(create_scheduled_event)
+        assert callable(pause_event)
+        assert callable(resume_event)
+
+
+class TestToolsPublishersImports:
+    """Tests for publisher tool imports."""
+
+    def test_tools_publishers_imports(self):
+        """Test that publisher tools can be imported from the publishers module."""
+        from epiphan_mcp.tools.publishers import (
+            create_publisher,
+            delete_publisher,
+            get_publisher_settings,
+            list_publisher_types,
+            rename_publisher,
+            update_publisher_settings,
+        )
+
+        assert callable(create_publisher)
+        assert callable(delete_publisher)
+        assert callable(get_publisher_settings)
+        assert callable(update_publisher_settings)
+        assert callable(list_publisher_types)
+        assert callable(rename_publisher)
+
+
+class TestToolsInputsImports:
+    """Tests for input/output tool imports."""
+
+    def test_tools_inputs_imports(self):
+        """Test that input/output tools can be imported from the inputs module."""
+        from epiphan_mcp.tools.inputs import (
+            create_network_input,
+            get_input_settings,
+            list_outputs,
+            set_output_source,
+            update_input_settings,
+        )
+
+        assert callable(create_network_input)
+        assert callable(get_input_settings)
+        assert callable(update_input_settings)
+        assert callable(list_outputs)
+        assert callable(set_output_source)
 
 
 class TestToolsInitImports:
@@ -135,11 +183,17 @@ class TestToolsInitImports:
             add_bookmark,
             batch_start_recording,
             batch_stop_recording,
+            create_network_input,
+            create_publisher,
+            create_scheduled_event,
+            delete_publisher,
             get_afu_status,
             get_client,
             get_device_health_score,
             get_device_status,
             get_fleet_status,
+            get_input_settings,
+            get_publisher_settings,
             get_recording_status,
             get_scheduled_events,
             get_storage_report,
@@ -147,7 +201,13 @@ class TestToolsInitImports:
             list_devices,
             list_inputs,
             list_layouts,
+            list_outputs,
+            list_publisher_types,
+            pause_event,
             predict_storage_full,
+            rename_publisher,
+            resume_event,
+            set_output_source,
             single_touch_start,
             single_touch_stop,
             start_recording,
@@ -155,6 +215,8 @@ class TestToolsInitImports:
             stop_recording,
             stop_stream,
             switch_layout,
+            update_input_settings,
+            update_publisher_settings,
         )
 
         # Verify all are callable
@@ -182,6 +244,23 @@ class TestToolsInitImports:
             get_scheduled_events,
             single_touch_start,
             single_touch_stop,
+            # New event tools
+            create_scheduled_event,
+            pause_event,
+            resume_event,
+            # New publisher tools
+            create_publisher,
+            delete_publisher,
+            get_publisher_settings,
+            update_publisher_settings,
+            list_publisher_types,
+            rename_publisher,
+            # New input/output tools
+            create_network_input,
+            get_input_settings,
+            update_input_settings,
+            list_outputs,
+            set_output_source,
         ]
         for tool in all_tools:
             assert callable(tool)
@@ -191,11 +270,11 @@ class TestMCPToolRegistration:
     """Tests for MCP tool registration."""
 
     def test_all_tools_registered(self):
-        """Test that all 32 MCP tools are still registered after refactoring."""
+        """Test that all 46 MCP tools are registered after API expansion."""
         from epiphan_mcp.server import mcp
 
         tools = list(mcp._tool_manager._tools.keys())
-        assert len(tools) == 32, f"Expected 32 tools, got {len(tools)}: {tools}"
+        assert len(tools) == 46, f"Expected 46 tools, got {len(tools)}: {tools}"
 
     def test_expected_tools_registered(self):
         """Test that all expected tools are registered with MCP."""
@@ -225,6 +304,9 @@ class TestMCPToolRegistration:
             "single_touch_start",
             "single_touch_stop",
             "get_scheduled_events",
+            "create_scheduled_event",
+            "pause_event",
+            "resume_event",
             # Maintenance tools
             "predict_storage_full",
             "get_device_health_score",
@@ -244,6 +326,19 @@ class TestMCPToolRegistration:
             "suggest_maintenance_window",
             "predict_fleet_issues",
             "generate_shift_handoff",
+            # Publisher management tools (API Expansion Phase 1)
+            "create_publisher",
+            "delete_publisher",
+            "get_publisher_settings",
+            "update_publisher_settings",
+            "list_publisher_types",
+            "rename_publisher",
+            # Input/output management tools (API Expansion Phase 2)
+            "create_network_input",
+            "get_input_settings",
+            "update_input_settings",
+            "list_outputs",
+            "set_output_source",
         ]
 
         tools = list(mcp._tool_manager._tools.keys())
@@ -251,7 +346,7 @@ class TestMCPToolRegistration:
             assert expected in tools, f"Missing tool: {expected}"
 
     def test_tool_count_unchanged(self):
-        """Test that the tool count is exactly 32 (no additions/removals)."""
+        """Test that the tool count is exactly 46 after API expansion."""
         from epiphan_mcp.server import mcp
 
         expected_tools = [
@@ -271,6 +366,9 @@ class TestMCPToolRegistration:
             "single_touch_start",
             "single_touch_stop",
             "get_scheduled_events",
+            "create_scheduled_event",
+            "pause_event",
+            "resume_event",
             "get_afu_status",
             "predict_storage_full",
             "get_device_health_score",
@@ -287,9 +385,23 @@ class TestMCPToolRegistration:
             "suggest_maintenance_window",
             "predict_fleet_issues",
             "generate_shift_handoff",
+            # Publisher management tools
+            "create_publisher",
+            "delete_publisher",
+            "get_publisher_settings",
+            "update_publisher_settings",
+            "list_publisher_types",
+            "rename_publisher",
+            # Input/output management tools (5 tools - includes bonus set_output_source)
+            "create_network_input",
+            "get_input_settings",
+            "update_input_settings",
+            "list_outputs",
+            "set_output_source",
         ]
 
         tools = list(mcp._tool_manager._tools.keys())
+        # Total: 32 original + 3 event + 6 publisher + 5 input/output = 46
         assert len(tools) == len(expected_tools), (
             f"Tool count mismatch: expected {len(expected_tools)}, got {len(tools)}"
         )

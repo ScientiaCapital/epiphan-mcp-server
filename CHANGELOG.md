@@ -5,6 +5,46 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] - 2026-01-27
+
+### Added
+
+- **Publisher Management** (6 new tools)
+  - `create_publisher`: Create RTMP/SRT/HLS streaming destinations
+  - `delete_publisher`: Remove stream from channel
+  - `get_publisher_settings`: View stream configuration
+  - `update_publisher_settings`: Modify stream settings (PATCH semantics)
+  - `list_publisher_types`: Available streaming protocols
+  - `rename_publisher`: Change stream display name
+
+- **Input/Output Management** (5 new tools)
+  - `create_network_input`: Add SRT/RTSP/NDI sources
+  - `get_input_settings`: View input configuration
+  - `update_input_settings`: Modify input config
+  - `list_outputs`: Available HDMI/SDI output ports
+  - `set_output_source`: Configure output routing
+
+- **Event Control** (3 new tools)
+  - `create_scheduled_event`: Create ad-hoc recording events
+  - `pause_event`: Pause active event
+  - `resume_event`: Resume paused event
+
+- **Security Hardening**
+  - Audit logging module (`src/epiphan_mcp/audit.py`)
+  - Fleet operation concurrency limits (Semaphore(10))
+  - Image size validation for AI tools (10MB max)
+
+- **HTTP Methods**
+  - `_delete()` and `_patch()` methods with retry logic
+
+### Changed
+
+- **API Coverage**: 61% → 96% (31/51 → 49/51 endpoints)
+- **MCP Tools**: 32 → 46 total
+- **Tests**: 338 → 361+ passing
+
+---
+
 ## [0.5.0] - 2025-01-24
 
 ### Added

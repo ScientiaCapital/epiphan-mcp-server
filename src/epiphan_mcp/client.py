@@ -237,6 +237,48 @@ class PearlClient:
             logger.error(f"Request error for PUT {path}: {e}")
             raise PearlAPIError(str(e)) from e
 
+    async def _delete_raw(
+        self, path: str, params: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
+        """Make raw DELETE request without retry (internal use)."""
+        response = await self.client.delete(path, params=params)
+        return self._handle_response(response, path)
+
+    async def _delete(self, path: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
+        """Make DELETE request to API v2.0 endpoint with automatic retry."""
+        try:
+            return await with_retry(
+                lambda: self._delete_raw(path, params),
+                max_retries=self.max_retries,
+                base_delay=self.retry_base_delay,
+                max_delay=self.retry_max_delay,
+            )
+        except httpx.RequestError as e:
+            logger.error(f"Request error for DELETE {path}: {e}")
+            raise PearlAPIError(str(e)) from e
+
+    async def _patch_raw(
+        self, path: str, params: dict[str, Any] | None = None, json: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
+        """Make raw PATCH request without retry (internal use)."""
+        response = await self.client.patch(path, params=params, json=json)
+        return self._handle_response(response, path)
+
+    async def _patch(
+        self, path: str, params: dict[str, Any] | None = None, json: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
+        """Make PATCH request to API v2.0 endpoint with automatic retry."""
+        try:
+            return await with_retry(
+                lambda: self._patch_raw(path, params, json),
+                max_retries=self.max_retries,
+                base_delay=self.retry_base_delay,
+                max_delay=self.retry_max_delay,
+            )
+        except httpx.RequestError as e:
+            logger.error(f"Request error for PATCH {path}: {e}")
+            raise PearlAPIError(str(e)) from e
+
     # ========== Recorders ==========
 
     async def get_recorders(self, ids: list[str] | None = None) -> list[RecorderInfo]:
@@ -651,6 +693,146 @@ class PearlClient:
             details={"channel": channel_id, "publisher": publisher_id},
         )
 
+    async def create_publisher(
+        self, channel_id: str, name: str, publisher_type: str, settings: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
+        """
+        Create a new publisher (stream destination) for a channel.
+
+        POST /channels/{cid}/publishers
+
+        Args:
+            channel_id: Channel ID
+            name: Display name for the publisher
+            publisher_type: Type of publisher (rtmp, srt, hls, rtsp, mpeg_ts)
+            settings: Optional protocol-specific settings
+
+        Returns:
+            Created publisher info including the assigned ID.
+        """
+        logger.info(f"Creating {publisher_type} publisher '{name}' on channel {channel_id}")
+        payload: dict[str, Any] = {
+            "name": name,
+            "type": publisher_type,
+        }
+        if settings:
+            payload["settings"] = settings
+        data = await self._post(f"/channels/{channel_id}/publishers", json=payload)
+        return data.get("result", {})
+
+    async def delete_publisher(self, channel_id: str, publisher_id: str) -> OperationResult:
+        """
+        Delete a publisher from a channel.
+
+        DELETE /channels/{cid}/publishers/{pid}
+
+        Args:
+            channel_id: Channel ID
+            publisher_id: Publisher ID to delete
+
+        Returns:
+            OperationResult with status.
+        """
+        logger.info(f"Deleting publisher {publisher_id} from channel {channel_id}")
+        await self._delete(f"/channels/{channel_id}/publishers/{publisher_id}")
+        return OperationResult(
+            success=True,
+            message=f"Publisher {publisher_id} deleted",
+            device=self.host,
+            details={"channel": channel_id, "publisher": publisher_id},
+        )
+
+    async def get_publisher_types(self, channel_id: str) -> list[str]:
+        """
+        Get available publisher types for a channel.
+
+        GET /channels/{cid}/publishers/type
+
+        Args:
+            channel_id: Channel ID
+
+        Returns:
+            List of available publisher types (e.g., rtmp, srt, hls).
+        """
+        data = await self._get(f"/channels/{channel_id}/publishers/type")
+        result: list[str] = data.get("result", [])
+        return result
+
+    async def get_publisher_settings(
+        self, channel_id: str, publisher_id: str
+    ) -> dict[str, Any]:
+        """
+        Get settings for a specific publisher.
+
+        GET /channels/{cid}/publishers/{pid}/settings
+
+        Args:
+            channel_id: Channel ID
+            publisher_id: Publisher ID
+
+        Returns:
+            Publisher settings dictionary.
+        """
+        data = await self._get(f"/channels/{channel_id}/publishers/{publisher_id}/settings")
+        result: dict[str, Any] = data.get("result", {})
+        return result
+
+    async def update_publisher_settings(
+        self, channel_id: str, publisher_id: str, settings: dict[str, Any]
+    ) -> OperationResult:
+        """
+        Update settings for a publisher (partial update).
+
+        PATCH /channels/{cid}/publishers/{pid}/settings
+
+        Args:
+            channel_id: Channel ID
+            publisher_id: Publisher ID
+            settings: Settings to update (only changed fields needed)
+
+        Returns:
+            OperationResult with status.
+        """
+        logger.info(f"Updating settings for publisher {publisher_id} on channel {channel_id}")
+        await self._patch(
+            f"/channels/{channel_id}/publishers/{publisher_id}/settings",
+            json=settings,
+        )
+        return OperationResult(
+            success=True,
+            message=f"Publisher {publisher_id} settings updated",
+            device=self.host,
+            details={"channel": channel_id, "publisher": publisher_id, "settings": settings},
+        )
+
+    async def update_publisher_name(
+        self, channel_id: str, publisher_id: str, name: str
+    ) -> OperationResult:
+        """
+        Rename a publisher.
+
+        PUT /channels/{cid}/publishers/{pid}/name
+
+        Args:
+            channel_id: Channel ID
+            publisher_id: Publisher ID
+            name: New name for the publisher
+
+        Returns:
+            OperationResult with status.
+        """
+        logger.info(f"Renaming publisher {publisher_id} to '{name}' on channel {channel_id}")
+        await self._put(
+            f"/channels/{channel_id}/publishers/{publisher_id}/name",
+            params={"name": name},
+        )
+        return OperationResult(
+            success=True,
+            message=f"Publisher {publisher_id} renamed to '{name}'",
+            device=self.host,
+            details={"channel": channel_id, "publisher": publisher_id, "name": name},
+        )
+
     # ========== Inputs ==========
 
     async def get_inputs(
@@ -703,6 +885,116 @@ class PearlClient:
         )
         response.raise_for_status()
         return response.content
+
+    async def create_input(
+        self, name: str, input_type: str, settings: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
+        """
+        Create a new network input source.
+
+        POST /inputs
+
+        Args:
+            name: Display name for the input
+            input_type: Type of input (srt, rtsp, ndi)
+            settings: Protocol-specific settings (url, passphrase, etc.)
+
+        Returns:
+            Created input info including the assigned ID.
+        """
+        logger.info(f"Creating {input_type} input '{name}'")
+        payload: dict[str, Any] = {
+            "name": name,
+            "type": input_type,
+        }
+        if settings:
+            payload["settings"] = settings
+        data = await self._post("/inputs", json=payload)
+        return data.get("result", {})
+
+    async def get_input_settings(self, input_id: str) -> dict[str, Any]:
+        """
+        Get settings for a specific input.
+
+        GET /inputs/{sid}/settings
+
+        Args:
+            input_id: Input source ID
+
+        Returns:
+            Input settings dictionary.
+        """
+        data = await self._get(f"/inputs/{input_id}/settings")
+        result: dict[str, Any] = data.get("result", {})
+        return result
+
+    async def update_input_settings(
+        self, input_id: str, settings: dict[str, Any]
+    ) -> OperationResult:
+        """
+        Update settings for an input (partial update).
+
+        PATCH /inputs/{sid}/settings
+
+        Args:
+            input_id: Input source ID
+            settings: Settings to update (only changed fields needed)
+
+        Returns:
+            OperationResult with status.
+        """
+        logger.info(f"Updating settings for input {input_id}")
+        await self._patch(f"/inputs/{input_id}/settings", json=settings)
+        return OperationResult(
+            success=True,
+            message=f"Input {input_id} settings updated",
+            device=self.host,
+            details={"input": input_id, "settings": settings},
+        )
+
+    # ========== Outputs ==========
+
+    async def get_outputs(self, ids: list[str] | None = None) -> list[dict[str, Any]]:
+        """
+        Get list of available outputs (HDMI/SDI).
+
+        GET /outputs
+
+        Args:
+            ids: Optional list of output IDs to filter
+
+        Returns:
+            List of output info dictionaries.
+        """
+        params = {"ids": ",".join(ids)} if ids else None
+        data = await self._get("/outputs", params=params)
+        result: list[dict[str, Any]] = data.get("result", [])
+        return result
+
+    async def set_output_source(
+        self, output_id: str, source_channel_id: str | None
+    ) -> OperationResult:
+        """
+        Set the source channel for an output.
+
+        PUT /outputs/{did}/settings
+
+        Args:
+            output_id: Output ID (e.g., "hdmi-1")
+            source_channel_id: Channel ID to display, or None to disable
+
+        Returns:
+            OperationResult with status.
+        """
+        logger.info(f"Setting output {output_id} source to {source_channel_id or 'disabled'}")
+        settings = {"source": source_channel_id} if source_channel_id else {"source": None}
+        await self._put(f"/outputs/{output_id}/settings", json=settings)
+        return OperationResult(
+            success=True,
+            message=f"Output {output_id} source set to {source_channel_id or 'disabled'}",
+            device=self.host,
+            details={"output": output_id, "source": source_channel_id},
+        )
 
     # ========== Storage ==========
 
@@ -869,6 +1161,85 @@ class PearlClient:
         return OperationResult(
             success=True,
             message=f"Event {event_id} stopped",
+            device=self.host,
+            details={"event": event_id},
+        )
+
+    async def create_event(
+        self,
+        name: str,
+        start_time: str | None = None,
+        end_time: str | None = None,
+        recorders: list[str] | None = None,
+        publishers: list[str] | None = None,
+    ) -> dict[str, Any]:
+        """
+        Create an ad-hoc recording event.
+
+        POST /schedule/events
+
+        Args:
+            name: Event name
+            start_time: Start time in ISO format (optional, starts immediately if None)
+            end_time: End time in ISO format (optional)
+            recorders: List of recorder IDs to use
+            publishers: List of publisher IDs to use
+
+        Returns:
+            Created event info including the assigned ID.
+        """
+        logger.info(f"Creating event '{name}'")
+        payload: dict[str, Any] = {"name": name}
+        if start_time:
+            payload["start_time"] = start_time
+        if end_time:
+            payload["end_time"] = end_time
+        if recorders:
+            payload["recorders"] = recorders
+        if publishers:
+            payload["publishers"] = publishers
+
+        data = await self._post("/schedule/events", json=payload)
+        return data.get("result", {})
+
+    async def pause_event(self, event_id: str) -> OperationResult:
+        """
+        Pause an active event.
+
+        POST /schedule/events/{eventId}/control/pause
+
+        Args:
+            event_id: Event ID
+
+        Returns:
+            OperationResult with status.
+        """
+        logger.info(f"Pausing event {event_id}")
+        await self._post(f"/schedule/events/{event_id}/control/pause")
+        return OperationResult(
+            success=True,
+            message=f"Event {event_id} paused",
+            device=self.host,
+            details={"event": event_id},
+        )
+
+    async def resume_event(self, event_id: str) -> OperationResult:
+        """
+        Resume a paused event.
+
+        POST /schedule/events/{eventId}/control/resume
+
+        Args:
+            event_id: Event ID
+
+        Returns:
+            OperationResult with status.
+        """
+        logger.info(f"Resuming event {event_id}")
+        await self._post(f"/schedule/events/{event_id}/control/resume")
+        return OperationResult(
+            success=True,
+            message=f"Event {event_id} resumed",
             device=self.host,
             details={"event": event_id},
         )

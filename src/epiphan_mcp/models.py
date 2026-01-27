@@ -403,3 +403,93 @@ class AFUStatus(BaseModel):
     state: str = Field(default="", description="Current state")
     queue_count: int = Field(default=0, description="Files in queue")
     destination: str = Field(default="", description="Destination URL")
+
+
+# ============================================================
+# Publisher Settings Models (Phase 1 - API Expansion)
+# ============================================================
+
+
+class PublisherSettings(BaseModel):
+    """Publisher (stream) settings for CRUD operations."""
+
+    model_config = ConfigDict(extra="allow")
+
+    enabled: bool = Field(default=True, description="Whether publisher is enabled")
+    url: str | None = Field(default=None, description="Stream destination URL")
+    stream_key: str | None = Field(default=None, description="Stream key (for RTMP)")
+    bitrate: int | None = Field(default=None, description="Target bitrate in bps")
+    latency: int | None = Field(default=None, description="Latency mode (for SRT)")
+    passphrase: str | None = Field(default=None, description="Encryption passphrase (for SRT)")
+    mode: str | None = Field(default=None, description="Connection mode (caller/listener)")
+
+
+class PublisherCreateRequest(BaseModel):
+    """Request body for creating a new publisher."""
+
+    model_config = ConfigDict(extra="allow")
+
+    name: str = Field(description="Display name for the publisher")
+    type: PublisherType = Field(description="Publisher type (rtmp, srt, hls, rtsp, mpeg_ts)")
+    settings: PublisherSettings | None = Field(
+        default=None, description="Protocol-specific settings"
+    )
+
+
+# ============================================================
+# Input/Output Models (Phase 2 - API Expansion)
+# ============================================================
+
+
+class InputSettings(BaseModel):
+    """Network input settings for CRUD operations."""
+
+    model_config = ConfigDict(extra="allow")
+
+    srt_url: str | None = Field(default=None, description="SRT URL for SRT inputs")
+    rtsp_url: str | None = Field(default=None, description="RTSP URL for RTSP inputs")
+    ndi_source: str | None = Field(default=None, description="NDI source name")
+    latency: int | None = Field(default=None, description="Buffer latency in ms")
+    passphrase: str | None = Field(default=None, description="Encryption passphrase")
+    mode: str | None = Field(default=None, description="Connection mode (caller/listener)")
+
+
+class InputCreateRequest(BaseModel):
+    """Request body for creating a new network input."""
+
+    model_config = ConfigDict(extra="allow")
+
+    name: str = Field(description="Display name for the input")
+    type: str = Field(description="Input type (srt, rtsp, ndi)")
+    settings: InputSettings | None = Field(
+        default=None, description="Protocol-specific settings"
+    )
+
+
+class OutputInfo(BaseModel):
+    """Output port information from GET /outputs."""
+
+    model_config = ConfigDict(extra="allow")
+
+    id: str = Field(description="Output ID")
+    name: str = Field(default="", description="Output name (e.g., 'HDMI 1')")
+    type: str = Field(default="", description="Output type (hdmi, sdi)")
+    source: str | None = Field(default=None, description="Current source channel ID")
+    resolution: str | None = Field(default=None, description="Output resolution")
+
+
+# ============================================================
+# Event Models (Phase 3 - API Expansion)
+# ============================================================
+
+
+class EventCreateRequest(BaseModel):
+    """Request body for creating an ad-hoc event."""
+
+    model_config = ConfigDict(extra="allow")
+
+    name: str = Field(description="Event name")
+    start_time: datetime | None = Field(default=None, description="Start time (ISO format)")
+    end_time: datetime | None = Field(default=None, description="End time (ISO format)")
+    recorders: list[str] | None = Field(default=None, description="Recorder IDs to use")
+    publishers: list[str] | None = Field(default=None, description="Publisher IDs to use")

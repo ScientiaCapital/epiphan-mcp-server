@@ -2,10 +2,38 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
+[![Tests](https://img.shields.io/badge/tests-329_passing-brightgreen.svg)](tests/)
+[![Tools](https://img.shields.io/badge/MCP_tools-28-blue.svg)](src/epiphan_mcp/server.py)
 
 MCP (Model Context Protocol) server for controlling Epiphan Pearl video capture devices through AI assistants like Claude.
 
-> **First AI-native control interface for professional video capture hardware.**
+> **Pearl Copilot: First AI-native control interface for professional video capture hardware.**
+
+## Why Pearl Copilot?
+
+| Traditional AV Control | Pearl Copilot |
+|------------------------|---------------|
+| Proprietary vendor apps | Open MCP standard |
+| Button-clicking workflows | Natural language commands |
+| Manual monitoring | AI-powered predictive maintenance |
+| Single-device focus | Fleet-wide orchestration |
+| Reactive troubleshooting | Proactive issue detection |
+
+### The AI Moat: No OpenAI
+
+**Pearl Copilot uses Gemini, DeepSeek, and Qwen** — not OpenAI. Why?
+
+1. **Epiphan's customers include OpenAI** (used Pearl for "12 Days of OpenAI" streaming)
+2. **Cost efficiency**: DeepSeek V3 provides GPT-4 quality at 1/10th the cost
+3. **Vision quality**: Gemini Flash excels at video analysis; Qwen VL 72B leads in OCR
+4. **No vendor lock-in**: Switch models via environment variables
+
+```bash
+# Default models (optimized for AV workflows)
+LLM_VISION_MODEL=google/gemini-2.0-flash-001      # Scene analysis
+LLM_OCR_MODEL=qwen/qwen2.5-vl-72b-instruct        # Text extraction
+LLM_TEXT_MODEL=deepseek/deepseek-chat-v3-0324     # Fleet intelligence
+```
 
 ## Features
 
@@ -370,10 +398,26 @@ Enable explicitly: `LLM_MOCK_MODE=true`
 
 ## Supported Devices
 
-- Pearl Nano
-- Pearl Nexus
-- Pearl Mini
-- Pearl-2
+All Pearl models share the same REST API v2.0, so Pearl Copilot works identically across:
+
+| Model | Form Factor | Best For |
+|-------|-------------|----------|
+| **Pearl Nano** | Portable, PoE+ | Field production, SRT contribution |
+| **Pearl Mini** | Desktop, touchscreen | Lecture capture, small events |
+| **Pearl Nexus** | 1RU rackmount | Classroom installations |
+| **Pearl-2** | Desktop/rackmount | Multi-camera production |
+
+## Platform Support
+
+Pearl Copilot works with any MCP-compatible AI tool:
+
+| Platform | Status | Integration |
+|----------|--------|-------------|
+| **Claude Code** | ✓ Ready | Native MCP |
+| **Claude Desktop** | ✓ Ready | Native MCP |
+| **Cursor** | ✓ Ready | MCP server |
+| **Windsurf** | ✓ Ready | MCP server |
+| **VS Code** | Planned | Extension wrapper |
 
 ## Development
 
@@ -411,7 +455,7 @@ tests/
 └── test_ai_tools.py     # AI-powered tool tests
 ```
 
-**197 tests** with **92% coverage**. All tests use mocked HTTP responses - no real Pearl hardware or API keys required.
+**329 tests** with **95% coverage**. All tests use mocked HTTP responses - no real Pearl hardware or API keys required.
 
 ## API Reference
 

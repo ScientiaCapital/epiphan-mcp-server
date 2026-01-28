@@ -1,7 +1,8 @@
 """Tests for publisher management tools."""
 
+from unittest.mock import AsyncMock, patch
+
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
 
 from epiphan_mcp.models import OperationResult
 

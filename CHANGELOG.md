@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.0] - 2026-01-27
+
+### Added
+
+- **Kaltura CMS Integration** (9 new tools)
+  - `list_kaltura_categories`: Browse content folders
+  - `get_kaltura_category`: Get folder details
+  - `create_kaltura_category`: Create new category
+  - `list_kaltura_media`: List video entries
+  - `get_kaltura_media`: Get media details
+  - `create_kaltura_media`: Create media placeholder
+  - `upload_to_kaltura`: Chunked upload workflow (10MB chunks)
+  - `schedule_kaltura_event`: Create scheduled events for Pearl auto-record
+  - `get_kaltura_upload_status`: Check processing status
+  - AppToken authentication (SHA256 hash flow)
+  - Environment config: `KALTURA_PARTNER_ID`, `KALTURA_APP_TOKEN_ID`, `KALTURA_APP_TOKEN`
+
+### Changed
+
+- Total MCP tools: 55 → 64
+
 ## [0.6.0] - 2026-01-27
 
 ### Added

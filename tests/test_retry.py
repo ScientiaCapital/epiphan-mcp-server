@@ -4,7 +4,6 @@ TDD tests for the with_retry() function that handles transient failures
 in HTTP requests to Pearl devices.
 """
 
-import asyncio
 from unittest.mock import AsyncMock, patch
 
 import httpx
@@ -12,7 +11,6 @@ import pytest
 
 from epiphan_mcp.client import PearlAPIError
 from epiphan_mcp.retry import with_retry
-
 
 # ============================================================
 # Basic Retry Behavior Tests

@@ -4,7 +4,6 @@ Verifies that all tools are properly organized into modules and registered with 
 Following TDD: these tests are written FIRST, before implementing the modules.
 """
 
-import pytest
 
 
 class TestToolsDeviceImports:
@@ -202,6 +201,34 @@ class TestToolsPanoptoImports:
         assert callable(delete_panopto_session)
 
 
+class TestToolsKalturaImports:
+    """Tests for Kaltura CMS integration tool imports."""
+
+    def test_tools_kaltura_imports(self):
+        """Test that Kaltura tools can be imported from the kaltura module."""
+        from epiphan_mcp.tools.kaltura import (
+            create_kaltura_category,
+            create_kaltura_media,
+            get_kaltura_category,
+            get_kaltura_media,
+            get_kaltura_upload_status,
+            list_kaltura_categories,
+            list_kaltura_media,
+            schedule_kaltura_event,
+            upload_to_kaltura,
+        )
+
+        assert callable(list_kaltura_categories)
+        assert callable(get_kaltura_category)
+        assert callable(create_kaltura_category)
+        assert callable(list_kaltura_media)
+        assert callable(get_kaltura_media)
+        assert callable(create_kaltura_media)
+        assert callable(upload_to_kaltura)
+        assert callable(schedule_kaltura_event)
+        assert callable(get_kaltura_upload_status)
+
+
 class TestToolsInitImports:
     """Tests for tools __init__.py exports."""
 
@@ -211,6 +238,8 @@ class TestToolsInitImports:
             add_bookmark,
             batch_start_recording,
             batch_stop_recording,
+            create_kaltura_category,
+            create_kaltura_media,
             create_network_input,
             create_panopto_folder,
             create_panopto_session,
@@ -224,6 +253,9 @@ class TestToolsInitImports:
             get_device_status,
             get_fleet_status,
             get_input_settings,
+            get_kaltura_category,
+            get_kaltura_media,
+            get_kaltura_upload_status,
             get_panopto_folder,
             get_panopto_session,
             get_panopto_upload_status,
@@ -234,6 +266,8 @@ class TestToolsInitImports:
             get_stream_status,
             list_devices,
             list_inputs,
+            list_kaltura_categories,
+            list_kaltura_media,
             list_layouts,
             list_outputs,
             list_panopto_folders,
@@ -243,6 +277,7 @@ class TestToolsInitImports:
             predict_storage_full,
             rename_publisher,
             resume_event,
+            schedule_kaltura_event,
             set_output_source,
             single_touch_start,
             single_touch_stop,
@@ -253,6 +288,7 @@ class TestToolsInitImports:
             switch_layout,
             update_input_settings,
             update_publisher_settings,
+            upload_to_kaltura,
             upload_to_panopto,
         )
 
@@ -308,6 +344,16 @@ class TestToolsInitImports:
             upload_to_panopto,
             get_panopto_upload_status,
             delete_panopto_session,
+            # Kaltura CMS integration tools
+            list_kaltura_categories,
+            get_kaltura_category,
+            create_kaltura_category,
+            list_kaltura_media,
+            get_kaltura_media,
+            create_kaltura_media,
+            upload_to_kaltura,
+            schedule_kaltura_event,
+            get_kaltura_upload_status,
         ]
         for tool in all_tools:
             assert callable(tool)
@@ -317,11 +363,11 @@ class TestMCPToolRegistration:
     """Tests for MCP tool registration."""
 
     def test_all_tools_registered(self):
-        """Test that all 55 MCP tools are registered (46 Pearl + 9 Panopto CMS)."""
+        """Test that all 64 MCP tools are registered (46 Pearl + 9 Panopto + 9 Kaltura)."""
         from epiphan_mcp.server import mcp
 
         tools = list(mcp._tool_manager._tools.keys())
-        assert len(tools) == 55, f"Expected 55 tools, got {len(tools)}: {tools}"
+        assert len(tools) == 64, f"Expected 64 tools, got {len(tools)}: {tools}"
 
     def test_expected_tools_registered(self):
         """Test that all expected tools are registered with MCP."""
@@ -396,6 +442,16 @@ class TestMCPToolRegistration:
             "upload_to_panopto",
             "get_panopto_upload_status",
             "delete_panopto_session",
+            # Kaltura CMS integration tools
+            "list_kaltura_categories",
+            "get_kaltura_category",
+            "create_kaltura_category",
+            "list_kaltura_media",
+            "get_kaltura_media",
+            "create_kaltura_media",
+            "upload_to_kaltura",
+            "schedule_kaltura_event",
+            "get_kaltura_upload_status",
         ]
 
         tools = list(mcp._tool_manager._tools.keys())
@@ -403,7 +459,7 @@ class TestMCPToolRegistration:
             assert expected in tools, f"Missing tool: {expected}"
 
     def test_tool_count_unchanged(self):
-        """Test that the tool count is exactly 55 (46 Pearl + 9 Panopto CMS)."""
+        """Test that the tool count is exactly 64 (46 Pearl + 9 Panopto + 9 Kaltura)."""
         from epiphan_mcp.server import mcp
 
         expected_tools = [
@@ -465,10 +521,20 @@ class TestMCPToolRegistration:
             "upload_to_panopto",
             "get_panopto_upload_status",
             "delete_panopto_session",
+            # Kaltura CMS integration tools
+            "list_kaltura_categories",
+            "get_kaltura_category",
+            "create_kaltura_category",
+            "list_kaltura_media",
+            "get_kaltura_media",
+            "create_kaltura_media",
+            "upload_to_kaltura",
+            "schedule_kaltura_event",
+            "get_kaltura_upload_status",
         ]
 
         tools = list(mcp._tool_manager._tools.keys())
-        # Total: 46 Pearl tools + 9 Panopto CMS tools = 55
+        # Total: 46 Pearl tools + 9 Panopto CMS tools + 9 Kaltura CMS tools = 64
         assert len(tools) == len(expected_tools), (
             f"Tool count mismatch: expected {len(expected_tools)}, got {len(tools)}"
         )

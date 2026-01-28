@@ -65,6 +65,35 @@ from .tools.inputs import (
 from .tools.inputs import (
     update_input_settings as _update_input_settings,
 )
+
+# Kaltura CMS integration tools
+from .tools.kaltura import (
+    create_kaltura_category as _create_kaltura_category,
+)
+from .tools.kaltura import (
+    create_kaltura_media as _create_kaltura_media,
+)
+from .tools.kaltura import (
+    get_kaltura_category as _get_kaltura_category,
+)
+from .tools.kaltura import (
+    get_kaltura_media as _get_kaltura_media,
+)
+from .tools.kaltura import (
+    get_kaltura_upload_status as _get_kaltura_upload_status,
+)
+from .tools.kaltura import (
+    list_kaltura_categories as _list_kaltura_categories,
+)
+from .tools.kaltura import (
+    list_kaltura_media as _list_kaltura_media,
+)
+from .tools.kaltura import (
+    schedule_kaltura_event as _schedule_kaltura_event,
+)
+from .tools.kaltura import (
+    upload_to_kaltura as _upload_to_kaltura,
+)
 from .tools.layout import (
     add_bookmark as _add_bookmark,
 )
@@ -1982,3 +2011,233 @@ async def delete_panopto_session(session_id: str) -> dict[str, Any]:
         Confirmation of deletion.
     """
     return await _delete_panopto_session(session_id=session_id)
+
+
+# =============================================================================
+# Kaltura CMS Integration Tools
+# =============================================================================
+
+
+@mcp.tool()
+async def list_kaltura_categories(
+    parent_id: int | None = None,
+    page_size: int = 50,
+    page_index: int = 1,
+) -> dict[str, Any]:
+    """
+    List categories (folders) in Kaltura video platform.
+
+    Retrieves categories accessible to the configured service account.
+    Categories are used to organize video content hierarchically.
+
+    Args:
+        parent_id: Optional parent category ID to list children (None for all).
+        page_size: Number of results per page (default 50, max 500).
+        page_index: Page number, 1-based (default 1).
+
+    Returns:
+        Dict with categories list and count.
+
+    Requires KALTURA_PARTNER_ID, KALTURA_APP_TOKEN_ID, KALTURA_APP_TOKEN
+    environment variables to be set.
+    """
+    return await _list_kaltura_categories(
+        parent_id=parent_id,
+        page_size=page_size,
+        page_index=page_index,
+    )
+
+
+@mcp.tool()
+async def get_kaltura_category(category_id: int) -> dict[str, Any]:
+    """
+    Get details of a specific Kaltura category.
+
+    Args:
+        category_id: Category ID (numeric).
+
+    Returns:
+        Category details including name, description, parent, entry count.
+    """
+    return await _get_kaltura_category(category_id=category_id)
+
+
+@mcp.tool()
+async def create_kaltura_category(
+    name: str,
+    parent_id: int | None = None,
+    description: str = "",
+) -> dict[str, Any]:
+    """
+    Create a new category in Kaltura.
+
+    Args:
+        name: Category name.
+        parent_id: Optional parent category ID (None for root level).
+        description: Optional category description.
+
+    Returns:
+        Created category details.
+    """
+    return await _create_kaltura_category(
+        name=name,
+        parent_id=parent_id,
+        description=description,
+    )
+
+
+@mcp.tool()
+async def list_kaltura_media(
+    category_ids: str = "",
+    search_text: str = "",
+    page_size: int = 50,
+    page_index: int = 1,
+) -> dict[str, Any]:
+    """
+    List media entries (videos) in Kaltura.
+
+    Args:
+        category_ids: Comma-separated category IDs to filter by (optional).
+        search_text: Search term for name, description, tags (optional).
+        page_size: Number of results per page (default 50, max 500).
+        page_index: Page number, 1-based (default 1).
+
+    Returns:
+        Dict with media entries list and count.
+    """
+    return await _list_kaltura_media(
+        category_ids=category_ids,
+        search_text=search_text,
+        page_size=page_size,
+        page_index=page_index,
+    )
+
+
+@mcp.tool()
+async def get_kaltura_media(entry_id: str) -> dict[str, Any]:
+    """
+    Get details of a specific Kaltura media entry.
+
+    Args:
+        entry_id: Media entry ID (alphanumeric, starts with 0_ or 1_).
+
+    Returns:
+        Media entry details including name, duration, status, thumbnails.
+    """
+    return await _get_kaltura_media(entry_id=entry_id)
+
+
+@mcp.tool()
+async def create_kaltura_media(
+    name: str,
+    description: str = "",
+    tags: str = "",
+    category_ids: str = "",
+) -> dict[str, Any]:
+    """
+    Create a new media entry (video placeholder) in Kaltura.
+
+    Creates an empty media entry that can receive uploaded video content.
+
+    Args:
+        name: Media entry name/title.
+        description: Optional description.
+        tags: Optional comma-separated tags.
+        category_ids: Optional comma-separated category IDs to assign.
+
+    Returns:
+        Created media entry details.
+    """
+    return await _create_kaltura_media(
+        name=name,
+        description=description,
+        tags=tags,
+        category_ids=category_ids,
+    )
+
+
+@mcp.tool()
+async def upload_to_kaltura(
+    file_path: str,
+    entry_name: str = "",
+    description: str = "",
+    category_ids: str = "",
+    wait_for_ready: bool = False,
+) -> dict[str, Any]:
+    """
+    Upload a video file to Kaltura.
+
+    Handles the complete upload workflow:
+    1. Creates media entry with metadata
+    2. Creates upload token
+    3. Uploads file in chunks (10MB each)
+    4. Attaches content to entry
+    5. Optionally waits for transcoding
+
+    Args:
+        file_path: Local path to video file.
+        entry_name: Optional entry name (defaults to filename).
+        description: Optional description.
+        category_ids: Optional comma-separated category IDs.
+        wait_for_ready: Wait for transcoding to complete (default False).
+
+    Returns:
+        Upload result with media entry details.
+    """
+    return await _upload_to_kaltura(
+        file_path=file_path,
+        entry_name=entry_name,
+        description=description,
+        category_ids=category_ids,
+        wait_for_ready=wait_for_ready,
+    )
+
+
+@mcp.tool()
+async def schedule_kaltura_event(
+    name: str,
+    start_time: str,
+    end_time: str,
+    entry_id: str = "",
+    resource_id: str = "",
+    description: str = "",
+) -> dict[str, Any]:
+    """
+    Schedule a recording event in Kaltura for Pearl auto-record.
+
+    Creates a scheduled event that Pearl devices synced with Kaltura
+    will automatically pick up and record.
+
+    Args:
+        name: Event name/title.
+        start_time: Start time in ISO format (e.g., "2024-01-15T10:00:00").
+        end_time: End time in ISO format (e.g., "2024-01-15T11:00:00").
+        entry_id: Optional existing media entry to associate.
+        resource_id: Optional recording resource/room ID.
+        description: Optional event description.
+
+    Returns:
+        Created schedule event details.
+    """
+    return await _schedule_kaltura_event(
+        name=name,
+        start_time=start_time,
+        end_time=end_time,
+        entry_id=entry_id,
+        resource_id=resource_id,
+        description=description,
+    )
+
+
+@mcp.tool()
+async def get_kaltura_upload_status(upload_token_id: str) -> dict[str, Any]:
+    """
+    Check the status of a Kaltura upload.
+
+    Args:
+        upload_token_id: Upload token ID from upload workflow.
+
+    Returns:
+        Upload status including bytes uploaded, status.
+    """
+    return await _get_kaltura_upload_status(upload_token_id=upload_token_id)

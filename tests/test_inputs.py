@@ -1,7 +1,8 @@
 """Tests for input/output management tools."""
 
-import pytest
 from unittest.mock import AsyncMock, patch
+
+import pytest
 
 from epiphan_mcp.models import OperationResult
 

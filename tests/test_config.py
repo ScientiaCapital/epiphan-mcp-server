@@ -4,12 +4,10 @@ Tests configurable health thresholds and retry settings.
 Following TDD: tests written BEFORE implementation.
 """
 
-import os
 
 import pytest
 
 from epiphan_mcp.config import Settings, get_settings
-
 
 # ============================================================
 # Health Threshold Tests

@@ -3,7 +3,6 @@
 Tests the tools/device.py module with mocked HTTP responses.
 """
 
-import pytest
 from httpx import ConnectError, Response, TimeoutException
 
 from epiphan_mcp.config import Settings
@@ -16,7 +15,6 @@ from .fixtures.responses import (
     RECORDER_STATUS_STOPPED,
     STORAGE_RESPONSE,
 )
-
 
 # ============================================================
 # get_device_status Tests

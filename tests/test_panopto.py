@@ -10,7 +10,6 @@ Tests cover:
 
 import os
 from datetime import datetime, timedelta
-from pathlib import Path
 from unittest.mock import patch
 
 import httpx
@@ -23,7 +22,6 @@ from epiphan_mcp.integrations.panopto import (
     PanoptoAuthError,
     PanoptoClient,
 )
-
 
 # ============================================================================
 # OAuthToken Tests

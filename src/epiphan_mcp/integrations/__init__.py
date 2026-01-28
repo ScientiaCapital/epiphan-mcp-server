@@ -5,9 +5,11 @@ that work alongside Pearl devices for lecture capture and content delivery.
 
 Supported platforms:
 - Panopto (OAuth2, S3 uploads)
-- More to come: Kaltura, Opencast, YuJa, Vimeo
+- Kaltura (appToken authentication, chunked uploads)
+- More to come: Opencast, YuJa
 """
 
+from epiphan_mcp.integrations.kaltura import KalturaClient
 from epiphan_mcp.integrations.panopto import PanoptoClient
 
-__all__ = ["PanoptoClient"]
+__all__ = ["PanoptoClient", "KalturaClient"]

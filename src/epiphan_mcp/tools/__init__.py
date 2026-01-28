@@ -17,8 +17,30 @@ from .inputs import (
     set_output_source,
     update_input_settings,
 )
+from .kaltura import (
+    create_kaltura_category,
+    create_kaltura_media,
+    get_kaltura_category,
+    get_kaltura_media,
+    get_kaltura_upload_status,
+    list_kaltura_categories,
+    list_kaltura_media,
+    schedule_kaltura_event,
+    upload_to_kaltura,
+)
 from .layout import add_bookmark, list_layouts, switch_layout
 from .maintenance import get_device_health_score, predict_storage_full
+from .panopto import (
+    create_panopto_folder,
+    create_panopto_session,
+    delete_panopto_session,
+    get_panopto_folder,
+    get_panopto_session,
+    get_panopto_upload_status,
+    list_panopto_folders,
+    list_panopto_sessions,
+    upload_to_panopto,
+)
 from .publishers import (
     create_publisher,
     delete_publisher,
@@ -38,17 +60,6 @@ from .schedule import (
 )
 from .storage import get_afu_status, get_storage_report, list_inputs
 from .streaming import get_stream_status, start_stream, stop_stream
-from .panopto import (
-    create_panopto_folder,
-    create_panopto_session,
-    delete_panopto_session,
-    get_panopto_folder,
-    get_panopto_session,
-    get_panopto_upload_status,
-    list_panopto_folders,
-    list_panopto_sessions,
-    upload_to_panopto,
-)
 
 __all__ = [
     # Device tools
@@ -113,4 +124,14 @@ __all__ = [
     "upload_to_panopto",
     "get_panopto_upload_status",
     "delete_panopto_session",
+    # Kaltura CMS integration tools
+    "list_kaltura_categories",
+    "get_kaltura_category",
+    "create_kaltura_category",
+    "list_kaltura_media",
+    "get_kaltura_media",
+    "create_kaltura_media",
+    "upload_to_kaltura",
+    "schedule_kaltura_event",
+    "get_kaltura_upload_status",
 ]

@@ -479,7 +479,7 @@ class TestOpenRouterNetworkErrors:
     async def test_analyze_image_connection_error(self, isolated_llm_env, valid_jpeg, respx_mock):
         """Should raise LLMConnectionError on connection failure."""
         import httpx
-        import respx
+
         from epiphan_mcp.llm.providers import LLMConnectionError, OpenRouterProvider
 
         respx_mock.post("https://openrouter.ai/api/v1/chat/completions").mock(
@@ -494,6 +494,7 @@ class TestOpenRouterNetworkErrors:
     async def test_analyze_image_timeout_error(self, isolated_llm_env, valid_jpeg, respx_mock):
         """Should raise LLMConnectionError on timeout."""
         import httpx
+
         from epiphan_mcp.llm.providers import LLMConnectionError, OpenRouterProvider
 
         respx_mock.post("https://openrouter.ai/api/v1/chat/completions").mock(
@@ -508,6 +509,7 @@ class TestOpenRouterNetworkErrors:
     async def test_complete_connection_error(self, isolated_llm_env, respx_mock):
         """Should raise LLMConnectionError on connection failure for text completion."""
         import httpx
+
         from epiphan_mcp.llm.providers import LLMConnectionError, OpenRouterProvider
 
         respx_mock.post("https://openrouter.ai/api/v1/chat/completions").mock(
@@ -522,6 +524,7 @@ class TestOpenRouterNetworkErrors:
     async def test_complete_timeout_error(self, isolated_llm_env, respx_mock):
         """Should raise LLMConnectionError on timeout for text completion."""
         import httpx
+
         from epiphan_mcp.llm.providers import LLMConnectionError, OpenRouterProvider
 
         respx_mock.post("https://openrouter.ai/api/v1/chat/completions").mock(
@@ -545,6 +548,7 @@ class TestOpenRouterHTTPErrors:
     async def test_analyze_image_api_error_401(self, isolated_llm_env, valid_jpeg, respx_mock):
         """Should raise LLMAPIError with status_code on 401."""
         import httpx
+
         from epiphan_mcp.llm.providers import LLMAPIError, OpenRouterProvider
 
         respx_mock.post("https://openrouter.ai/api/v1/chat/completions").mock(
@@ -560,6 +564,7 @@ class TestOpenRouterHTTPErrors:
     async def test_analyze_image_api_error_429(self, isolated_llm_env, valid_jpeg, respx_mock):
         """Should raise LLMAPIError with status_code on 429 rate limit."""
         import httpx
+
         from epiphan_mcp.llm.providers import LLMAPIError, OpenRouterProvider
 
         respx_mock.post("https://openrouter.ai/api/v1/chat/completions").mock(
@@ -575,6 +580,7 @@ class TestOpenRouterHTTPErrors:
     async def test_analyze_image_api_error_500(self, isolated_llm_env, valid_jpeg, respx_mock):
         """Should raise LLMAPIError with status_code on 500 server error."""
         import httpx
+
         from epiphan_mcp.llm.providers import LLMAPIError, OpenRouterProvider
 
         respx_mock.post("https://openrouter.ai/api/v1/chat/completions").mock(
@@ -590,6 +596,7 @@ class TestOpenRouterHTTPErrors:
     async def test_complete_api_error_401(self, isolated_llm_env, respx_mock):
         """Should raise LLMAPIError with status_code on 401 for text completion."""
         import httpx
+
         from epiphan_mcp.llm.providers import LLMAPIError, OpenRouterProvider
 
         respx_mock.post("https://openrouter.ai/api/v1/chat/completions").mock(
@@ -614,6 +621,7 @@ class TestOpenRouterResponseParsing:
     async def test_analyze_image_missing_choices_field(self, isolated_llm_env, valid_jpeg, respx_mock):
         """Should raise KeyError when 'choices' field is missing."""
         import httpx
+
         from epiphan_mcp.llm.providers import OpenRouterProvider
 
         respx_mock.post("https://openrouter.ai/api/v1/chat/completions").mock(
@@ -628,6 +636,7 @@ class TestOpenRouterResponseParsing:
     async def test_analyze_image_empty_choices_array(self, isolated_llm_env, valid_jpeg, respx_mock):
         """Should raise IndexError when 'choices' array is empty."""
         import httpx
+
         from epiphan_mcp.llm.providers import OpenRouterProvider
 
         respx_mock.post("https://openrouter.ai/api/v1/chat/completions").mock(
@@ -642,6 +651,7 @@ class TestOpenRouterResponseParsing:
     async def test_complete_missing_choices_field(self, isolated_llm_env, respx_mock):
         """Should raise KeyError when 'choices' field is missing in text completion."""
         import httpx
+
         from epiphan_mcp.llm.providers import OpenRouterProvider
 
         respx_mock.post("https://openrouter.ai/api/v1/chat/completions").mock(
@@ -656,6 +666,7 @@ class TestOpenRouterResponseParsing:
     async def test_complete_empty_choices_array(self, isolated_llm_env, respx_mock):
         """Should raise IndexError when 'choices' array is empty in text completion."""
         import httpx
+
         from epiphan_mcp.llm.providers import OpenRouterProvider
 
         respx_mock.post("https://openrouter.ai/api/v1/chat/completions").mock(
@@ -698,6 +709,7 @@ class TestOpenRouterEdgeCases:
     async def test_error_chaining_preserved(self, isolated_llm_env, respx_mock):
         """Should preserve original exception in error chain."""
         import httpx
+
         from epiphan_mcp.llm.providers import LLMConnectionError, OpenRouterProvider
 
         respx_mock.post("https://openrouter.ai/api/v1/chat/completions").mock(

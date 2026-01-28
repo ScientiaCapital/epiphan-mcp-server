@@ -3,7 +3,6 @@
 Tests the tools/recording.py module with mocked HTTP responses.
 """
 
-import pytest
 from httpx import ConnectError, Response, TimeoutException
 
 from epiphan_mcp.config import Settings
@@ -20,7 +19,6 @@ from .fixtures.responses import (
     RECORDER_STATUS_RECORDING,
     RECORDER_STATUS_STOPPED,
 )
-
 
 # ============================================================
 # start_recording Tests

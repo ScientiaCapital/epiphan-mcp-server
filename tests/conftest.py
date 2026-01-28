@@ -13,7 +13,6 @@ from httpx import Response
 from epiphan_mcp.client import PearlClient
 from epiphan_mcp.config import Settings
 
-
 # ============================================================
 # Settings Patch Helper
 # ============================================================

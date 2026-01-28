@@ -2,8 +2,8 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
-[![Tests](https://img.shields.io/badge/tests-400_passing-brightgreen.svg)](tests/)
-[![Tools](https://img.shields.io/badge/MCP_tools-55-blue.svg)](src/epiphan_mcp/server.py)
+[![Tests](https://img.shields.io/badge/tests-452_passing-brightgreen.svg)](tests/)
+[![Tools](https://img.shields.io/badge/MCP_tools-64-blue.svg)](src/epiphan_mcp/server.py)
 
 MCP (Model Context Protocol) server for controlling Epiphan Pearl video capture devices through AI assistants like Claude.
 
@@ -43,7 +43,7 @@ LLM_TEXT_MODEL=deepseek/deepseek-chat-v3-0324     # Fleet intelligence
 - 🏢 **Fleet Management** - Control multiple Pearl devices from one interface
 - 🤖 **Natural Language** - "Start recording in Room 201" just works
 - 🔍 **AI Video Analysis** - Scene understanding, OCR, quality checks, change detection via vision LLMs
-- 🎓 **CMS Integration** - Direct Panopto integration for lecture capture workflows
+- 🎓 **CMS Integration** - Panopto and Kaltura integration for lecture capture workflows
 
 ## Quick Start
 

@@ -8,7 +8,6 @@ import asyncio
 import time
 from unittest.mock import AsyncMock, patch
 
-import pytest
 import respx
 from httpx import ConnectError, Response
 
@@ -21,7 +20,6 @@ from .fixtures.responses import (
     RECORDER_STATUS_STOPPED,
     STORAGE_RESPONSE,
 )
-
 
 # ============================================================
 # Helper Functions
@@ -467,7 +465,7 @@ class TestFleetErrorHandling:
 
     async def test_empty_device_list(self):
         """Test fleet operations with no devices configured."""
-        from epiphan_mcp.server import get_fleet_status, batch_start_recording, batch_stop_recording
+        from epiphan_mcp.server import batch_start_recording, batch_stop_recording, get_fleet_status
 
         with patch("epiphan_mcp.server.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(devices="")
@@ -771,8 +769,8 @@ class TestFleetHealthReport:
 
     async def test_fleet_health_report_llm_fallback(self):
         """Verify report falls back gracefully when LLM fails."""
-        from epiphan_mcp.server import fleet_health_report
         from epiphan_mcp.llm.providers import LLMError
+        from epiphan_mcp.server import fleet_health_report
 
         with patch("epiphan_mcp.server.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(devices="192.168.1.100")
@@ -1077,8 +1075,8 @@ class TestGenerateShiftHandoff:
 
     async def test_generate_shift_handoff_llm_fallback(self):
         """Verify fallback when LLM fails."""
-        from epiphan_mcp.server import generate_shift_handoff
         from epiphan_mcp.llm.providers import LLMError
+        from epiphan_mcp.server import generate_shift_handoff
 
         with patch("epiphan_mcp.server.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(devices="192.168.1.100")

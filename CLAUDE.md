@@ -39,13 +39,20 @@ epiphan-mcp-server/
 │   └── epiphan_mcp/
 │       ├── __init__.py
 │       ├── __main__.py       # Entry point
-│       ├── server.py         # FastMCP server definition
+│       ├── server.py         # FastMCP server (82 MCP tools)
 │       ├── client.py         # Pearl REST API v2.0 client
 │       ├── models.py         # Pydantic models
-│       └── config.py         # Configuration (pydantic-settings)
+│       ├── config.py         # Configuration (pydantic-settings)
+│       ├── integrations/     # External platform clients
+│       │   ├── panopto.py    # Panopto CMS (OAuth2)
+│       │   ├── kaltura.py    # Kaltura CMS (appToken)
+│       │   ├── opencast.py   # Opencast CMS (REST + Dublin Core)
+│       │   ├── qsys.py       # Q-SYS Core (JSON-RPC over TCP)
+│       │   └── youtube.py    # YouTube Live (OAuth2)
+│       └── tools/            # MCP tool implementations
 ├── tests/
 │   ├── conftest.py
-│   └── test_client.py
+│   ├── test_*.py             # 541 tests
 ├── docs/
 │   ├── PRD.md               # Product Requirements + GTM
 │   └── PRP.md               # Project Plan
@@ -379,3 +386,11 @@ chore: Changes to build process or auxiliary tools
 - [x] Event control: create/pause/resume (3 tools)
 - [x] Security: audit logging, concurrency limits, image validation
 - [x] **46 total MCP tools** (was 32)
+
+### v1.2 (P1-P3 Integration Sprint - 2026-01-28)
+- [x] Q-SYS AV control integration (5 tools) - JSON-RPC over TCP
+- [x] Opencast CMS integration (9 tools) - REST + Dublin Core
+- [x] YouTube Live streaming integration (4 tools) - OAuth2
+- [x] **82 total MCP tools** (was 64)
+- [x] 7 total integrations (Pearl + Panopto + Kaltura + Opencast + Q-SYS + YouTube)
+- [x] 541 tests passing

@@ -5,6 +5,48 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.0] - 2026-01-28
+
+### Added
+
+- **Q-SYS AV Control Integration** (5 new tools)
+  - `list_qsys_components`: Discover Pearl components in Q-SYS design
+  - `qsys_get_pearl_status`: Get recording/streaming state via Q-SYS
+  - `qsys_start_recording`: Start recording through Q-SYS Core
+  - `qsys_stop_recording`: Stop recording through Q-SYS Core
+  - `qsys_switch_layout`: Change Pearl layout via Q-SYS
+  - JSON-RPC 2.0 over TCP (port 1710) with null-terminated messages
+  - Keep-alive mechanism (NoOp every 50s)
+  - PIN authentication support
+  - Environment config: `QSYS_CORE_IP`, `QSYS_PORT`, `QSYS_PIN`
+
+- **Opencast CMS Integration** (9 new tools)
+  - `list_opencast_series`: Browse series (courses/channels)
+  - `get_opencast_series`: Get series details
+  - `create_opencast_series`: Create new series
+  - `list_opencast_events`: List recordings
+  - `get_opencast_event`: Get event details
+  - `ingest_to_opencast`: Upload video with Dublin Core metadata
+  - `get_opencast_ingest_status`: Check processing workflow
+  - `schedule_opencast_capture`: Schedule Pearl auto-record
+  - `delete_opencast_event`: Remove event
+  - HTTP Basic Auth, Dublin Core XML metadata
+  - Environment config: `OPENCAST_HOST`, `OPENCAST_USERNAME`, `OPENCAST_PASSWORD`
+
+- **YouTube Live Integration** (4 new tools)
+  - `create_youtube_broadcast`: Create broadcast + stream, returns RTMP credentials for Pearl
+  - `get_youtube_broadcast_status`: Check broadcast/stream health
+  - `list_youtube_broadcasts`: List user's broadcasts
+  - `end_youtube_broadcast`: Transition broadcast to complete
+  - OAuth2 with automatic token refresh
+  - Environment config: `YOUTUBE_CLIENT_ID`, `YOUTUBE_CLIENT_SECRET`, `YOUTUBE_REFRESH_TOKEN`
+
+### Changed
+
+- Total MCP tools: 64 → 82 (+18)
+- Total integrations: 4 → 7 (Pearl + Panopto + Kaltura + Opencast + Q-SYS + YouTube)
+- Tests: 452 → 541
+
 ## [0.7.0] - 2026-01-27
 
 ### Added

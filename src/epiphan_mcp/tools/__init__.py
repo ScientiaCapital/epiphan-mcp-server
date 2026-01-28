@@ -29,6 +29,30 @@ from .kaltura import (
     upload_to_kaltura,
 )
 from .layout import add_bookmark, list_layouts, switch_layout
+from .opencast import (
+    create_opencast_series,
+    delete_opencast_event,
+    get_opencast_event,
+    get_opencast_ingest_status,
+    get_opencast_series,
+    ingest_to_opencast,
+    list_opencast_events,
+    list_opencast_series,
+    schedule_opencast_capture,
+)
+from .qsys import (
+    list_qsys_components,
+    qsys_get_pearl_status,
+    qsys_start_recording,
+    qsys_stop_recording,
+    qsys_switch_layout,
+)
+from .youtube import (
+    create_youtube_broadcast,
+    end_youtube_broadcast,
+    get_youtube_broadcast_status,
+    list_youtube_broadcasts,
+)
 from .maintenance import get_device_health_score, predict_storage_full
 from .panopto import (
     create_panopto_folder,
@@ -134,4 +158,25 @@ __all__ = [
     "upload_to_kaltura",
     "schedule_kaltura_event",
     "get_kaltura_upload_status",
+    # Opencast CMS integration tools
+    "list_opencast_series",
+    "get_opencast_series",
+    "create_opencast_series",
+    "list_opencast_events",
+    "get_opencast_event",
+    "ingest_to_opencast",
+    "get_opencast_ingest_status",
+    "schedule_opencast_capture",
+    "delete_opencast_event",
+    # Q-SYS AV control integration tools
+    "list_qsys_components",
+    "qsys_get_pearl_status",
+    "qsys_start_recording",
+    "qsys_stop_recording",
+    "qsys_switch_layout",
+    # YouTube Live streaming integration tools
+    "create_youtube_broadcast",
+    "get_youtube_broadcast_status",
+    "list_youtube_broadcasts",
+    "end_youtube_broadcast",
 ]

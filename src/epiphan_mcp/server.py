@@ -94,6 +94,66 @@ from .tools.kaltura import (
 from .tools.kaltura import (
     upload_to_kaltura as _upload_to_kaltura,
 )
+
+# Opencast CMS integration tools
+from .tools.opencast import (
+    create_opencast_series as _create_opencast_series,
+)
+from .tools.opencast import (
+    delete_opencast_event as _delete_opencast_event,
+)
+from .tools.opencast import (
+    get_opencast_event as _get_opencast_event,
+)
+from .tools.opencast import (
+    get_opencast_ingest_status as _get_opencast_ingest_status,
+)
+from .tools.opencast import (
+    get_opencast_series as _get_opencast_series,
+)
+from .tools.opencast import (
+    ingest_to_opencast as _ingest_to_opencast,
+)
+from .tools.opencast import (
+    list_opencast_events as _list_opencast_events,
+)
+from .tools.opencast import (
+    list_opencast_series as _list_opencast_series,
+)
+from .tools.opencast import (
+    schedule_opencast_capture as _schedule_opencast_capture,
+)
+
+# Q-SYS AV control integration tools
+from .tools.qsys import (
+    list_qsys_components as _list_qsys_components,
+)
+from .tools.qsys import (
+    qsys_get_pearl_status as _qsys_get_pearl_status,
+)
+from .tools.qsys import (
+    qsys_start_recording as _qsys_start_recording,
+)
+from .tools.qsys import (
+    qsys_stop_recording as _qsys_stop_recording,
+)
+from .tools.qsys import (
+    qsys_switch_layout as _qsys_switch_layout,
+)
+
+# YouTube Live streaming integration tools
+from .tools.youtube import (
+    create_youtube_broadcast as _create_youtube_broadcast,
+)
+from .tools.youtube import (
+    end_youtube_broadcast as _end_youtube_broadcast,
+)
+from .tools.youtube import (
+    get_youtube_broadcast_status as _get_youtube_broadcast_status,
+)
+from .tools.youtube import (
+    list_youtube_broadcasts as _list_youtube_broadcasts,
+)
 from .tools.layout import (
     add_bookmark as _add_bookmark,
 )
@@ -2241,3 +2301,436 @@ async def get_kaltura_upload_status(upload_token_id: str) -> dict[str, Any]:
         Upload status including bytes uploaded, status.
     """
     return await _get_kaltura_upload_status(upload_token_id=upload_token_id)
+
+
+# =============================================================================
+# Opencast CMS Integration Tools
+# =============================================================================
+
+
+@mcp.tool()
+async def list_opencast_series(
+    filter_text: str = "",
+    limit: int = 50,
+    offset: int = 0,
+) -> dict[str, Any]:
+    """
+    List series (courses/channels) in Opencast video platform.
+
+    Retrieves series accessible to the configured admin account.
+    Series are used to organize recordings by course or topic.
+
+    Args:
+        filter_text: Optional filter by title (partial match).
+        limit: Maximum number of results (default 50).
+        offset: Pagination offset for paging through results.
+
+    Returns:
+        Dict with series list and count.
+
+    Requires OPENCAST_HOST, OPENCAST_USERNAME, OPENCAST_PASSWORD
+    environment variables to be set.
+    """
+    return await _list_opencast_series(
+        filter_text=filter_text,
+        limit=limit,
+        offset=offset,
+    )
+
+
+@mcp.tool()
+async def get_opencast_series(series_id: str) -> dict[str, Any]:
+    """
+    Get details of a specific Opencast series.
+
+    Args:
+        series_id: Series UUID.
+
+    Returns:
+        Series details including title, description, creator.
+    """
+    return await _get_opencast_series(series_id=series_id)
+
+
+@mcp.tool()
+async def create_opencast_series(
+    title: str,
+    description: str = "",
+    creator: str = "",
+    subject: str = "",
+    language: str = "en",
+) -> dict[str, Any]:
+    """
+    Create a new series in Opencast.
+
+    Series are containers for organizing recordings by course or topic.
+
+    Args:
+        title: Series title (required).
+        description: Series description.
+        creator: Creator/instructor name.
+        subject: Subject or topic.
+        language: Language code (default "en").
+
+    Returns:
+        Created series details including UUID.
+    """
+    return await _create_opencast_series(
+        title=title,
+        description=description,
+        creator=creator,
+        subject=subject,
+        language=language,
+    )
+
+
+@mcp.tool()
+async def list_opencast_events(
+    series_id: str = "",
+    status: str = "",
+    limit: int = 50,
+    offset: int = 0,
+) -> dict[str, Any]:
+    """
+    List events (recordings) in Opencast.
+
+    Args:
+        series_id: Filter by series UUID (optional).
+        status: Filter by status - e.g., "PROCESSED", "PROCESSING" (optional).
+        limit: Maximum number of results (default 50).
+        offset: Pagination offset.
+
+    Returns:
+        Dict with events list and count.
+    """
+    return await _list_opencast_events(
+        series_id=series_id,
+        status=status,
+        limit=limit,
+        offset=offset,
+    )
+
+
+@mcp.tool()
+async def get_opencast_event(event_id: str) -> dict[str, Any]:
+    """
+    Get details of a specific Opencast event (recording).
+
+    Args:
+        event_id: Event UUID.
+
+    Returns:
+        Event details including title, duration, status, publications.
+    """
+    return await _get_opencast_event(event_id=event_id)
+
+
+@mcp.tool()
+async def ingest_to_opencast(
+    file_path: str,
+    title: str,
+    series_id: str = "",
+    creator: str = "",
+    description: str = "",
+    spatial: str = "",
+    workflow: str = "fast",
+) -> dict[str, Any]:
+    """
+    Ingest a video recording to Opencast.
+
+    Uploads a video file and starts the processing workflow.
+    Large files may take several minutes to upload.
+
+    Args:
+        file_path: Local path to video file.
+        title: Recording title.
+        series_id: Target series UUID (uses default if not provided).
+        creator: Presenter/creator name.
+        description: Recording description.
+        spatial: Location/room name.
+        workflow: Processing workflow ID (default "fast").
+
+    Returns:
+        Ingest result with workflow instance ID.
+    """
+    return await _ingest_to_opencast(
+        file_path=file_path,
+        title=title,
+        series_id=series_id,
+        creator=creator,
+        description=description,
+        spatial=spatial,
+        workflow=workflow,
+    )
+
+
+@mcp.tool()
+async def get_opencast_ingest_status(workflow_id: str) -> dict[str, Any]:
+    """
+    Check the status of an Opencast ingest workflow.
+
+    Args:
+        workflow_id: Workflow instance ID from ingest.
+
+    Returns:
+        Workflow status including state and progress.
+    """
+    return await _get_opencast_ingest_status(workflow_id=workflow_id)
+
+
+@mcp.tool()
+async def schedule_opencast_capture(
+    title: str,
+    start_time: str,
+    end_time: str,
+    capture_agent: str,
+    series_id: str = "",
+    creator: str = "",
+    description: str = "",
+    spatial: str = "",
+) -> dict[str, Any]:
+    """
+    Schedule a capture event in Opencast for Pearl auto-record.
+
+    Creates a scheduled event that Pearl devices (registered as capture agents)
+    will automatically pick up and record at the scheduled time.
+
+    Args:
+        title: Event title.
+        start_time: Start time in ISO format (e.g., "2024-01-15T10:00:00").
+        end_time: End time in ISO format (e.g., "2024-01-15T11:00:00").
+        capture_agent: Capture agent ID (Pearl device identifier).
+        series_id: Target series UUID.
+        creator: Presenter name.
+        description: Event description.
+        spatial: Room/location.
+
+    Returns:
+        Created scheduled event.
+    """
+    return await _schedule_opencast_capture(
+        title=title,
+        start_time=start_time,
+        end_time=end_time,
+        capture_agent=capture_agent,
+        series_id=series_id,
+        creator=creator,
+        description=description,
+        spatial=spatial,
+    )
+
+
+@mcp.tool()
+async def delete_opencast_event(event_id: str) -> dict[str, Any]:
+    """
+    Delete an event from Opencast.
+
+    Permanently removes an event/recording. Use with caution.
+
+    Args:
+        event_id: Event UUID to delete.
+
+    Returns:
+        Confirmation of deletion.
+    """
+    return await _delete_opencast_event(event_id=event_id)
+
+
+# =============================================================================
+# Q-SYS AV Control Integration Tools
+# =============================================================================
+
+
+@mcp.tool()
+async def list_qsys_components(name_filter: str = "Pearl") -> dict[str, Any]:
+    """
+    List Q-SYS components, optionally filtered by name.
+
+    Discovers components in the Q-SYS design that match the filter.
+    Use this to find Pearl-related components like recorders and layout controls.
+
+    Args:
+        name_filter: Filter components containing this string (default "Pearl").
+                     Use empty string to list all components.
+
+    Returns:
+        Dict with components list and count.
+
+    Requires QSYS_CORE_IP environment variable. Optional: QSYS_PORT, QSYS_PIN.
+    """
+    return await _list_qsys_components(name_filter=name_filter)
+
+
+@mcp.tool()
+async def qsys_get_pearl_status(component_name: str = "Pearl_Recorder") -> dict[str, Any]:
+    """
+    Get Pearl recording/streaming status through Q-SYS.
+
+    Retrieves the current state of a Pearl device controlled by Q-SYS.
+
+    Args:
+        component_name: Name of the Pearl component in Q-SYS design.
+                        Common names: "Pearl_Recorder", "Pearl_1", etc.
+
+    Returns:
+        Status dict with is_recording, is_streaming, current_layout.
+    """
+    return await _qsys_get_pearl_status(component_name=component_name)
+
+
+@mcp.tool()
+async def qsys_start_recording(component_name: str = "Pearl_Recorder") -> dict[str, Any]:
+    """
+    Start recording on Pearl through Q-SYS.
+
+    Triggers recording start via the Q-SYS Pearl component. This is useful
+    when Pearl is integrated into a larger Q-SYS controlled AV system.
+
+    Args:
+        component_name: Name of the Pearl component in Q-SYS design.
+
+    Returns:
+        Confirmation of recording start.
+    """
+    return await _qsys_start_recording(component_name=component_name)
+
+
+@mcp.tool()
+async def qsys_stop_recording(component_name: str = "Pearl_Recorder") -> dict[str, Any]:
+    """
+    Stop recording on Pearl through Q-SYS.
+
+    Triggers recording stop via the Q-SYS Pearl component.
+
+    Args:
+        component_name: Name of the Pearl component in Q-SYS design.
+
+    Returns:
+        Confirmation of recording stop.
+    """
+    return await _qsys_stop_recording(component_name=component_name)
+
+
+@mcp.tool()
+async def qsys_switch_layout(
+    layout_id: str,
+    component_name: str = "Pearl_Layout",
+) -> dict[str, Any]:
+    """
+    Switch Pearl layout through Q-SYS.
+
+    Changes the active layout/scene on a Pearl device via Q-SYS control.
+    The layout component must be configured in the Q-SYS design.
+
+    Args:
+        layout_id: Layout ID or index to switch to.
+        component_name: Name of the Pearl layout component in Q-SYS.
+
+    Returns:
+        Confirmation of layout switch.
+    """
+    return await _qsys_switch_layout(
+        layout_id=layout_id,
+        component_name=component_name,
+    )
+
+
+# =============================================================================
+# YouTube Live Streaming Integration Tools
+# =============================================================================
+
+
+@mcp.tool()
+async def create_youtube_broadcast(
+    title: str,
+    scheduled_start: str,
+    description: str = "",
+    privacy: str = "unlisted",
+    resolution: str = "1080p",
+    frame_rate: str = "30fps",
+) -> dict[str, Any]:
+    """
+    Create a YouTube Live broadcast with stream for Pearl integration.
+
+    Creates a broadcast, stream, and binds them together. Returns RTMP
+    credentials that can be used to configure a Pearl publisher.
+
+    Args:
+        title: Broadcast title (visible to viewers).
+        scheduled_start: Start time in ISO 8601 format (e.g., "2024-01-15T10:00:00Z").
+        description: Broadcast description.
+        privacy: Privacy status - "public", "unlisted", or "private" (default "unlisted").
+        resolution: Video resolution - "720p", "1080p", "1440p", "2160p" (default "1080p").
+        frame_rate: Frame rate - "30fps" or "60fps" (default "30fps").
+
+    Returns:
+        Dict with broadcast details and RTMP credentials for Pearl.
+
+    Requires YOUTUBE_CLIENT_ID, YOUTUBE_CLIENT_SECRET, YOUTUBE_REFRESH_TOKEN
+    environment variables to be set.
+    """
+    return await _create_youtube_broadcast(
+        title=title,
+        scheduled_start=scheduled_start,
+        description=description,
+        privacy=privacy,
+        resolution=resolution,
+        frame_rate=frame_rate,
+    )
+
+
+@mcp.tool()
+async def get_youtube_broadcast_status(broadcast_id: str) -> dict[str, Any]:
+    """
+    Get the status of a YouTube Live broadcast.
+
+    Returns the current lifecycle status of the broadcast and its
+    bound stream, including health information.
+
+    Args:
+        broadcast_id: The YouTube broadcast ID.
+
+    Returns:
+        Dict with broadcast status, stream status, and timing info.
+    """
+    return await _get_youtube_broadcast_status(broadcast_id=broadcast_id)
+
+
+@mcp.tool()
+async def list_youtube_broadcasts(
+    status_filter: str = "",
+    limit: int = 25,
+) -> dict[str, Any]:
+    """
+    List YouTube Live broadcasts for the authenticated account.
+
+    Args:
+        status_filter: Filter by status - "active", "all", "completed", "upcoming"
+                      (empty for all statuses).
+        limit: Maximum number of results (default 25, max 50).
+
+    Returns:
+        Dict with broadcasts list and count.
+    """
+    return await _list_youtube_broadcasts(
+        status_filter=status_filter,
+        limit=limit,
+    )
+
+
+@mcp.tool()
+async def end_youtube_broadcast(broadcast_id: str) -> dict[str, Any]:
+    """
+    End a YouTube Live broadcast.
+
+    Transitions the broadcast to 'complete' status. The broadcast must
+    currently be in 'live' status. After ending, the recording (if enabled)
+    will be processed and available as a VOD.
+
+    Args:
+        broadcast_id: The YouTube broadcast ID to end.
+
+    Returns:
+        Confirmation of broadcast completion.
+    """
+    return await _end_youtube_broadcast(broadcast_id=broadcast_id)

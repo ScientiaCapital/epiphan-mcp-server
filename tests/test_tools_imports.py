@@ -229,6 +229,72 @@ class TestToolsKalturaImports:
         assert callable(get_kaltura_upload_status)
 
 
+class TestToolsOpencastImports:
+    """Tests for Opencast CMS integration tool imports."""
+
+    def test_tools_opencast_imports(self):
+        """Test that Opencast tools can be imported from the opencast module."""
+        from epiphan_mcp.tools.opencast import (
+            create_opencast_series,
+            delete_opencast_event,
+            get_opencast_event,
+            get_opencast_ingest_status,
+            get_opencast_series,
+            ingest_to_opencast,
+            list_opencast_events,
+            list_opencast_series,
+            schedule_opencast_capture,
+        )
+
+        assert callable(list_opencast_series)
+        assert callable(get_opencast_series)
+        assert callable(create_opencast_series)
+        assert callable(list_opencast_events)
+        assert callable(get_opencast_event)
+        assert callable(ingest_to_opencast)
+        assert callable(get_opencast_ingest_status)
+        assert callable(schedule_opencast_capture)
+        assert callable(delete_opencast_event)
+
+
+class TestToolsQSysImports:
+    """Tests for Q-SYS AV control integration tool imports."""
+
+    def test_tools_qsys_imports(self):
+        """Test that Q-SYS tools can be imported from the qsys module."""
+        from epiphan_mcp.tools.qsys import (
+            list_qsys_components,
+            qsys_get_pearl_status,
+            qsys_start_recording,
+            qsys_stop_recording,
+            qsys_switch_layout,
+        )
+
+        assert callable(list_qsys_components)
+        assert callable(qsys_get_pearl_status)
+        assert callable(qsys_start_recording)
+        assert callable(qsys_stop_recording)
+        assert callable(qsys_switch_layout)
+
+
+class TestToolsYouTubeImports:
+    """Tests for YouTube Live streaming integration tool imports."""
+
+    def test_tools_youtube_imports(self):
+        """Test that YouTube tools can be imported from the youtube module."""
+        from epiphan_mcp.tools.youtube import (
+            create_youtube_broadcast,
+            end_youtube_broadcast,
+            get_youtube_broadcast_status,
+            list_youtube_broadcasts,
+        )
+
+        assert callable(create_youtube_broadcast)
+        assert callable(get_youtube_broadcast_status)
+        assert callable(list_youtube_broadcasts)
+        assert callable(end_youtube_broadcast)
+
+
 class TestToolsInitImports:
     """Tests for tools __init__.py exports."""
 
@@ -241,12 +307,16 @@ class TestToolsInitImports:
             create_kaltura_category,
             create_kaltura_media,
             create_network_input,
+            create_opencast_series,
             create_panopto_folder,
             create_panopto_session,
             create_publisher,
             create_scheduled_event,
+            create_youtube_broadcast,
+            delete_opencast_event,
             delete_panopto_session,
             delete_publisher,
+            end_youtube_broadcast,
             get_afu_status,
             get_client,
             get_device_health_score,
@@ -256,6 +326,9 @@ class TestToolsInitImports:
             get_kaltura_category,
             get_kaltura_media,
             get_kaltura_upload_status,
+            get_opencast_event,
+            get_opencast_ingest_status,
+            get_opencast_series,
             get_panopto_folder,
             get_panopto_session,
             get_panopto_upload_status,
@@ -264,20 +337,31 @@ class TestToolsInitImports:
             get_scheduled_events,
             get_storage_report,
             get_stream_status,
+            get_youtube_broadcast_status,
+            ingest_to_opencast,
             list_devices,
             list_inputs,
             list_kaltura_categories,
             list_kaltura_media,
             list_layouts,
+            list_opencast_events,
+            list_opencast_series,
             list_outputs,
             list_panopto_folders,
             list_panopto_sessions,
             list_publisher_types,
+            list_qsys_components,
+            list_youtube_broadcasts,
             pause_event,
             predict_storage_full,
+            qsys_get_pearl_status,
+            qsys_start_recording,
+            qsys_stop_recording,
+            qsys_switch_layout,
             rename_publisher,
             resume_event,
             schedule_kaltura_event,
+            schedule_opencast_capture,
             set_output_source,
             single_touch_start,
             single_touch_stop,
@@ -354,6 +438,27 @@ class TestToolsInitImports:
             upload_to_kaltura,
             schedule_kaltura_event,
             get_kaltura_upload_status,
+            # Opencast CMS integration tools
+            list_opencast_series,
+            get_opencast_series,
+            create_opencast_series,
+            list_opencast_events,
+            get_opencast_event,
+            ingest_to_opencast,
+            get_opencast_ingest_status,
+            schedule_opencast_capture,
+            delete_opencast_event,
+            # Q-SYS AV control integration tools
+            list_qsys_components,
+            qsys_get_pearl_status,
+            qsys_start_recording,
+            qsys_stop_recording,
+            qsys_switch_layout,
+            # YouTube Live streaming integration tools
+            create_youtube_broadcast,
+            get_youtube_broadcast_status,
+            list_youtube_broadcasts,
+            end_youtube_broadcast,
         ]
         for tool in all_tools:
             assert callable(tool)
@@ -363,11 +468,14 @@ class TestMCPToolRegistration:
     """Tests for MCP tool registration."""
 
     def test_all_tools_registered(self):
-        """Test that all 64 MCP tools are registered (46 Pearl + 9 Panopto + 9 Kaltura)."""
+        """Test that all 82 MCP tools are registered.
+
+        46 Pearl core + 9 Panopto + 9 Kaltura + 9 Opencast + 5 Q-SYS + 4 YouTube = 82
+        """
         from epiphan_mcp.server import mcp
 
         tools = list(mcp._tool_manager._tools.keys())
-        assert len(tools) == 64, f"Expected 64 tools, got {len(tools)}: {tools}"
+        assert len(tools) == 82, f"Expected 82 tools, got {len(tools)}: {tools}"
 
     def test_expected_tools_registered(self):
         """Test that all expected tools are registered with MCP."""
@@ -452,6 +560,27 @@ class TestMCPToolRegistration:
             "upload_to_kaltura",
             "schedule_kaltura_event",
             "get_kaltura_upload_status",
+            # Opencast CMS integration tools
+            "list_opencast_series",
+            "get_opencast_series",
+            "create_opencast_series",
+            "list_opencast_events",
+            "get_opencast_event",
+            "ingest_to_opencast",
+            "get_opencast_ingest_status",
+            "schedule_opencast_capture",
+            "delete_opencast_event",
+            # Q-SYS AV control integration tools
+            "list_qsys_components",
+            "qsys_get_pearl_status",
+            "qsys_start_recording",
+            "qsys_stop_recording",
+            "qsys_switch_layout",
+            # YouTube Live streaming integration tools
+            "create_youtube_broadcast",
+            "get_youtube_broadcast_status",
+            "list_youtube_broadcasts",
+            "end_youtube_broadcast",
         ]
 
         tools = list(mcp._tool_manager._tools.keys())
@@ -459,7 +588,10 @@ class TestMCPToolRegistration:
             assert expected in tools, f"Missing tool: {expected}"
 
     def test_tool_count_unchanged(self):
-        """Test that the tool count is exactly 64 (46 Pearl + 9 Panopto + 9 Kaltura)."""
+        """Test that the tool count is exactly 82.
+
+        46 Pearl core + 9 Panopto + 9 Kaltura + 9 Opencast + 5 Q-SYS + 4 YouTube = 82
+        """
         from epiphan_mcp.server import mcp
 
         expected_tools = [
@@ -531,10 +663,31 @@ class TestMCPToolRegistration:
             "upload_to_kaltura",
             "schedule_kaltura_event",
             "get_kaltura_upload_status",
+            # Opencast CMS integration tools
+            "list_opencast_series",
+            "get_opencast_series",
+            "create_opencast_series",
+            "list_opencast_events",
+            "get_opencast_event",
+            "ingest_to_opencast",
+            "get_opencast_ingest_status",
+            "schedule_opencast_capture",
+            "delete_opencast_event",
+            # Q-SYS AV control integration tools
+            "list_qsys_components",
+            "qsys_get_pearl_status",
+            "qsys_start_recording",
+            "qsys_stop_recording",
+            "qsys_switch_layout",
+            # YouTube Live streaming integration tools
+            "create_youtube_broadcast",
+            "get_youtube_broadcast_status",
+            "list_youtube_broadcasts",
+            "end_youtube_broadcast",
         ]
 
         tools = list(mcp._tool_manager._tools.keys())
-        # Total: 46 Pearl tools + 9 Panopto CMS tools + 9 Kaltura CMS tools = 64
+        # Total: 46 Pearl + 9 Panopto + 9 Kaltura + 9 Opencast + 5 Q-SYS + 4 YouTube = 82
         assert len(tools) == len(expected_tools), (
             f"Tool count mismatch: expected {len(expected_tools)}, got {len(tools)}"
         )

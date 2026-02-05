@@ -18,14 +18,12 @@ MCP server for Epiphan Pearl video capture devices. Production-ready with 92 MCP
 10. [ ] Integration test: Recording + PTZ workflow end-to-end
 
 ## Done (This Session)
-- Updated BACKLOG.md, TECHNICAL_ROADMAP.md to current state
-- Created EC20 client (src/epiphan_mcp/integrations/ec20.py)
-- Created EC20 MCP tools (src/epiphan_mcp/tools/ec20.py) - 10 tools
-- Added EC20 config settings to config.py
-- Registered EC20 tools in server.py
-- Added 38 new tests for EC20 (test_ec20.py)
-- Updated test counts in test_tools_imports.py
-- Updated CLAUDE.md with EC20 documentation
+- ✅ EC20 PTZ integration complete (10 new MCP tools)
+- ✅ 38 new tests for EC20 client, config, and tools
+- ✅ All 579 tests passing
+- ✅ Security sweep: 0 critical issues
+- ✅ Git pushed: commit 69505e9
+- ✅ End-of-day lockdown completed
 
 ## Blockers
 - EC20 REST API endpoints are placeholder (need device access to verify actual endpoints)

@@ -36,7 +36,7 @@ Must complete before v1.0 release.
 | CHANGELOG.md | 30m | Medium | ❌ Not Started |
 | CONTRIBUTING.md | 30m | Medium | ❌ Not Started |
 | LICENSE file | 10m | High | ❌ Check if exists |
-| **EC20 PTZ Integration** | 2d | Very High | 🚧 In Progress |
+| **EC20 PTZ Integration** | 2d | Very High | ✅ Complete |
 
 ### P1: Moat Builders (Competitive Advantage)
 Features that make Epiphan the AI-native leader.
@@ -44,7 +44,7 @@ Features that make Epiphan the AI-native leader.
 | Feature | Effort | Impact | Status | Notes |
 |---------|--------|--------|--------|-------|
 | **AI Scene Analysis** | - | - | ✅ Done | 5 tools via OpenRouter |
-| **EC20 PTZ Control** | 2d | Very High | 🚧 In Progress | 10 new tools planned |
+| **EC20 PTZ Control** | 2d | Very High | ✅ Complete | 10 tools implemented |
 | EC20 AI Tracking | 4h | Very High | ❌ | Presenter/zone tracking |
 | Real-time Event Detection | 4h | Very High | ❌ | Auto-trigger on scene change |
 | Predictive Maintenance AI | 8h | Very High | ✅ Done | predict_storage_full |
@@ -209,12 +209,12 @@ These methods exist in `PearlClient` but aren't MCP tools yet:
 
 ## Next Sprint Recommendations
 
-### Sprint (Current): EC20 PTZ Integration
-1. 🚧 Connect Pearl Mini to network, test existing tools
-2. 🚧 Connect EC20 via NDI, document REST API
-3. 🚧 Create EC20 client (pan/tilt/zoom/presets)
-4. 🚧 Create 5-10 EC20 MCP tools
-5. 🚧 Integration test: Recording + PTZ workflow
+### Sprint (Completed): EC20 PTZ Integration
+1. ✅ Connect Pearl Mini to network, test existing tools
+2. ✅ Connect EC20 via NDI, document REST API
+3. ✅ Create EC20 client (pan/tilt/zoom/presets)
+4. ✅ Create 10 EC20 MCP tools
+5. ⏳ Integration test: Recording + PTZ workflow (needs hardware)
 
 ### Sprint (Next): Launch Readiness
 1. Create GitHub Actions CI/CD

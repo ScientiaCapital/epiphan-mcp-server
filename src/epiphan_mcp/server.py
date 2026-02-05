@@ -154,6 +154,38 @@ from .tools.youtube import (
 from .tools.youtube import (
     list_youtube_broadcasts as _list_youtube_broadcasts,
 )
+
+# EC20 PTZ camera control tools
+from .tools.ec20 import (
+    ec20_disable_tracking as _ec20_disable_tracking,
+)
+from .tools.ec20 import (
+    ec20_enable_tracking as _ec20_enable_tracking,
+)
+from .tools.ec20 import (
+    ec20_get_preview as _ec20_get_preview,
+)
+from .tools.ec20 import (
+    ec20_get_status as _ec20_get_status,
+)
+from .tools.ec20 import (
+    ec20_goto_preset as _ec20_goto_preset,
+)
+from .tools.ec20 import (
+    ec20_home as _ec20_home,
+)
+from .tools.ec20 import (
+    ec20_list_presets as _ec20_list_presets,
+)
+from .tools.ec20 import (
+    ec20_pan_tilt as _ec20_pan_tilt,
+)
+from .tools.ec20 import (
+    ec20_save_preset as _ec20_save_preset,
+)
+from .tools.ec20 import (
+    ec20_zoom as _ec20_zoom,
+)
 from .tools.layout import (
     add_bookmark as _add_bookmark,
 )
@@ -2734,3 +2766,206 @@ async def end_youtube_broadcast(broadcast_id: str) -> dict[str, Any]:
         Confirmation of broadcast completion.
     """
     return await _end_youtube_broadcast(broadcast_id=broadcast_id)
+
+
+# ============================================================
+# EC20 PTZ Camera Control Tools
+# ============================================================
+
+
+@mcp.tool()
+async def ec20_get_status(camera_id: str = "default") -> dict[str, Any]:
+    """
+    Get EC20 PTZ camera status including position and tracking state.
+
+    Returns camera model, firmware, current PTZ position, and AI tracking status.
+
+    Args:
+        camera_id: EC20 camera identifier. Can be:
+            - "default" - first configured EC20 camera
+            - IP address or hostname - used directly
+            - Index like "0", "1" - nth configured camera
+
+    Returns:
+        Camera status including model, firmware, PTZ position, tracking mode.
+
+    Requires EC20_DEVICES environment variable to be set.
+    """
+    return await _ec20_get_status(camera_id=camera_id)
+
+
+@mcp.tool()
+async def ec20_pan_tilt(
+    camera_id: str = "default",
+    pan: float = 0.0,
+    tilt: float = 0.0,
+    speed: int = 50,
+) -> dict[str, Any]:
+    """
+    Move EC20 camera to absolute pan/tilt position.
+
+    Pan range is -162.5 to +162.5 degrees. Tilt range is typically -30 to +90 degrees.
+    Speed controls movement velocity (1-100, higher is faster).
+
+    Args:
+        camera_id: EC20 camera identifier.
+        pan: Pan position in degrees (-162.5 to +162.5).
+        tilt: Tilt position in degrees (-30 to +90 typical).
+        speed: Movement speed (1-100, default 50).
+
+    Returns:
+        Confirmation with new pan/tilt positions.
+    """
+    return await _ec20_pan_tilt(camera_id=camera_id, pan=pan, tilt=tilt, speed=speed)
+
+
+@mcp.tool()
+async def ec20_zoom(
+    camera_id: str = "default",
+    level: int = 1,
+) -> dict[str, Any]:
+    """
+    Set EC20 camera zoom level.
+
+    EC20 supports 20x optical zoom (levels 1-20) and 16x digital zoom (levels 21-36).
+    For best quality, prefer optical zoom (1-20).
+
+    Args:
+        camera_id: EC20 camera identifier.
+        level: Zoom level (1-36: 1-20 optical, 21-36 digital).
+
+    Returns:
+        Confirmation with new zoom level.
+    """
+    return await _ec20_zoom(camera_id=camera_id, level=level)
+
+
+@mcp.tool()
+async def ec20_goto_preset(
+    camera_id: str = "default",
+    preset_id: int = 1,
+) -> dict[str, Any]:
+    """
+    Move EC20 camera to a saved preset position.
+
+    Presets store pan, tilt, and zoom positions for quick recall.
+    Use ec20_list_presets to see available presets.
+
+    Args:
+        camera_id: EC20 camera identifier.
+        preset_id: ID of preset to recall (1-255).
+
+    Returns:
+        Confirmation of preset recall.
+    """
+    return await _ec20_goto_preset(camera_id=camera_id, preset_id=preset_id)
+
+
+@mcp.tool()
+async def ec20_save_preset(
+    camera_id: str = "default",
+    preset_id: int = 1,
+    name: str = "",
+) -> dict[str, Any]:
+    """
+    Save current EC20 camera position as a preset.
+
+    Stores the current pan, tilt, and zoom position for later recall.
+
+    Args:
+        camera_id: EC20 camera identifier.
+        preset_id: ID for the preset (1-255).
+        name: Friendly name for the preset (e.g., "Podium", "Whiteboard").
+
+    Returns:
+        Confirmation with preset ID and name.
+    """
+    return await _ec20_save_preset(camera_id=camera_id, preset_id=preset_id, name=name)
+
+
+@mcp.tool()
+async def ec20_home(camera_id: str = "default") -> dict[str, Any]:
+    """
+    Return EC20 camera to home position.
+
+    Home position is typically pan=0, tilt=0, zoom=1 (centered, wide view).
+
+    Args:
+        camera_id: EC20 camera identifier.
+
+    Returns:
+        Confirmation of home position.
+    """
+    return await _ec20_home(camera_id=camera_id)
+
+
+@mcp.tool()
+async def ec20_enable_tracking(
+    camera_id: str = "default",
+    mode: str = "presenter",
+) -> dict[str, Any]:
+    """
+    Enable AI tracking on EC20 camera.
+
+    EC20 uses AI to automatically follow subjects:
+    - "presenter": Tracks a single person presenting
+    - "zone": Tracks activity within defined zones
+    - "body": Full body tracking mode
+
+    Args:
+        camera_id: EC20 camera identifier.
+        mode: Tracking mode - "presenter", "zone", or "body".
+
+    Returns:
+        Confirmation with tracking mode enabled.
+    """
+    return await _ec20_enable_tracking(camera_id=camera_id, mode=mode)
+
+
+@mcp.tool()
+async def ec20_disable_tracking(camera_id: str = "default") -> dict[str, Any]:
+    """
+    Disable AI tracking on EC20 camera.
+
+    Returns camera to manual PTZ control mode.
+
+    Args:
+        camera_id: EC20 camera identifier.
+
+    Returns:
+        Confirmation of tracking disabled.
+    """
+    return await _ec20_disable_tracking(camera_id=camera_id)
+
+
+@mcp.tool()
+async def ec20_list_presets(camera_id: str = "default") -> dict[str, Any]:
+    """
+    List all saved presets on EC20 camera.
+
+    Returns preset ID, name, and stored PTZ positions for each preset.
+
+    Args:
+        camera_id: EC20 camera identifier.
+
+    Returns:
+        List of presets with id, name, pan, tilt, zoom values.
+    """
+    return await _ec20_list_presets(camera_id=camera_id)
+
+
+@mcp.tool()
+async def ec20_get_preview(camera_id: str = "default") -> dict[str, Any]:
+    """
+    Get preview image from EC20 camera.
+
+    Returns a base64-encoded JPEG image of the current camera view.
+    Useful for verifying camera position without starting a recording.
+
+    Args:
+        camera_id: EC20 camera identifier.
+
+    Returns:
+        Dict with base64-encoded JPEG image and content type.
+    """
+    return await _ec20_get_preview(camera_id=camera_id)

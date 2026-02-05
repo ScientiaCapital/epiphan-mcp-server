@@ -468,14 +468,14 @@ class TestMCPToolRegistration:
     """Tests for MCP tool registration."""
 
     def test_all_tools_registered(self):
-        """Test that all 82 MCP tools are registered.
+        """Test that all 92 MCP tools are registered.
 
-        46 Pearl core + 9 Panopto + 9 Kaltura + 9 Opencast + 5 Q-SYS + 4 YouTube = 82
+        46 Pearl core + 9 Panopto + 9 Kaltura + 9 Opencast + 5 Q-SYS + 4 YouTube + 10 EC20 = 92
         """
         from epiphan_mcp.server import mcp
 
         tools = list(mcp._tool_manager._tools.keys())
-        assert len(tools) == 82, f"Expected 82 tools, got {len(tools)}: {tools}"
+        assert len(tools) == 92, f"Expected 92 tools, got {len(tools)}: {tools}"
 
     def test_expected_tools_registered(self):
         """Test that all expected tools are registered with MCP."""
@@ -581,6 +581,17 @@ class TestMCPToolRegistration:
             "get_youtube_broadcast_status",
             "list_youtube_broadcasts",
             "end_youtube_broadcast",
+            # EC20 PTZ camera control tools
+            "ec20_get_status",
+            "ec20_pan_tilt",
+            "ec20_zoom",
+            "ec20_goto_preset",
+            "ec20_save_preset",
+            "ec20_home",
+            "ec20_enable_tracking",
+            "ec20_disable_tracking",
+            "ec20_list_presets",
+            "ec20_get_preview",
         ]
 
         tools = list(mcp._tool_manager._tools.keys())
@@ -588,9 +599,9 @@ class TestMCPToolRegistration:
             assert expected in tools, f"Missing tool: {expected}"
 
     def test_tool_count_unchanged(self):
-        """Test that the tool count is exactly 82.
+        """Test that the tool count is exactly 92.
 
-        46 Pearl core + 9 Panopto + 9 Kaltura + 9 Opencast + 5 Q-SYS + 4 YouTube = 82
+        46 Pearl core + 9 Panopto + 9 Kaltura + 9 Opencast + 5 Q-SYS + 4 YouTube + 10 EC20 = 92
         """
         from epiphan_mcp.server import mcp
 
@@ -684,10 +695,21 @@ class TestMCPToolRegistration:
             "get_youtube_broadcast_status",
             "list_youtube_broadcasts",
             "end_youtube_broadcast",
+            # EC20 PTZ camera control tools
+            "ec20_get_status",
+            "ec20_pan_tilt",
+            "ec20_zoom",
+            "ec20_goto_preset",
+            "ec20_save_preset",
+            "ec20_home",
+            "ec20_enable_tracking",
+            "ec20_disable_tracking",
+            "ec20_list_presets",
+            "ec20_get_preview",
         ]
 
         tools = list(mcp._tool_manager._tools.keys())
-        # Total: 46 Pearl + 9 Panopto + 9 Kaltura + 9 Opencast + 5 Q-SYS + 4 YouTube = 82
+        # Total: 46 Pearl + 9 Panopto + 9 Kaltura + 9 Opencast + 5 Q-SYS + 4 YouTube + 10 EC20 = 92
         assert len(tools) == len(expected_tools), (
             f"Tool count mismatch: expected {len(expected_tools)}, got {len(tools)}"
         )

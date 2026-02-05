@@ -1,7 +1,7 @@
 # Epiphan MCP Server - Feature Backlog
 
-**Last Updated**: 2026-01-27
-**Status**: Active Development
+**Last Updated**: 2026-02-05
+**Status**: Production Ready + EC20 Integration Complete
 
 ---
 
@@ -10,14 +10,16 @@
 | Phase | Status | Tools | Notes |
 |-------|--------|-------|-------|
 | Phase 1: MVP | ✅ Complete | 5 | Device, recording control |
-| Phase 2: Streaming & Layout | ✅ Complete | 9 | +6 publisher CRUD tools |
+| Phase 2: Streaming & Layout | ✅ Complete | 15 | +6 publisher CRUD tools |
 | Phase 3: Fleet Management | ✅ Complete | 6 | Parallel ops, health reports |
 | Phase 4: AI Analysis | ✅ Complete | 9 | **MOAT BUILDER** + fleet intelligence |
-| Phase 4.2: CMS Integration | ✅ Complete | 6 | Events + schedule tools |
+| Phase 4.2: CMS Integration | ✅ Complete | 27 | Panopto (9) + Kaltura (9) + Opencast (9) |
 | Phase 4.3: Input/Output Mgmt | ✅ Complete | 5 | Network inputs, output routing |
+| Phase 4.4: AV Control | ✅ Complete | 9 | Q-SYS (5) + YouTube (4) |
 | Phase 5: Security Hardening | ✅ Complete | - | Audit logging, concurrency limits |
+| **Phase 6: EC20 PTZ** | ✅ Complete | 10 | PTZ camera control |
 
-**Total MCP Tools: 46** (exceeds original ~30 target)
+**Total MCP Tools: 92**
 
 ---
 
@@ -29,11 +31,12 @@ Must complete before v1.0 release.
 | Feature | Effort | Impact | Status |
 |---------|--------|--------|--------|
 | GitHub Actions CI/CD | 2h | High | ❌ Not Started |
-| Create git tag v0.4.0 | 15m | High | ❌ Not Started |
+| Create git tag v1.0.0 | 15m | High | ❌ Not Started |
 | PyPI package publishing | 1h | High | ❌ Not Started |
 | CHANGELOG.md | 30m | Medium | ❌ Not Started |
 | CONTRIBUTING.md | 30m | Medium | ❌ Not Started |
 | LICENSE file | 10m | High | ❌ Check if exists |
+| **EC20 PTZ Integration** | 2d | Very High | 🚧 In Progress |
 
 ### P1: Moat Builders (Competitive Advantage)
 Features that make Epiphan the AI-native leader.
@@ -41,8 +44,10 @@ Features that make Epiphan the AI-native leader.
 | Feature | Effort | Impact | Status | Notes |
 |---------|--------|--------|--------|-------|
 | **AI Scene Analysis** | - | - | ✅ Done | 5 tools via OpenRouter |
+| **EC20 PTZ Control** | 2d | Very High | 🚧 In Progress | 10 new tools planned |
+| EC20 AI Tracking | 4h | Very High | ❌ | Presenter/zone tracking |
 | Real-time Event Detection | 4h | Very High | ❌ | Auto-trigger on scene change |
-| Predictive Maintenance AI | 8h | Very High | ❌ | Predict failures from trends |
+| Predictive Maintenance AI | 8h | Very High | ✅ Done | predict_storage_full |
 | Smart Recording Suggestions | 4h | High | ❌ | AI suggests optimal settings |
 | Voice Control Integration | 4h | High | ❌ | "Start recording Room 201" |
 | Anomaly Detection | 6h | High | ❌ | Detect camera/audio issues |
@@ -79,16 +84,18 @@ Complete the planned feature set.
 | `stop_scheduled_event` | 30m | ❌ | `stop_event` exists |
 | `get_afu_status` | 30m | ❌ | Client method exists |
 
-### P3: CMS Integrations (Enterprise Value)
+### P3: CMS Integrations (Enterprise Value) - ✅ COMPLETE
 These drive enterprise sales.
 
 | Feature | Effort | Impact | Status |
 |---------|--------|--------|--------|
-| Kaltura Upload | 8h | High | ❌ |
-| Panopto Upload | 8h | High | ❌ |
-| Opencast Upload | 6h | Medium | ❌ |
-| Upload Progress Tracking | 4h | Medium | ❌ |
-| Auto-upload on Recording Stop | 4h | High | ❌ |
+| Kaltura Upload | 8h | High | ✅ Done (9 tools) |
+| Panopto Upload | 8h | High | ✅ Done (9 tools) |
+| Opencast Upload | 6h | Medium | ✅ Done (9 tools) |
+| Q-SYS AV Control | 4h | High | ✅ Done (5 tools) |
+| YouTube Live | 4h | High | ✅ Done (4 tools) |
+| Upload Progress Tracking | 4h | Medium | ✅ Done |
+| Auto-upload on Recording Stop | 4h | High | ❌ Future |
 
 ### P4: Advanced Automation
 | Feature | Effort | Impact | Status |
@@ -202,21 +209,23 @@ These methods exist in `PearlClient` but aren't MCP tools yet:
 
 ## Next Sprint Recommendations
 
-### Sprint 1: Launch Readiness (This Week)
-1. ✅ Update README with AI tools (DONE)
-2. Create GitHub Actions CI/CD
-3. Create v0.4.0 release tag
-4. Set up PyPI publishing
+### Sprint (Current): EC20 PTZ Integration
+1. 🚧 Connect Pearl Mini to network, test existing tools
+2. 🚧 Connect EC20 via NDI, document REST API
+3. 🚧 Create EC20 client (pan/tilt/zoom/presets)
+4. 🚧 Create 5-10 EC20 MCP tools
+5. 🚧 Integration test: Recording + PTZ workflow
 
-### Sprint 2: Feature Polish (Next Week)
-1. Expose unexposed client methods (P2 items)
-2. Add `list_layouts`, `get_stream_status`
-3. Add `single_touch_start/stop` tools
+### Sprint (Next): Launch Readiness
+1. Create GitHub Actions CI/CD
+2. Create v1.0.0 release tag
+3. Set up PyPI publishing
+4. Demo video: Pearl Mini + EC20 AI workflow
 
-### Sprint 3: Moat Building (Week 3)
-1. Real-time event detection
-2. Predictive maintenance prototype
-3. Demo video creation
+### Sprint (Future): Advanced EC20
+1. EC20 AI tracking (presenter mode, zone detection)
+2. Multi-EC20 support for classrooms
+3. Layout switching based on EC20 presets
 
 ---
 

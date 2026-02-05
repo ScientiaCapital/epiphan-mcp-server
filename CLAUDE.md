@@ -39,7 +39,7 @@ epiphan-mcp-server/
 │   └── epiphan_mcp/
 │       ├── __init__.py
 │       ├── __main__.py       # Entry point
-│       ├── server.py         # FastMCP server (82 MCP tools)
+│       ├── server.py         # FastMCP server (92 MCP tools)
 │       ├── client.py         # Pearl REST API v2.0 client
 │       ├── models.py         # Pydantic models
 │       ├── config.py         # Configuration (pydantic-settings)
@@ -48,11 +48,12 @@ epiphan-mcp-server/
 │       │   ├── kaltura.py    # Kaltura CMS (appToken)
 │       │   ├── opencast.py   # Opencast CMS (REST + Dublin Core)
 │       │   ├── qsys.py       # Q-SYS Core (JSON-RPC over TCP)
-│       │   └── youtube.py    # YouTube Live (OAuth2)
+│       │   ├── youtube.py    # YouTube Live (OAuth2)
+│       │   └── ec20.py       # EC20 PTZ camera (REST API)
 │       └── tools/            # MCP tool implementations
 ├── tests/
 │   ├── conftest.py
-│   ├── test_*.py             # 541 tests
+│   ├── test_*.py             # 579 tests
 ├── docs/
 │   ├── PRD.md               # Product Requirements + GTM
 │   └── PRP.md               # Project Plan
@@ -255,6 +256,39 @@ async def pause_event(device_id: str, event_id: str) -> dict: ...
 async def resume_event(device_id: str, event_id: str) -> dict: ...
 ```
 
+### EC20 PTZ Camera Control (NEW - 2026-02-05)
+```python
+@mcp.tool()
+async def ec20_get_status(camera_id: str) -> dict: ...
+
+@mcp.tool()
+async def ec20_pan_tilt(camera_id: str, pan: float, tilt: float, speed: int) -> dict: ...
+
+@mcp.tool()
+async def ec20_zoom(camera_id: str, level: int) -> dict: ...
+
+@mcp.tool()
+async def ec20_goto_preset(camera_id: str, preset_id: int) -> dict: ...
+
+@mcp.tool()
+async def ec20_save_preset(camera_id: str, preset_id: int, name: str) -> dict: ...
+
+@mcp.tool()
+async def ec20_home(camera_id: str) -> dict: ...
+
+@mcp.tool()
+async def ec20_enable_tracking(camera_id: str, mode: str) -> dict: ...
+
+@mcp.tool()
+async def ec20_disable_tracking(camera_id: str) -> dict: ...
+
+@mcp.tool()
+async def ec20_list_presets(camera_id: str) -> dict: ...
+
+@mcp.tool()
+async def ec20_get_preview(camera_id: str) -> dict: ...
+```
+
 ---
 
 ## Development Commands
@@ -318,6 +352,13 @@ PEARL_FLEET_NAME=classroom-pearls
 
 # Testing
 PEARL_TEST_IP=192.168.1.100
+
+# EC20 PTZ Camera (NEW - 2026-02-05)
+EC20_DEVICES=192.168.1.50,192.168.1.51  # Comma-separated
+EC20_USERNAME=admin
+EC20_PASSWORD=your_ec20_password
+EC20_USE_HTTPS=false
+EC20_TIMEOUT=30.0
 ```
 
 ---
@@ -394,3 +435,10 @@ chore: Changes to build process or auxiliary tools
 - [x] **82 total MCP tools** (was 64)
 - [x] 7 total integrations (Pearl + Panopto + Kaltura + Opencast + Q-SYS + YouTube)
 - [x] 541 tests passing
+
+### v1.3 (EC20 PTZ Camera Integration - 2026-02-05)
+- [x] EC20 PTZ camera REST API client
+- [x] EC20 MCP tools (10 tools): pan/tilt, zoom, presets, AI tracking
+- [x] **92 total MCP tools** (was 82)
+- [x] 8 total integrations (Pearl + Panopto + Kaltura + Opencast + Q-SYS + YouTube + EC20)
+- [x] 579 tests passing

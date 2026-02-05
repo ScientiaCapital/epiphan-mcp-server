@@ -38,6 +38,56 @@ class Settings(BaseSettings):
     # Testing
     test_ip: str | None = Field(default=None, description="Pearl IP for integration tests")
 
+    # EC20 PTZ Camera settings
+    ec20_devices: str = Field(
+        default="",
+        description="Comma-separated list of EC20 camera IPs/hostnames",
+    )
+    ec20_username: str = Field(default="admin", description="EC20 camera username")
+    ec20_password: str = Field(default="", description="EC20 camera password")
+    ec20_use_https: bool = Field(default=False, description="Use HTTPS for EC20 connections")
+    ec20_timeout: float = Field(default=30.0, description="EC20 request timeout in seconds")
+
+    def get_ec20_device_list(self) -> list[str]:
+        """Get list of configured EC20 camera hosts."""
+        if not self.ec20_devices:
+            return []
+        return [d.strip() for d in self.ec20_devices.split(",") if d.strip()]
+
+    def get_ec20_host(self, device_id: str = "default") -> str:
+        """Get host for an EC20 device ID.
+
+        Args:
+            device_id: Device identifier. Can be:
+                - "default" - first configured EC20 camera
+                - IP address or hostname - used directly
+                - Index like "0", "1" - nth configured camera
+
+        Returns:
+            EC20 hostname or IP.
+
+        Raises:
+            ValueError: If device_id cannot be resolved.
+        """
+        devices = self.get_ec20_device_list()
+
+        if device_id == "default":
+            if not devices:
+                raise ValueError(
+                    "No default EC20 camera configured. Set EC20_DEVICES environment variable."
+                )
+            return devices[0]
+
+        # Check if it's an index
+        if device_id.isdigit():
+            idx = int(device_id)
+            if idx < len(devices):
+                return devices[idx]
+            raise ValueError(f"EC20 index {idx} out of range. Have {len(devices)} cameras.")
+
+        # Assume it's a direct hostname/IP
+        return device_id
+
     # Health thresholds
     storage_warning_percent: float = Field(
         default=80.0,

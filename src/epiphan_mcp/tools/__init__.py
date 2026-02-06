@@ -93,6 +93,20 @@ from .streaming import (
     stop_stream,
 )
 from .system import get_system_info, reboot_device, shutdown_device
+from .cloud import (
+    cloud_apply_preset,
+    cloud_batch_command,
+    cloud_delete_device,
+    cloud_get_device,
+    cloud_get_preview,
+    cloud_get_settings,
+    cloud_get_user,
+    cloud_list_devices,
+    cloud_pair_device,
+    cloud_rename_device,
+    cloud_run_command,
+    cloud_unpair_device,
+)
 from .youtube import (
     create_youtube_broadcast,
     end_youtube_broadcast,
@@ -204,4 +218,17 @@ __all__ = [
     "get_youtube_broadcast_status",
     "list_youtube_broadcasts",
     "end_youtube_broadcast",
+    # Epiphan Cloud fleet management tools
+    "cloud_get_user",
+    "cloud_list_devices",
+    "cloud_get_device",
+    "cloud_pair_device",
+    "cloud_unpair_device",
+    "cloud_delete_device",
+    "cloud_rename_device",
+    "cloud_run_command",
+    "cloud_batch_command",
+    "cloud_get_settings",
+    "cloud_get_preview",
+    "cloud_apply_preset",
 ]

@@ -39,7 +39,7 @@ epiphan-mcp-server/
 │   └── epiphan_mcp/
 │       ├── __init__.py
 │       ├── __main__.py       # Entry point
-│       ├── server.py         # FastMCP server (101 MCP tools)
+│       ├── server.py         # FastMCP server (113 MCP tools)
 │       ├── client.py         # Pearl REST API v2.0 client
 │       ├── models.py         # Pydantic models
 │       ├── config.py         # Configuration (pydantic-settings)
@@ -49,7 +49,8 @@ epiphan-mcp-server/
 │       │   ├── opencast.py   # Opencast CMS (REST + Dublin Core)
 │       │   ├── qsys.py       # Q-SYS Core (JSON-RPC over TCP)
 │       │   ├── youtube.py    # YouTube Live (OAuth2)
-│       │   └── ec20.py       # EC20 PTZ camera (REST API)
+│       │   ├── ec20.py       # EC20 PTZ camera (REST API)
+│       │   └── cloud.py      # Epiphan Cloud (Bearer token, fleet mgmt)
 │       └── tools/            # MCP tool implementations
 ├── tests/
 │   ├── conftest.py
@@ -451,3 +452,14 @@ chore: Changes to build process or auxiliary tools
 - [x] System info: `get_system_info` (hardware, firmware, uptime, storage, CPU, temp)
 - [x] **101 total MCP tools** (was 92)
 - [x] 618 tests passing
+
+### v1.5 (Epiphan Cloud Fleet Management - 2026-02-05)
+- [x] Epiphan Cloud REST API v2 client (Bearer token auth, async httpx)
+- [x] 12 Cloud MCP tools: fleet management via go.epiphan.cloud
+  - Device management: list, get, pair, unpair, delete, rename
+  - Commands: run single device task, batch task across fleet
+  - Configuration: get settings, apply cloud/local presets
+  - Monitoring: get device preview, get user profile
+- [x] **113 total MCP tools** (was 101)
+- [x] 9 total integrations (Pearl + Panopto + Kaltura + Opencast + Q-SYS + YouTube + EC20 + Cloud)
+- [x] 674 tests passing

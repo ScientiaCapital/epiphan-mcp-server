@@ -468,14 +468,14 @@ class TestMCPToolRegistration:
     """Tests for MCP tool registration."""
 
     def test_all_tools_registered(self):
-        """Test that all 101 MCP tools are registered.
+        """Test that all 113 MCP tools are registered.
 
-        55 Pearl core + 9 Panopto + 9 Kaltura + 9 Opencast + 5 Q-SYS + 4 YouTube + 10 EC20 = 101
+        55 Pearl core + 9 Panopto + 9 Kaltura + 9 Opencast + 5 Q-SYS + 4 YouTube + 10 EC20 + 12 Cloud = 113
         """
         from epiphan_mcp.server import mcp
 
         tools = list(mcp._tool_manager._tools.keys())
-        assert len(tools) == 101, f"Expected 101 tools, got {len(tools)}: {tools}"
+        assert len(tools) == 113, f"Expected 113 tools, got {len(tools)}: {tools}"
 
     def test_expected_tools_registered(self):
         """Test that all expected tools are registered with MCP."""
@@ -602,6 +602,19 @@ class TestMCPToolRegistration:
             "reboot_device",
             "shutdown_device",
             "get_system_info",
+            # Epiphan Cloud fleet management tools
+            "cloud_get_user",
+            "cloud_list_devices",
+            "cloud_get_device",
+            "cloud_pair_device",
+            "cloud_unpair_device",
+            "cloud_delete_device",
+            "cloud_rename_device",
+            "cloud_run_command",
+            "cloud_batch_command",
+            "cloud_get_settings",
+            "cloud_get_preview",
+            "cloud_apply_preset",
         ]
 
         tools = list(mcp._tool_manager._tools.keys())
@@ -609,9 +622,9 @@ class TestMCPToolRegistration:
             assert expected in tools, f"Missing tool: {expected}"
 
     def test_tool_count_unchanged(self):
-        """Test that the tool count is exactly 101.
+        """Test that the tool count is exactly 113.
 
-        55 Pearl core + 9 Panopto + 9 Kaltura + 9 Opencast + 5 Q-SYS + 4 YouTube + 10 EC20 = 101
+        55 Pearl core + 9 Panopto + 9 Kaltura + 9 Opencast + 5 Q-SYS + 4 YouTube + 10 EC20 + 12 Cloud = 113
         """
         from epiphan_mcp.server import mcp
 
@@ -726,10 +739,23 @@ class TestMCPToolRegistration:
             "reboot_device",
             "shutdown_device",
             "get_system_info",
+            # Epiphan Cloud fleet management tools
+            "cloud_get_user",
+            "cloud_list_devices",
+            "cloud_get_device",
+            "cloud_pair_device",
+            "cloud_unpair_device",
+            "cloud_delete_device",
+            "cloud_rename_device",
+            "cloud_run_command",
+            "cloud_batch_command",
+            "cloud_get_settings",
+            "cloud_get_preview",
+            "cloud_apply_preset",
         ]
 
         tools = list(mcp._tool_manager._tools.keys())
-        # Total: 55 Pearl + 9 Panopto + 9 Kaltura + 9 Opencast + 5 Q-SYS + 4 YouTube + 10 EC20 = 101
+        # Total: 55 Pearl + 9 Panopto + 9 Kaltura + 9 Opencast + 5 Q-SYS + 4 YouTube + 10 EC20 + 12 Cloud = 113
         assert len(tools) == len(expected_tools), (
             f"Tool count mismatch: expected {len(expected_tools)}, got {len(tools)}"
         )

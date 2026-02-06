@@ -321,6 +321,44 @@ from .tools.youtube import (
     list_youtube_broadcasts as _list_youtube_broadcasts,
 )
 
+# Epiphan Cloud fleet management tools
+from .tools.cloud import (
+    cloud_apply_preset as _cloud_apply_preset,
+)
+from .tools.cloud import (
+    cloud_batch_command as _cloud_batch_command,
+)
+from .tools.cloud import (
+    cloud_delete_device as _cloud_delete_device,
+)
+from .tools.cloud import (
+    cloud_get_device as _cloud_get_device,
+)
+from .tools.cloud import (
+    cloud_get_preview as _cloud_get_preview,
+)
+from .tools.cloud import (
+    cloud_get_settings as _cloud_get_settings,
+)
+from .tools.cloud import (
+    cloud_get_user as _cloud_get_user,
+)
+from .tools.cloud import (
+    cloud_list_devices as _cloud_list_devices,
+)
+from .tools.cloud import (
+    cloud_pair_device as _cloud_pair_device,
+)
+from .tools.cloud import (
+    cloud_rename_device as _cloud_rename_device,
+)
+from .tools.cloud import (
+    cloud_run_command as _cloud_run_command,
+)
+from .tools.cloud import (
+    cloud_unpair_device as _cloud_unpair_device,
+)
+
 logger = logging.getLogger(__name__)
 
 # Create MCP server instance
@@ -3214,3 +3252,245 @@ async def get_system_info(device_id: str = "default") -> dict[str, Any]:
         - cpu_usage, memory_usage, temperature
     """
     return await _get_system_info(device_id=device_id)
+
+
+# =============================================================================
+# Epiphan Cloud Fleet Management Tools
+# =============================================================================
+
+
+@mcp.tool()
+async def cloud_get_user() -> dict[str, Any]:
+    """
+    Get the current Epiphan Cloud user profile.
+
+    Returns account information for the authenticated API token,
+    including user ID, email, and organization details.
+
+    Requires EPIPHAN_CLOUD_TOKEN environment variable.
+    """
+    return await _cloud_get_user()
+
+
+@mcp.tool()
+async def cloud_list_devices() -> dict[str, Any]:
+    """
+    List all devices paired to your Epiphan Cloud account.
+
+    Shows device names, IDs, online/offline status, and firmware versions
+    for all Pearl devices managed through go.epiphan.cloud.
+
+    Returns:
+        Dict with devices list and count.
+
+    Requires EPIPHAN_CLOUD_TOKEN environment variable.
+    """
+    return await _cloud_list_devices()
+
+
+@mcp.tool()
+async def cloud_get_device(device_id: str) -> dict[str, Any]:
+    """
+    Get details of a specific cloud-managed Epiphan device.
+
+    Returns comprehensive device information including telemetry data,
+    connection status, firmware version, and current activity.
+
+    Args:
+        device_id: Device identifier from Epiphan Cloud.
+
+    Returns:
+        Device details including telemetry and status.
+
+    Requires EPIPHAN_CLOUD_TOKEN environment variable.
+    """
+    return await _cloud_get_device(device_id=device_id)
+
+
+@mcp.tool()
+async def cloud_pair_device(pairing_code: str, name: str) -> dict[str, Any]:
+    """
+    Pair a new device to your Epiphan Cloud account.
+
+    The pairing code is displayed on the device's screen or web UI.
+    Once paired, the device can be managed remotely through the cloud.
+
+    Args:
+        pairing_code: Pairing code displayed on the device.
+        name: Friendly name for the device (e.g., "Pearl Room 101").
+
+    Returns:
+        Newly paired device details.
+
+    Requires EPIPHAN_CLOUD_TOKEN environment variable.
+    """
+    return await _cloud_pair_device(pairing_code=pairing_code, name=name)
+
+
+@mcp.tool()
+async def cloud_unpair_device(device_id: str) -> dict[str, Any]:
+    """
+    Unpair a device from your Epiphan Cloud account.
+
+    The device will remain functional locally but will no longer be
+    manageable via the cloud platform.
+
+    Args:
+        device_id: Device identifier.
+
+    Returns:
+        Confirmation of unpairing.
+
+    Requires EPIPHAN_CLOUD_TOKEN environment variable.
+    """
+    return await _cloud_unpair_device(device_id=device_id)
+
+
+@mcp.tool()
+async def cloud_delete_device(device_id: str) -> dict[str, Any]:
+    """
+    Delete a device from your Epiphan Cloud account.
+
+    This permanently removes the device record from the cloud platform.
+    The device must be unpaired first or this will also unpair it.
+
+    Args:
+        device_id: Device identifier.
+
+    Returns:
+        Confirmation of deletion.
+
+    Requires EPIPHAN_CLOUD_TOKEN environment variable.
+    """
+    return await _cloud_delete_device(device_id=device_id)
+
+
+@mcp.tool()
+async def cloud_rename_device(device_id: str, new_name: str) -> dict[str, Any]:
+    """
+    Rename a cloud-managed Epiphan device.
+
+    Updates the device's friendly name in the cloud platform.
+
+    Args:
+        device_id: Device identifier.
+        new_name: New friendly name for the device.
+
+    Returns:
+        Confirmation of rename.
+
+    Requires EPIPHAN_CLOUD_TOKEN environment variable.
+    """
+    return await _cloud_rename_device(device_id=device_id, new_name=new_name)
+
+
+@mcp.tool()
+async def cloud_run_command(device_id: str, command: str) -> dict[str, Any]:
+    """
+    Run a command on a cloud-managed Epiphan device.
+
+    Sends a task command to a single device through the cloud platform.
+    Common commands:
+    - "recording.start" / "recording.stop"
+    - "rtmp.start:{url}" / "rtmp.stop"
+    - "setprop:{name}={value}"
+
+    Args:
+        device_id: Device identifier.
+        command: Command string to execute (e.g., "recording.start").
+
+    Returns:
+        Command execution result.
+
+    Requires EPIPHAN_CLOUD_TOKEN environment variable.
+    """
+    return await _cloud_run_command(device_id=device_id, command=command)
+
+
+@mcp.tool()
+async def cloud_batch_command(device_ids: str, command: str) -> dict[str, Any]:
+    """
+    Run a command on multiple cloud-managed Epiphan devices simultaneously.
+
+    Sends the same task command to multiple devices in one API call.
+    Useful for fleet-wide operations like starting/stopping recording
+    across all lecture halls.
+
+    Args:
+        device_ids: Comma-separated device identifiers (e.g., "d1,d2,d3").
+        command: Command string to execute on all devices.
+
+    Returns:
+        Batch execution result with per-device status.
+
+    Requires EPIPHAN_CLOUD_TOKEN environment variable.
+    """
+    return await _cloud_batch_command(device_ids=device_ids, command=command)
+
+
+@mcp.tool()
+async def cloud_get_settings(device_id: str) -> dict[str, Any]:
+    """
+    Get all settings for a cloud-managed Epiphan device.
+
+    Returns the complete device configuration including video encoding,
+    audio settings, network configuration, and streaming parameters.
+
+    Args:
+        device_id: Device identifier.
+
+    Returns:
+        Device settings object with all configuration parameters.
+
+    Requires EPIPHAN_CLOUD_TOKEN environment variable.
+    """
+    return await _cloud_get_settings(device_id=device_id)
+
+
+@mcp.tool()
+async def cloud_get_preview(device_id: str) -> dict[str, Any]:
+    """
+    Get a preview image from a cloud-managed Epiphan device.
+
+    Returns the current video preview as a base64-encoded JPEG image.
+    Useful for verifying the camera feed or checking device status visually.
+
+    Args:
+        device_id: Device identifier.
+
+    Returns:
+        Dict with base64-encoded image, content type, and size.
+
+    Requires EPIPHAN_CLOUD_TOKEN environment variable.
+    """
+    return await _cloud_get_preview(device_id=device_id)
+
+
+@mcp.tool()
+async def cloud_apply_preset(
+    device_id: str,
+    preset_name: str,
+    preset_type: str = "cloud",
+) -> dict[str, Any]:
+    """
+    Apply a preset to a cloud-managed Epiphan device.
+
+    Presets configure the device's encoding, layout, and streaming
+    settings in one operation. Cloud presets are managed centrally
+    while local presets are stored on the device.
+
+    Args:
+        device_id: Device identifier.
+        preset_name: Name of the preset to apply.
+        preset_type: Preset source - "cloud" or "local" (default: "cloud").
+
+    Returns:
+        Preset application result.
+
+    Requires EPIPHAN_CLOUD_TOKEN environment variable.
+    """
+    return await _cloud_apply_preset(
+        device_id=device_id,
+        preset_name=preset_name,
+        preset_type=preset_type,
+    )

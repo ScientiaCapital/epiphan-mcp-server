@@ -1,0 +1,473 @@
+"""Epiphan Cloud integration MCP tools.
+
+These tools enable AI assistants to manage Epiphan devices via the
+Epiphan Cloud platform (go.epiphan.cloud) for fleet-wide operations
+including device pairing, remote commands, and preset management.
+
+Environment Variables Required:
+    EPIPHAN_CLOUD_TOKEN: Bearer token for Cloud API
+    EPIPHAN_CLOUD_HOST: Cloud host (optional, defaults to go.epiphan.cloud)
+"""
+
+import base64
+import os
+
+from epiphan_mcp.integrations.cloud import (
+    EpiphanCloudAPIError,
+    EpiphanCloudAuthError,
+    EpiphanCloudClient,
+)
+
+
+def _get_cloud_config() -> dict[str, str]:
+    """Get Cloud configuration from environment."""
+    token = os.environ.get("EPIPHAN_CLOUD_TOKEN")
+    if not token:
+        raise ValueError(
+            "Missing Cloud configuration. Set EPIPHAN_CLOUD_TOKEN environment variable."
+        )
+    return {
+        "token": token,
+        "host": os.environ.get("EPIPHAN_CLOUD_HOST", "go.epiphan.cloud"),
+    }
+
+
+async def cloud_get_user() -> dict:
+    """Get current Epiphan Cloud user profile.
+
+    Returns account information for the authenticated API token.
+
+    Returns:
+        Dict with user profile
+
+    Example:
+        "Who am I on Epiphan Cloud?"
+        "Show my Epiphan Cloud account"
+    """
+    try:
+        config = _get_cloud_config()
+    except ValueError as e:
+        return {"error": str(e)}
+
+    try:
+        async with EpiphanCloudClient(**config) as client:
+            user = await client.get_current_user()
+            return {"user": user}
+    except EpiphanCloudAuthError as e:
+        return {"error": f"Authentication failed: {e}"}
+    except EpiphanCloudAPIError as e:
+        return {"error": f"API error: {e}"}
+
+
+async def cloud_list_devices() -> dict:
+    """List all devices paired to your Epiphan Cloud account.
+
+    Shows device names, IDs, online status, and firmware versions.
+
+    Returns:
+        Dict with devices list and count
+
+    Example:
+        "List all cloud devices"
+        "Show my Epiphan fleet"
+    """
+    try:
+        config = _get_cloud_config()
+    except ValueError as e:
+        return {"error": str(e), "devices": []}
+
+    try:
+        async with EpiphanCloudClient(**config) as client:
+            devices = await client.list_devices()
+            return {"devices": devices, "count": len(devices)}
+    except EpiphanCloudAuthError as e:
+        return {"error": f"Authentication failed: {e}", "devices": []}
+    except EpiphanCloudAPIError as e:
+        return {"error": f"API error: {e}", "devices": []}
+
+
+async def cloud_get_device(device_id: str) -> dict:
+    """Get details of a specific cloud-managed device.
+
+    Args:
+        device_id: Device identifier from Epiphan Cloud
+
+    Returns:
+        Device details including telemetry and status
+
+    Example:
+        "Get details of cloud device d1"
+        "Show telemetry for Pearl Mini d1"
+    """
+    if not device_id:
+        return {"error": "device_id is required"}
+
+    try:
+        config = _get_cloud_config()
+    except ValueError as e:
+        return {"error": str(e)}
+
+    try:
+        async with EpiphanCloudClient(**config) as client:
+            device = await client.get_device(device_id)
+            return {"device": device}
+    except EpiphanCloudAuthError as e:
+        return {"error": f"Authentication failed: {e}"}
+    except EpiphanCloudAPIError as e:
+        return {"error": f"API error: {e}"}
+
+
+async def cloud_pair_device(pairing_code: str, name: str) -> dict:
+    """Pair a new device to your Epiphan Cloud account.
+
+    The pairing code is displayed on the device's screen or web UI.
+
+    Args:
+        pairing_code: Pairing code from the device
+        name: Friendly name for the device
+
+    Returns:
+        Newly paired device details
+
+    Example:
+        "Pair device with code ABC123 as 'Pearl Room 101'"
+    """
+    if not pairing_code:
+        return {"error": "pairing_code is required"}
+    if not name:
+        return {"error": "name is required"}
+
+    try:
+        config = _get_cloud_config()
+    except ValueError as e:
+        return {"error": str(e)}
+
+    try:
+        async with EpiphanCloudClient(**config) as client:
+            device = await client.pair_device(pairing_code=pairing_code, name=name)
+            return {"device": device, "message": f"Paired device '{name}'"}
+    except EpiphanCloudAuthError as e:
+        return {"error": f"Authentication failed: {e}"}
+    except EpiphanCloudAPIError as e:
+        return {"error": f"API error: {e}"}
+
+
+async def cloud_unpair_device(device_id: str) -> dict:
+    """Unpair a device from your Epiphan Cloud account.
+
+    The device will remain functional but no longer manageable via cloud.
+
+    Args:
+        device_id: Device identifier
+
+    Returns:
+        Confirmation of unpairing
+
+    Example:
+        "Unpair device d1 from cloud"
+    """
+    if not device_id:
+        return {"error": "device_id is required"}
+
+    try:
+        config = _get_cloud_config()
+    except ValueError as e:
+        return {"error": str(e)}
+
+    try:
+        async with EpiphanCloudClient(**config) as client:
+            await client.unpair_device(device_id)
+            return {"message": f"Unpaired device {device_id}", "success": True}
+    except EpiphanCloudAuthError as e:
+        return {"error": f"Authentication failed: {e}"}
+    except EpiphanCloudAPIError as e:
+        return {"error": f"API error: {e}"}
+
+
+async def cloud_delete_device(device_id: str) -> dict:
+    """Delete a device from your Epiphan Cloud account.
+
+    This permanently removes the device record from cloud.
+
+    Args:
+        device_id: Device identifier
+
+    Returns:
+        Confirmation of deletion
+
+    Example:
+        "Delete device d1 from cloud"
+    """
+    if not device_id:
+        return {"error": "device_id is required"}
+
+    try:
+        config = _get_cloud_config()
+    except ValueError as e:
+        return {"error": str(e)}
+
+    try:
+        async with EpiphanCloudClient(**config) as client:
+            await client.delete_device(device_id)
+            return {"message": f"Deleted device {device_id}", "success": True}
+    except EpiphanCloudAuthError as e:
+        return {"error": f"Authentication failed: {e}"}
+    except EpiphanCloudAPIError as e:
+        return {"error": f"API error: {e}"}
+
+
+async def cloud_rename_device(device_id: str, new_name: str) -> dict:
+    """Rename a cloud-managed device.
+
+    Args:
+        device_id: Device identifier
+        new_name: New friendly name for the device
+
+    Returns:
+        Confirmation of rename
+
+    Example:
+        "Rename device d1 to 'Pearl Room 202'"
+    """
+    if not device_id:
+        return {"error": "device_id is required"}
+    if not new_name:
+        return {"error": "new_name is required"}
+
+    try:
+        config = _get_cloud_config()
+    except ValueError as e:
+        return {"error": str(e)}
+
+    try:
+        async with EpiphanCloudClient(**config) as client:
+            await client.rename_device(device_id, new_name)
+            return {
+                "message": f"Renamed device {device_id} to '{new_name}'",
+                "success": True,
+            }
+    except EpiphanCloudAuthError as e:
+        return {"error": f"Authentication failed: {e}"}
+    except EpiphanCloudAPIError as e:
+        return {"error": f"API error: {e}"}
+
+
+async def cloud_run_command(device_id: str, command: str) -> dict:
+    """Run a command on a cloud-managed device.
+
+    Supported commands include:
+    - recording.start / recording.stop
+    - rtmp.start:{url} / rtmp.stop
+    - setprop:{name}={value}
+
+    Args:
+        device_id: Device identifier
+        command: Command string to execute
+
+    Returns:
+        Command execution result
+
+    Example:
+        "Start recording on cloud device d1"
+        "Run 'recording.start' on device d1"
+        "Start RTMP stream on d1 to rtmp://live.example.com/stream"
+    """
+    if not device_id:
+        return {"error": "device_id is required"}
+    if not command:
+        return {"error": "command is required"}
+
+    try:
+        config = _get_cloud_config()
+    except ValueError as e:
+        return {"error": str(e)}
+
+    try:
+        async with EpiphanCloudClient(**config) as client:
+            result = await client.run_task(device_id, command)
+            return {
+                "result": result,
+                "message": f"Executed '{command}' on device {device_id}",
+            }
+    except EpiphanCloudAuthError as e:
+        return {"error": f"Authentication failed: {e}"}
+    except EpiphanCloudAPIError as e:
+        return {"error": f"API error: {e}"}
+
+
+async def cloud_batch_command(device_ids: str, command: str) -> dict:
+    """Run a command on multiple cloud-managed devices simultaneously.
+
+    Args:
+        device_ids: Comma-separated device identifiers (e.g., "d1,d2,d3")
+        command: Command string to execute on all devices
+
+    Returns:
+        Batch execution result
+
+    Example:
+        "Start recording on all devices d1,d2,d3"
+        "Run 'recording.stop' on d1 and d2"
+    """
+    if not device_ids:
+        return {"error": "device_ids is required"}
+    if not command:
+        return {"error": "command is required"}
+
+    ids_list = [d.strip() for d in device_ids.split(",") if d.strip()]
+    if not ids_list:
+        return {"error": "device_ids must contain at least one device ID"}
+
+    try:
+        config = _get_cloud_config()
+    except ValueError as e:
+        return {"error": str(e)}
+
+    try:
+        async with EpiphanCloudClient(**config) as client:
+            result = await client.batch_task(ids_list, command)
+            return {
+                "result": result,
+                "message": f"Executed '{command}' on {len(ids_list)} devices",
+                "device_count": len(ids_list),
+            }
+    except EpiphanCloudAuthError as e:
+        return {"error": f"Authentication failed: {e}"}
+    except EpiphanCloudAPIError as e:
+        return {"error": f"API error: {e}"}
+
+
+async def cloud_get_settings(device_id: str) -> dict:
+    """Get all settings for a cloud-managed device.
+
+    Args:
+        device_id: Device identifier
+
+    Returns:
+        Device settings including video, audio, and network configuration
+
+    Example:
+        "Show settings for cloud device d1"
+    """
+    if not device_id:
+        return {"error": "device_id is required"}
+
+    try:
+        config = _get_cloud_config()
+    except ValueError as e:
+        return {"error": str(e)}
+
+    try:
+        async with EpiphanCloudClient(**config) as client:
+            settings = await client.get_device_settings(device_id)
+            return {"settings": settings, "device_id": device_id}
+    except EpiphanCloudAuthError as e:
+        return {"error": f"Authentication failed: {e}"}
+    except EpiphanCloudAPIError as e:
+        return {"error": f"API error: {e}"}
+
+
+async def cloud_get_preview(device_id: str) -> dict:
+    """Get a preview image from a cloud-managed device.
+
+    Returns the current video preview as a base64-encoded image.
+
+    Args:
+        device_id: Device identifier
+
+    Returns:
+        Base64-encoded preview image and content type
+
+    Example:
+        "Show preview from cloud device d1"
+        "Get a screenshot of device d1"
+    """
+    if not device_id:
+        return {"error": "device_id is required"}
+
+    try:
+        config = _get_cloud_config()
+    except ValueError as e:
+        return {"error": str(e)}
+
+    try:
+        async with EpiphanCloudClient(**config) as client:
+            preview_bytes = await client.get_device_preview(device_id)
+            encoded = base64.b64encode(preview_bytes).decode("utf-8")
+            return {
+                "image_base64": encoded,
+                "content_type": "image/jpeg",
+                "size_bytes": len(preview_bytes),
+                "device_id": device_id,
+            }
+    except EpiphanCloudAuthError as e:
+        return {"error": f"Authentication failed: {e}"}
+    except EpiphanCloudAPIError as e:
+        return {"error": f"API error: {e}"}
+
+
+async def cloud_apply_preset(
+    device_id: str,
+    preset_name: str,
+    preset_type: str = "cloud",
+) -> dict:
+    """Apply a preset to a cloud-managed device.
+
+    Presets configure the device's encoding, layout, and streaming settings.
+
+    Args:
+        device_id: Device identifier
+        preset_name: Name of the preset to apply
+        preset_type: Preset type - "cloud" or "local" (default: cloud)
+
+    Returns:
+        Preset application result
+
+    Example:
+        "Apply 'HD Recording' preset to device d1"
+        "Set device d1 to the 'Lecture Capture' cloud preset"
+    """
+    if not device_id:
+        return {"error": "device_id is required"}
+    if not preset_name:
+        return {"error": "preset_name is required"}
+    if preset_type not in ("cloud", "local"):
+        return {"error": f"preset_type must be 'cloud' or 'local', got '{preset_type}'"}
+
+    try:
+        config = _get_cloud_config()
+    except ValueError as e:
+        return {"error": str(e)}
+
+    try:
+        async with EpiphanCloudClient(**config) as client:
+            result = await client.apply_preset(
+                device_id=device_id,
+                preset_data={"name": preset_name},
+                preset_type=preset_type,
+            )
+            return {
+                "result": result,
+                "message": f"Applied {preset_type} preset '{preset_name}' to device {device_id}",
+            }
+    except EpiphanCloudAuthError as e:
+        return {"error": f"Authentication failed: {e}"}
+    except EpiphanCloudAPIError as e:
+        return {"error": f"API error: {e}"}
+
+
+# Tool registry for MCP server registration
+CLOUD_TOOLS = [
+    cloud_get_user,
+    cloud_list_devices,
+    cloud_get_device,
+    cloud_pair_device,
+    cloud_unpair_device,
+    cloud_delete_device,
+    cloud_rename_device,
+    cloud_run_command,
+    cloud_batch_command,
+    cloud_get_settings,
+    cloud_get_preview,
+    cloud_apply_preset,
+]

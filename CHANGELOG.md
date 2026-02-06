@@ -5,6 +5,50 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.10.0] - 2026-02-05
+
+### Added
+
+- **Pearl Discovery & System Tools** (9 new tools)
+  - `list_recorders`: Discover available recorders on a device
+  - `list_archive_files`: Browse recorded files with pagination
+  - `list_channels`: List all video processing pipelines
+  - `list_publishers`: List stream destinations on a channel
+  - `get_channel_preview`: Live preview snapshot from channel (base64)
+  - `get_input_preview`: Live preview from input source (base64)
+  - `reboot_device`: Reboot with `confirm=True` safety gate
+  - `shutdown_device`: Shutdown with `confirm=True` safety gate
+  - `get_system_info`: Hardware model, firmware, uptime, storage, CPU, temperature
+
+### Changed
+
+- Total MCP tools: 92 → 101 (+9)
+- Tests: 579 → 618 (+39)
+
+## [0.9.0] - 2026-02-05
+
+### Added
+
+- **EC20 PTZ Camera Integration** (10 new tools)
+  - `ec20_get_status`: Camera status, PTZ position, tracking state
+  - `ec20_pan_tilt`: Absolute pan/tilt positioning
+  - `ec20_zoom`: Zoom level control (1-36: optical + digital)
+  - `ec20_goto_preset`: Recall saved camera preset
+  - `ec20_save_preset`: Save current position as preset
+  - `ec20_home`: Return to home position
+  - `ec20_enable_tracking`: Enable AI tracking (presenter/zone/body)
+  - `ec20_disable_tracking`: Disable AI tracking
+  - `ec20_list_presets`: List all saved presets
+  - `ec20_get_preview`: Get preview image (base64)
+  - REST API client for EC20 camera
+  - Environment config: `EC20_DEVICES`, `EC20_USERNAME`, `EC20_PASSWORD`
+
+### Changed
+
+- Total MCP tools: 82 → 92 (+10)
+- Total integrations: 7 → 8 (added EC20)
+- Tests: 541 → 579 (+38)
+
 ## [0.8.0] - 2026-01-28
 
 ### Added

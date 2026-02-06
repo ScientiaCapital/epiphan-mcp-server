@@ -3,11 +3,17 @@
 Tests the tools/recording.py module with mocked HTTP responses.
 """
 
+from unittest.mock import AsyncMock, patch
+
+import pytest
 from httpx import ConnectError, Response, TimeoutException
 
 from epiphan_mcp.config import Settings
+from epiphan_mcp.models import RecorderInfo
 from epiphan_mcp.tools.recording import (
     get_recording_status,
+    list_archive_files,
+    list_recorders,
     start_recording,
     stop_recording,
 )
@@ -15,6 +21,7 @@ from epiphan_mcp.tools.recording import (
 from .conftest import patch_settings
 from .fixtures.responses import (
     ALREADY_RECORDING_RESPONSE,
+    ARCHIVE_FILES_RESPONSE,
     CONTROL_SUCCESS_RESPONSE,
     RECORDER_STATUS_RECORDING,
     RECORDER_STATUS_STOPPED,
@@ -397,3 +404,195 @@ class TestRecordingEdgeCases:
 
         assert result["success"] is True
         assert result["device"] == mock_pearl_host_secondary
+
+
+# ============================================================
+# list_recorders Tests
+# ============================================================
+
+
+class TestListRecorders:
+    """Tests for list_recorders tool function."""
+
+    @pytest.mark.asyncio
+    async def test_list_recorders_success(self):
+        """Test successful listing of recorders."""
+        mock_client = AsyncMock()
+        mock_client.host = "192.168.1.100"
+        mock_client.get_recorders = AsyncMock(
+            return_value=[
+                RecorderInfo(
+                    id="recorder-1",
+                    name="Channel 1 Recorder",
+                    type="mp4",
+                    channel_id="channel-1",
+                ),
+                RecorderInfo(
+                    id="recorder-2",
+                    name="Channel 2 Recorder",
+                    type="mp4",
+                    channel_id="channel-2",
+                ),
+            ]
+        )
+
+        with patch(
+            "epiphan_mcp.tools.recording.get_client",
+            return_value=AsyncMock(__aenter__=AsyncMock(return_value=mock_client)),
+        ):
+            result = await list_recorders(device_id="default")
+
+        assert result["success"] is True
+        assert result["device"] == "192.168.1.100"
+        assert result["total_recorders"] == 2
+        assert len(result["recorders"]) == 2
+        assert result["recorders"][0]["id"] == "recorder-1"
+
+    @pytest.mark.asyncio
+    async def test_list_recorders_empty(self):
+        """Test listing recorders on device with none configured."""
+        mock_client = AsyncMock()
+        mock_client.host = "192.168.1.100"
+        mock_client.get_recorders = AsyncMock(return_value=[])
+
+        with patch(
+            "epiphan_mcp.tools.recording.get_client",
+            return_value=AsyncMock(__aenter__=AsyncMock(return_value=mock_client)),
+        ):
+            result = await list_recorders(device_id="default")
+
+        assert result["success"] is True
+        assert result["total_recorders"] == 0
+        assert result["recorders"] == []
+
+    @pytest.mark.asyncio
+    async def test_list_recorders_connection_error(self):
+        """Test listing recorders with connection error."""
+        from epiphan_mcp.client import PearlAPIError
+
+        with patch(
+            "epiphan_mcp.tools.recording.get_client",
+            return_value=AsyncMock(
+                __aenter__=AsyncMock(side_effect=PearlAPIError("Connection refused"))
+            ),
+        ):
+            result = await list_recorders(device_id="default")
+
+        assert result["success"] is False
+        assert "error" in result
+
+    @pytest.mark.asyncio
+    async def test_list_recorders_invalid_device(self):
+        """Test listing recorders with no configured devices."""
+        with patch(
+            "epiphan_mcp.tools.recording.get_client",
+            side_effect=ValueError("No default device configured"),
+        ):
+            result = await list_recorders(device_id="default")
+
+        assert result["success"] is False
+        assert "No default device configured" in result["error"]
+
+
+# ============================================================
+# list_archive_files Tests
+# ============================================================
+
+
+class TestListArchiveFiles:
+    """Tests for list_archive_files tool function."""
+
+    @pytest.mark.asyncio
+    async def test_list_archive_files_success(self):
+        """Test successful listing of recorded files."""
+        mock_files = ARCHIVE_FILES_RESPONSE["result"]
+        mock_client = AsyncMock()
+        mock_client.host = "192.168.1.100"
+        mock_client.get_archive_files = AsyncMock(return_value=mock_files)
+
+        with patch(
+            "epiphan_mcp.tools.recording.get_client",
+            return_value=AsyncMock(__aenter__=AsyncMock(return_value=mock_client)),
+        ):
+            result = await list_archive_files(device_id="default", recorder=1)
+
+        assert result["success"] is True
+        assert result["device"] == "192.168.1.100"
+        assert result["recorder"] == "recorder-1"
+        assert result["total_files"] == len(mock_files)
+        assert len(result["files"]) == len(mock_files)
+        mock_client.get_archive_files.assert_called_once_with(
+            "recorder-1", from_index=None, limit=None
+        )
+
+    @pytest.mark.asyncio
+    async def test_list_archive_files_with_pagination(self):
+        """Test listing archive files with custom pagination."""
+        mock_client = AsyncMock()
+        mock_client.host = "192.168.1.100"
+        mock_client.get_archive_files = AsyncMock(return_value=[])
+
+        with patch(
+            "epiphan_mcp.tools.recording.get_client",
+            return_value=AsyncMock(__aenter__=AsyncMock(return_value=mock_client)),
+        ):
+            result = await list_archive_files(
+                device_id="default", recorder=1, from_index=10, limit=25
+            )
+
+        assert result["success"] is True
+        mock_client.get_archive_files.assert_called_once_with(
+            "recorder-1", from_index=10, limit=25
+        )
+
+    @pytest.mark.asyncio
+    async def test_list_archive_files_empty(self):
+        """Test listing when no files exist."""
+        mock_client = AsyncMock()
+        mock_client.host = "192.168.1.100"
+        mock_client.get_archive_files = AsyncMock(return_value=[])
+
+        with patch(
+            "epiphan_mcp.tools.recording.get_client",
+            return_value=AsyncMock(__aenter__=AsyncMock(return_value=mock_client)),
+        ):
+            result = await list_archive_files(device_id="default", recorder=1)
+
+        assert result["success"] is True
+        assert result["total_files"] == 0
+        assert result["files"] == []
+
+    @pytest.mark.asyncio
+    async def test_list_archive_files_connection_error(self):
+        """Test listing files with connection error."""
+        from epiphan_mcp.client import PearlAPIError
+
+        with patch(
+            "epiphan_mcp.tools.recording.get_client",
+            return_value=AsyncMock(
+                __aenter__=AsyncMock(side_effect=PearlAPIError("Connection refused"))
+            ),
+        ):
+            result = await list_archive_files(device_id="default", recorder=1)
+
+        assert result["success"] is False
+        assert "error" in result
+
+    @pytest.mark.asyncio
+    async def test_list_archive_files_recorder_2(self):
+        """Test listing files for recorder 2."""
+        mock_client = AsyncMock()
+        mock_client.host = "192.168.1.100"
+        mock_client.get_archive_files = AsyncMock(return_value=[])
+
+        with patch(
+            "epiphan_mcp.tools.recording.get_client",
+            return_value=AsyncMock(__aenter__=AsyncMock(return_value=mock_client)),
+        ):
+            result = await list_archive_files(device_id="default", recorder=2)
+
+        assert result["success"] is True
+        assert result["recorder"] == "recorder-2"
+        mock_client.get_archive_files.assert_called_once_with(
+            "recorder-2", from_index=None, limit=None
+        )

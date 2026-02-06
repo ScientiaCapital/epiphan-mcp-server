@@ -4,6 +4,7 @@ This module provides tools for managing network inputs (SRT, RTSP, NDI)
 and hardware outputs (HDMI, SDI) on Pearl devices.
 """
 
+import base64
 import logging
 from typing import Any
 
@@ -273,6 +274,68 @@ async def set_output_source(
             "error": str(e),
             "device": device_id,
             "output_id": output_id,
+        }
+    except ValueError as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "device": device_id,
+        }
+
+
+async def get_input_preview(
+    device_id: str = "default",
+    input_id: str = "",
+    resolution: str | None = None,
+    format: str = "jpg",
+) -> dict[str, Any]:
+    """
+    Get a live preview image from an input source.
+
+    Captures a snapshot of an input source (HDMI, SDI, SRT, etc.) as a
+    JPEG or PNG image. The image is returned as a base64-encoded string.
+
+    Args:
+        device_id: Device identifier. Use "default" for the primary configured device.
+        input_id: Input source ID (e.g., "hdmi-1", "sdi-1", "srt-1").
+        resolution: Optional resolution (e.g., "1920x1080", "640x360").
+        format: Image format - "jpg" (default) or "png".
+
+    Returns:
+        Preview image as base64-encoded string with format and resolution metadata.
+    """
+    if not input_id:
+        return {
+            "success": False,
+            "error": "Input ID is required",
+            "device": device_id,
+        }
+
+    try:
+        async with get_client(device_id) as client:
+            image_bytes = await client.get_input_preview(
+                input_id,
+                resolution=resolution,
+                format=format,
+            )
+            preview_b64 = base64.b64encode(image_bytes).decode("ascii")
+            result: dict[str, Any] = {
+                "success": True,
+                "device": client.host,
+                "input_id": input_id,
+                "format": format,
+                "preview_base64": preview_b64,
+                "size_bytes": len(image_bytes),
+            }
+            if resolution:
+                result["resolution"] = resolution
+            return result
+    except PearlAPIError as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "device": device_id,
+            "input_id": input_id,
         }
     except ValueError as e:
         return {

@@ -39,7 +39,7 @@ epiphan-mcp-server/
 │   └── epiphan_mcp/
 │       ├── __init__.py
 │       ├── __main__.py       # Entry point
-│       ├── server.py         # FastMCP server (92 MCP tools)
+│       ├── server.py         # FastMCP server (101 MCP tools)
 │       ├── client.py         # Pearl REST API v2.0 client
 │       ├── models.py         # Pydantic models
 │       ├── config.py         # Configuration (pydantic-settings)
@@ -53,7 +53,7 @@ epiphan-mcp-server/
 │       └── tools/            # MCP tool implementations
 ├── tests/
 │   ├── conftest.py
-│   ├── test_*.py             # 579 tests
+│   ├── test_*.py             # 618 tests
 ├── docs/
 │   ├── PRD.md               # Product Requirements + GTM
 │   └── PRP.md               # Project Plan
@@ -442,3 +442,12 @@ chore: Changes to build process or auxiliary tools
 - [x] **92 total MCP tools** (was 82)
 - [x] 8 total integrations (Pearl + Panopto + Kaltura + Opencast + Q-SYS + YouTube + EC20)
 - [x] 579 tests passing
+
+### v1.4 (Pearl Discovery & System Tools - 2026-02-05)
+- [x] Expose missing Pearl client methods as MCP tools (9 new tools)
+- [x] Discovery: `list_recorders`, `list_archive_files`, `list_channels`, `list_publishers`
+- [x] Previews: `get_channel_preview`, `get_input_preview` (base64-encoded images)
+- [x] System control: `reboot_device`, `shutdown_device` (with `confirm=True` safety gate)
+- [x] System info: `get_system_info` (hardware, firmware, uptime, storage, CPU, temp)
+- [x] **101 total MCP tools** (was 92)
+- [x] 618 tests passing

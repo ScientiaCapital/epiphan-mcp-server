@@ -1,9 +1,11 @@
 """Tests for input/output management tools."""
 
+import base64
 from unittest.mock import AsyncMock, patch
 
 import pytest
 
+from epiphan_mcp.client import PearlAPIError
 from epiphan_mcp.models import OperationResult
 
 
@@ -278,3 +280,111 @@ class TestSetOutputSource:
 
         assert result["success"] is False
         assert "output id is required" in result["error"].lower()
+
+
+# ============================================================
+# get_input_preview Tests
+# ============================================================
+
+
+class TestGetInputPreview:
+    """Tests for get_input_preview tool function."""
+
+    @pytest.mark.asyncio
+    async def test_get_input_preview_success(self):
+        """Test successful input preview retrieval."""
+        from epiphan_mcp.tools.inputs import get_input_preview
+
+        fake_jpg = b"\xff\xd8\xff\xe0" + b"\x00" * 100  # Fake JPEG header
+        mock_client = AsyncMock()
+        mock_client.host = "192.168.1.100"
+        mock_client.get_input_preview = AsyncMock(return_value=fake_jpg)
+
+        with patch(
+            "epiphan_mcp.tools.inputs.get_client",
+            return_value=AsyncMock(__aenter__=AsyncMock(return_value=mock_client)),
+        ):
+            result = await get_input_preview(
+                device_id="default", input_id="hdmi-1"
+            )
+
+        assert result["success"] is True
+        assert result["device"] == "192.168.1.100"
+        assert result["input_id"] == "hdmi-1"
+        assert result["format"] == "jpg"
+        # Verify base64 encoding
+        assert "preview_base64" in result
+        decoded = base64.b64decode(result["preview_base64"])
+        assert decoded == fake_jpg
+
+    @pytest.mark.asyncio
+    async def test_get_input_preview_png_format(self):
+        """Test preview retrieval in PNG format."""
+        from epiphan_mcp.tools.inputs import get_input_preview
+
+        fake_png = b"\x89PNG" + b"\x00" * 100
+        mock_client = AsyncMock()
+        mock_client.host = "192.168.1.100"
+        mock_client.get_input_preview = AsyncMock(return_value=fake_png)
+
+        with patch(
+            "epiphan_mcp.tools.inputs.get_client",
+            return_value=AsyncMock(__aenter__=AsyncMock(return_value=mock_client)),
+        ):
+            result = await get_input_preview(
+                device_id="default", input_id="hdmi-1", format="png"
+            )
+
+        assert result["success"] is True
+        assert result["format"] == "png"
+
+    @pytest.mark.asyncio
+    async def test_get_input_preview_custom_resolution(self):
+        """Test preview with custom resolution."""
+        from epiphan_mcp.tools.inputs import get_input_preview
+
+        mock_client = AsyncMock()
+        mock_client.host = "192.168.1.100"
+        mock_client.get_input_preview = AsyncMock(return_value=b"\xff\xd8\xff")
+
+        with patch(
+            "epiphan_mcp.tools.inputs.get_client",
+            return_value=AsyncMock(__aenter__=AsyncMock(return_value=mock_client)),
+        ):
+            result = await get_input_preview(
+                device_id="default", input_id="sdi-1", resolution="1920x1080"
+            )
+
+        assert result["success"] is True
+        assert result["resolution"] == "1920x1080"
+        mock_client.get_input_preview.assert_called_once_with(
+            "sdi-1", resolution="1920x1080", format="jpg"
+        )
+
+    @pytest.mark.asyncio
+    async def test_get_input_preview_missing_id(self):
+        """Test preview fails without input_id."""
+        from epiphan_mcp.tools.inputs import get_input_preview
+
+        result = await get_input_preview(
+            device_id="default", input_id=""
+        )
+
+        assert result["success"] is False
+        assert "input" in result["error"].lower()
+
+    @pytest.mark.asyncio
+    async def test_get_input_preview_connection_error(self):
+        """Test preview with connection error."""
+        from epiphan_mcp.tools.inputs import get_input_preview
+
+        with patch(
+            "epiphan_mcp.tools.inputs.get_client",
+            return_value=AsyncMock(
+                __aenter__=AsyncMock(side_effect=PearlAPIError("Connection refused"))
+            ),
+        ):
+            result = await get_input_preview(device_id="default", input_id="hdmi-1")
+
+        assert result["success"] is False
+        assert "error" in result

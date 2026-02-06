@@ -468,14 +468,14 @@ class TestMCPToolRegistration:
     """Tests for MCP tool registration."""
 
     def test_all_tools_registered(self):
-        """Test that all 92 MCP tools are registered.
+        """Test that all 101 MCP tools are registered.
 
-        46 Pearl core + 9 Panopto + 9 Kaltura + 9 Opencast + 5 Q-SYS + 4 YouTube + 10 EC20 = 92
+        55 Pearl core + 9 Panopto + 9 Kaltura + 9 Opencast + 5 Q-SYS + 4 YouTube + 10 EC20 = 101
         """
         from epiphan_mcp.server import mcp
 
         tools = list(mcp._tool_manager._tools.keys())
-        assert len(tools) == 92, f"Expected 92 tools, got {len(tools)}: {tools}"
+        assert len(tools) == 101, f"Expected 101 tools, got {len(tools)}: {tools}"
 
     def test_expected_tools_registered(self):
         """Test that all expected tools are registered with MCP."""
@@ -487,16 +487,22 @@ class TestMCPToolRegistration:
             "list_devices",
             # Storage tools
             "list_inputs",
+            "get_input_preview",
             "get_storage_report",
             "get_afu_status",
             # Recording tools
             "start_recording",
             "stop_recording",
             "get_recording_status",
+            "list_recorders",
+            "list_archive_files",
             # Streaming tools
             "start_stream",
             "stop_stream",
             "get_stream_status",
+            "list_channels",
+            "list_publishers",
+            "get_channel_preview",
             # Layout tools
             "list_layouts",
             "switch_layout",
@@ -592,6 +598,10 @@ class TestMCPToolRegistration:
             "ec20_disable_tracking",
             "ec20_list_presets",
             "ec20_get_preview",
+            # System control tools
+            "reboot_device",
+            "shutdown_device",
+            "get_system_info",
         ]
 
         tools = list(mcp._tool_manager._tools.keys())
@@ -599,9 +609,9 @@ class TestMCPToolRegistration:
             assert expected in tools, f"Missing tool: {expected}"
 
     def test_tool_count_unchanged(self):
-        """Test that the tool count is exactly 92.
+        """Test that the tool count is exactly 101.
 
-        46 Pearl core + 9 Panopto + 9 Kaltura + 9 Opencast + 5 Q-SYS + 4 YouTube + 10 EC20 = 92
+        55 Pearl core + 9 Panopto + 9 Kaltura + 9 Opencast + 5 Q-SYS + 4 YouTube + 10 EC20 = 101
         """
         from epiphan_mcp.server import mcp
 
@@ -609,13 +619,19 @@ class TestMCPToolRegistration:
             "get_device_status",
             "list_devices",
             "list_inputs",
+            "get_input_preview",
             "get_storage_report",
             "start_recording",
             "stop_recording",
             "get_recording_status",
+            "list_recorders",
+            "list_archive_files",
             "start_stream",
             "stop_stream",
             "get_stream_status",
+            "list_channels",
+            "list_publishers",
+            "get_channel_preview",
             "add_bookmark",
             "list_layouts",
             "switch_layout",
@@ -706,10 +722,14 @@ class TestMCPToolRegistration:
             "ec20_disable_tracking",
             "ec20_list_presets",
             "ec20_get_preview",
+            # System control tools
+            "reboot_device",
+            "shutdown_device",
+            "get_system_info",
         ]
 
         tools = list(mcp._tool_manager._tools.keys())
-        # Total: 46 Pearl + 9 Panopto + 9 Kaltura + 9 Opencast + 5 Q-SYS + 4 YouTube + 10 EC20 = 92
+        # Total: 55 Pearl + 9 Panopto + 9 Kaltura + 9 Opencast + 5 Q-SYS + 4 YouTube + 10 EC20 = 101
         assert len(tools) == len(expected_tools), (
             f"Tool count mismatch: expected {len(expected_tools)}, got {len(tools)}"
         )

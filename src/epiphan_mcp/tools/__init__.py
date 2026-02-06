@@ -12,6 +12,7 @@ from .fleet import (
 )
 from .inputs import (
     create_network_input,
+    get_input_preview,
     get_input_settings,
     list_outputs,
     set_output_source,
@@ -29,6 +30,7 @@ from .kaltura import (
     upload_to_kaltura,
 )
 from .layout import add_bookmark, list_layouts, switch_layout
+from .maintenance import get_device_health_score, predict_storage_full
 from .opencast import (
     create_opencast_series,
     delete_opencast_event,
@@ -40,20 +42,6 @@ from .opencast import (
     list_opencast_series,
     schedule_opencast_capture,
 )
-from .qsys import (
-    list_qsys_components,
-    qsys_get_pearl_status,
-    qsys_start_recording,
-    qsys_stop_recording,
-    qsys_switch_layout,
-)
-from .youtube import (
-    create_youtube_broadcast,
-    end_youtube_broadcast,
-    get_youtube_broadcast_status,
-    list_youtube_broadcasts,
-)
-from .maintenance import get_device_health_score, predict_storage_full
 from .panopto import (
     create_panopto_folder,
     create_panopto_session,
@@ -73,7 +61,20 @@ from .publishers import (
     rename_publisher,
     update_publisher_settings,
 )
-from .recording import get_recording_status, start_recording, stop_recording
+from .qsys import (
+    list_qsys_components,
+    qsys_get_pearl_status,
+    qsys_start_recording,
+    qsys_stop_recording,
+    qsys_switch_layout,
+)
+from .recording import (
+    get_recording_status,
+    list_archive_files,
+    list_recorders,
+    start_recording,
+    stop_recording,
+)
 from .schedule import (
     create_scheduled_event,
     get_scheduled_events,
@@ -83,7 +84,21 @@ from .schedule import (
     single_touch_stop,
 )
 from .storage import get_afu_status, get_storage_report, list_inputs
-from .streaming import get_stream_status, start_stream, stop_stream
+from .streaming import (
+    get_channel_preview,
+    get_stream_status,
+    list_channels,
+    list_publishers,
+    start_stream,
+    stop_stream,
+)
+from .system import get_system_info, reboot_device, shutdown_device
+from .youtube import (
+    create_youtube_broadcast,
+    end_youtube_broadcast,
+    get_youtube_broadcast_status,
+    list_youtube_broadcasts,
+)
 
 __all__ = [
     # Device tools
@@ -94,10 +109,15 @@ __all__ = [
     "start_recording",
     "stop_recording",
     "get_recording_status",
+    "list_recorders",
+    "list_archive_files",
     # Streaming tools
     "start_stream",
     "stop_stream",
     "get_stream_status",
+    "list_channels",
+    "list_publishers",
+    "get_channel_preview",
     # Layout tools
     "list_layouts",
     "switch_layout",
@@ -138,6 +158,11 @@ __all__ = [
     "update_input_settings",
     "list_outputs",
     "set_output_source",
+    "get_input_preview",
+    # System control tools
+    "reboot_device",
+    "shutdown_device",
+    "get_system_info",
     # Panopto CMS integration tools
     "list_panopto_folders",
     "get_panopto_folder",

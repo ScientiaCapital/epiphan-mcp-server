@@ -41,6 +41,38 @@ from .tools.device import (
 from .tools.device import (
     list_devices as _list_devices,
 )
+
+# EC20 PTZ camera control tools
+from .tools.ec20 import (
+    ec20_disable_tracking as _ec20_disable_tracking,
+)
+from .tools.ec20 import (
+    ec20_enable_tracking as _ec20_enable_tracking,
+)
+from .tools.ec20 import (
+    ec20_get_preview as _ec20_get_preview,
+)
+from .tools.ec20 import (
+    ec20_get_status as _ec20_get_status,
+)
+from .tools.ec20 import (
+    ec20_goto_preset as _ec20_goto_preset,
+)
+from .tools.ec20 import (
+    ec20_home as _ec20_home,
+)
+from .tools.ec20 import (
+    ec20_list_presets as _ec20_list_presets,
+)
+from .tools.ec20 import (
+    ec20_pan_tilt as _ec20_pan_tilt,
+)
+from .tools.ec20 import (
+    ec20_save_preset as _ec20_save_preset,
+)
+from .tools.ec20 import (
+    ec20_zoom as _ec20_zoom,
+)
 from .tools.fleet import (
     generate_shift_handoff as _generate_shift_handoff,
 )
@@ -52,6 +84,9 @@ from .tools.fleet import (
 )
 from .tools.inputs import (
     create_network_input as _create_network_input,
+)
+from .tools.inputs import (
+    get_input_preview as _get_input_preview,
 )
 from .tools.inputs import (
     get_input_settings as _get_input_settings,
@@ -94,6 +129,21 @@ from .tools.kaltura import (
 from .tools.kaltura import (
     upload_to_kaltura as _upload_to_kaltura,
 )
+from .tools.layout import (
+    add_bookmark as _add_bookmark,
+)
+from .tools.layout import (
+    list_layouts as _list_layouts,
+)
+from .tools.layout import (
+    switch_layout as _switch_layout,
+)
+from .tools.maintenance import (
+    get_device_health_score as _get_device_health_score,
+)
+from .tools.maintenance import (
+    predict_storage_full as _predict_storage_full,
+)
 
 # Opencast CMS integration tools
 from .tools.opencast import (
@@ -122,84 +172,6 @@ from .tools.opencast import (
 )
 from .tools.opencast import (
     schedule_opencast_capture as _schedule_opencast_capture,
-)
-
-# Q-SYS AV control integration tools
-from .tools.qsys import (
-    list_qsys_components as _list_qsys_components,
-)
-from .tools.qsys import (
-    qsys_get_pearl_status as _qsys_get_pearl_status,
-)
-from .tools.qsys import (
-    qsys_start_recording as _qsys_start_recording,
-)
-from .tools.qsys import (
-    qsys_stop_recording as _qsys_stop_recording,
-)
-from .tools.qsys import (
-    qsys_switch_layout as _qsys_switch_layout,
-)
-
-# YouTube Live streaming integration tools
-from .tools.youtube import (
-    create_youtube_broadcast as _create_youtube_broadcast,
-)
-from .tools.youtube import (
-    end_youtube_broadcast as _end_youtube_broadcast,
-)
-from .tools.youtube import (
-    get_youtube_broadcast_status as _get_youtube_broadcast_status,
-)
-from .tools.youtube import (
-    list_youtube_broadcasts as _list_youtube_broadcasts,
-)
-
-# EC20 PTZ camera control tools
-from .tools.ec20 import (
-    ec20_disable_tracking as _ec20_disable_tracking,
-)
-from .tools.ec20 import (
-    ec20_enable_tracking as _ec20_enable_tracking,
-)
-from .tools.ec20 import (
-    ec20_get_preview as _ec20_get_preview,
-)
-from .tools.ec20 import (
-    ec20_get_status as _ec20_get_status,
-)
-from .tools.ec20 import (
-    ec20_goto_preset as _ec20_goto_preset,
-)
-from .tools.ec20 import (
-    ec20_home as _ec20_home,
-)
-from .tools.ec20 import (
-    ec20_list_presets as _ec20_list_presets,
-)
-from .tools.ec20 import (
-    ec20_pan_tilt as _ec20_pan_tilt,
-)
-from .tools.ec20 import (
-    ec20_save_preset as _ec20_save_preset,
-)
-from .tools.ec20 import (
-    ec20_zoom as _ec20_zoom,
-)
-from .tools.layout import (
-    add_bookmark as _add_bookmark,
-)
-from .tools.layout import (
-    list_layouts as _list_layouts,
-)
-from .tools.layout import (
-    switch_layout as _switch_layout,
-)
-from .tools.maintenance import (
-    get_device_health_score as _get_device_health_score,
-)
-from .tools.maintenance import (
-    predict_storage_full as _predict_storage_full,
 )
 
 # Panopto CMS integration tools
@@ -248,8 +220,31 @@ from .tools.publishers import (
 from .tools.publishers import (
     update_publisher_settings as _update_publisher_settings,
 )
+
+# Q-SYS AV control integration tools
+from .tools.qsys import (
+    list_qsys_components as _list_qsys_components,
+)
+from .tools.qsys import (
+    qsys_get_pearl_status as _qsys_get_pearl_status,
+)
+from .tools.qsys import (
+    qsys_start_recording as _qsys_start_recording,
+)
+from .tools.qsys import (
+    qsys_stop_recording as _qsys_stop_recording,
+)
+from .tools.qsys import (
+    qsys_switch_layout as _qsys_switch_layout,
+)
 from .tools.recording import (
     get_recording_status as _get_recording_status,
+)
+from .tools.recording import (
+    list_archive_files as _list_archive_files,
+)
+from .tools.recording import (
+    list_recorders as _list_recorders,
 )
 from .tools.recording import (
     start_recording as _start_recording,
@@ -285,13 +280,45 @@ from .tools.storage import (
     list_inputs as _list_inputs,
 )
 from .tools.streaming import (
+    get_channel_preview as _get_channel_preview,
+)
+from .tools.streaming import (
     get_stream_status as _get_stream_status,
+)
+from .tools.streaming import (
+    list_channels as _list_channels,
+)
+from .tools.streaming import (
+    list_publishers as _list_publishers,
 )
 from .tools.streaming import (
     start_stream as _start_stream,
 )
 from .tools.streaming import (
     stop_stream as _stop_stream,
+)
+from .tools.system import (
+    get_system_info as _get_system_info,
+)
+from .tools.system import (
+    reboot_device as _reboot_device,
+)
+from .tools.system import (
+    shutdown_device as _shutdown_device,
+)
+
+# YouTube Live streaming integration tools
+from .tools.youtube import (
+    create_youtube_broadcast as _create_youtube_broadcast,
+)
+from .tools.youtube import (
+    end_youtube_broadcast as _end_youtube_broadcast,
+)
+from .tools.youtube import (
+    get_youtube_broadcast_status as _get_youtube_broadcast_status,
+)
+from .tools.youtube import (
+    list_youtube_broadcasts as _list_youtube_broadcasts,
 )
 
 logger = logging.getLogger(__name__)
@@ -437,6 +464,34 @@ async def list_inputs(device_id: str = "default") -> dict[str, Any]:
     return await _list_inputs(device_id=device_id)
 
 
+@mcp.tool()
+async def get_input_preview(
+    device_id: str = "default",
+    input_id: str = "hdmi-1",
+    resolution: str | None = None,
+    format: str = "jpg",
+) -> dict[str, Any]:
+    """
+    Get a live preview image from a specific input source.
+
+    Captures a snapshot of an input (HDMI, SDI, network stream, etc.) before
+    it reaches a channel. Useful for checking input signal quality and framing.
+
+    Args:
+        device_id: Device identifier. Use "default" for the primary configured device.
+        input_id: Input source ID (e.g., "hdmi-1", "sdi-1", "network-1").
+        resolution: Optional resolution (e.g., "1920x1080", "640x360").
+                    If not specified, uses the input's native resolution.
+        format: Image format - "jpg" (default) or "png".
+
+    Returns:
+        Preview image as base64-encoded string with format and input metadata.
+    """
+    return await _get_input_preview(
+        device_id=device_id, input_id=input_id, resolution=resolution, format=format
+    )
+
+
 # ============================================================
 # Storage Tools
 # ============================================================
@@ -520,6 +575,51 @@ async def get_recording_status(device_id: str = "default", recorder: int = 1) ->
     return await _get_recording_status(device_id=device_id, recorder=recorder)
 
 
+@mcp.tool()
+async def list_recorders(device_id: str = "default") -> dict[str, Any]:
+    """
+    List all recorders on an Epiphan Pearl device.
+
+    Recorders capture video from channels to the device's local storage.
+    Use this to discover available recorders before starting/stopping recording.
+
+    Args:
+        device_id: Device identifier. Use "default" for the primary configured device,
+                   or specify an IP address, hostname, or device index.
+
+    Returns:
+        List of recorders with their IDs, names, types, and associated channels.
+    """
+    return await _list_recorders(device_id=device_id)
+
+
+@mcp.tool()
+async def list_archive_files(
+    device_id: str = "default",
+    recorder: int = 1,
+    from_index: int | None = None,
+    limit: int | None = None,
+) -> dict[str, Any]:
+    """
+    List recorded files in a recorder's archive.
+
+    Browse recordings stored on the Pearl device's local storage.
+    Supports pagination for large archives.
+
+    Args:
+        device_id: Device identifier. Use "default" for the primary configured device.
+        recorder: Recorder number (1-based).
+        from_index: Starting index for pagination (0-based).
+        limit: Maximum number of files to return.
+
+    Returns:
+        List of archive files with filenames, sizes, durations, and creation timestamps.
+    """
+    return await _list_archive_files(
+        device_id=device_id, recorder=recorder, from_index=from_index, limit=limit
+    )
+
+
 # ============================================================
 # Streaming Tools
 # ============================================================
@@ -584,6 +684,82 @@ async def get_stream_status(
         - destination: Stream destination URL
     """
     return await _get_stream_status(device_id=device_id, channel=channel, publisher=publisher)
+
+
+@mcp.tool()
+async def list_channels(
+    device_id: str = "default",
+    include_publishers: bool = False,
+    include_layouts: bool = False,
+) -> dict[str, Any]:
+    """
+    List all channels on an Epiphan Pearl device.
+
+    Channels represent video processing pipelines that combine inputs, layouts,
+    and outputs. Each channel can have recorders and publishers attached.
+
+    Args:
+        device_id: Device identifier. Use "default" for the primary configured device.
+        include_publishers: Include publisher (stream) details for each channel.
+        include_layouts: Include layout details for each channel.
+
+    Returns:
+        List of channels with their IDs, names, and optionally publishers/layouts.
+    """
+    return await _list_channels(
+        device_id=device_id,
+        include_publishers=include_publishers,
+        include_layouts=include_layouts,
+    )
+
+
+@mcp.tool()
+async def list_publishers(
+    device_id: str = "default",
+    channel: int = 1,
+) -> dict[str, Any]:
+    """
+    List all publishers (stream destinations) on a channel.
+
+    Publishers define where a channel's video is streamed to (RTMP, SRT, etc.).
+    Use this to discover available streams before starting/stopping them.
+
+    Args:
+        device_id: Device identifier. Use "default" for the primary configured device.
+        channel: Channel number (1-based).
+
+    Returns:
+        List of publishers with their IDs, names, types, and enabled status.
+    """
+    return await _list_publishers(device_id=device_id, channel=channel)
+
+
+@mcp.tool()
+async def get_channel_preview(
+    device_id: str = "default",
+    channel: int = 1,
+    resolution: str | None = None,
+    format: str = "jpg",
+) -> dict[str, Any]:
+    """
+    Get a live preview image from a channel.
+
+    Captures a snapshot of the channel's current output as a JPEG or PNG image.
+    The image is returned as a base64-encoded string for easy embedding.
+
+    Args:
+        device_id: Device identifier. Use "default" for the primary configured device.
+        channel: Channel number (1-based).
+        resolution: Optional resolution (e.g., "1920x1080", "640x360").
+                    If not specified, uses the channel's native resolution.
+        format: Image format - "jpg" (default) or "png".
+
+    Returns:
+        Preview image as base64-encoded string with format and resolution metadata.
+    """
+    return await _get_channel_preview(
+        device_id=device_id, channel=channel, resolution=resolution, format=format
+    )
 
 
 # ============================================================
@@ -2969,3 +3145,72 @@ async def ec20_get_preview(camera_id: str = "default") -> dict[str, Any]:
         Dict with base64-encoded JPEG image and content type.
     """
     return await _ec20_get_preview(camera_id=camera_id)
+
+
+# ============================================================
+# System Control Tools
+# ============================================================
+
+
+@mcp.tool()
+async def reboot_device(
+    device_id: str = "default",
+    confirm: bool = False,
+) -> dict[str, Any]:
+    """
+    Reboot an Epiphan Pearl device.
+
+    WARNING: This will interrupt all active recordings and streams.
+    You must set confirm=True to proceed.
+
+    Args:
+        device_id: Device identifier. Use "default" for the primary configured device.
+        confirm: Safety gate - must be True to proceed. This prevents accidental reboots.
+
+    Returns:
+        Confirmation of reboot initiation.
+    """
+    return await _reboot_device(device_id=device_id, confirm=confirm)
+
+
+@mcp.tool()
+async def shutdown_device(
+    device_id: str = "default",
+    confirm: bool = False,
+) -> dict[str, Any]:
+    """
+    Shut down an Epiphan Pearl device.
+
+    WARNING: This will power off the device. Physical access is required
+    to power it back on. All active recordings and streams will be stopped.
+    You must set confirm=True to proceed.
+
+    Args:
+        device_id: Device identifier. Use "default" for the primary configured device.
+        confirm: Safety gate - must be True to proceed.
+
+    Returns:
+        Confirmation of shutdown initiation.
+    """
+    return await _shutdown_device(device_id=device_id, confirm=confirm)
+
+
+@mcp.tool()
+async def get_system_info(device_id: str = "default") -> dict[str, Any]:
+    """
+    Get detailed system information for an Epiphan Pearl device.
+
+    Returns comprehensive system status including hardware model, firmware,
+    uptime, storage, CPU, memory, and temperature readings.
+
+    Args:
+        device_id: Device identifier. Use "default" for the primary configured device.
+
+    Returns:
+        System information including:
+        - device_name, model, serial_number, firmware_version
+        - uptime_seconds
+        - storage_total_gb, storage_free_gb, storage_used_percent
+        - cpu_usage, memory_usage, temperature
+    """
+    return await _get_system_info(device_id=device_id)

@@ -5,6 +5,46 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0] - 2026-02-06
+
+### Changed
+
+- **Launch Release** — version alignment, README overhaul, CI publishing
+- Version aligned to 1.0.0 across `pyproject.toml` and `__init__.py`
+- README updated: 113 tools, 674+ tests, all 9 integrations documented
+- CHANGELOG brought current with v0.11.0 (Cloud) and v1.0.0 entries
+- PyPI publishing enabled in CI workflow (OIDC trusted publishing)
+- Added `py.typed` PEP 561 marker for typed package support
+- Added `.serena/` to `.gitignore`
+- Registered `destructive` pytest marker
+- Development status classifier updated to "Production/Stable"
+
+## [0.11.0] - 2026-02-05
+
+### Added
+
+- **Epiphan Cloud Fleet Management** (12 new tools)
+  - `cloud_get_user`: Current authenticated user profile
+  - `cloud_list_devices`: List all paired devices
+  - `cloud_get_device`: Device details and telemetry
+  - `cloud_pair_device`: Pair new device via pairing code
+  - `cloud_unpair_device`: Unpair device from cloud
+  - `cloud_delete_device`: Delete device record
+  - `cloud_rename_device`: Rename device
+  - `cloud_run_command`: Run task on single device
+  - `cloud_batch_command`: Run task on multiple devices simultaneously
+  - `cloud_get_settings`: Get device configuration
+  - `cloud_get_preview`: Get device preview (base64 JPEG)
+  - `cloud_apply_preset`: Apply cloud/local preset to device
+  - Async httpx client with Bearer token authentication
+  - Environment config: `EPIPHAN_CLOUD_API_URL`, `EPIPHAN_CLOUD_API_TOKEN`
+
+### Changed
+
+- Total MCP tools: 101 → 113 (+12)
+- Total integrations: 8 → 9 (added Epiphan Cloud)
+- Tests: 618 → 674 (+56)
+
 ## [0.10.0] - 2026-02-05
 
 ### Added
@@ -231,5 +271,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Pearl REST API client foundation
 - Configuration via pydantic-settings
 
+[1.0.0]: https://github.com/tmkipper/epiphan-mcp-server/compare/v0.11.0...v1.0.0
+[0.11.0]: https://github.com/tmkipper/epiphan-mcp-server/compare/v0.10.0...v0.11.0
+[0.10.0]: https://github.com/tmkipper/epiphan-mcp-server/compare/v0.9.0...v0.10.0
+[0.9.0]: https://github.com/tmkipper/epiphan-mcp-server/compare/v0.8.0...v0.9.0
+[0.8.0]: https://github.com/tmkipper/epiphan-mcp-server/compare/v0.7.0...v0.8.0
+[0.7.0]: https://github.com/tmkipper/epiphan-mcp-server/compare/v0.6.0...v0.7.0
+[0.6.0]: https://github.com/tmkipper/epiphan-mcp-server/compare/v0.5.0...v0.6.0
+[0.5.0]: https://github.com/tmkipper/epiphan-mcp-server/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/tmkipper/epiphan-mcp-server/compare/v0.1.0...v0.4.0
 [0.1.0]: https://github.com/tmkipper/epiphan-mcp-server/releases/tag/v0.1.0

@@ -2,8 +2,9 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
-[![Tests](https://img.shields.io/badge/tests-452_passing-brightgreen.svg)](tests/)
-[![Tools](https://img.shields.io/badge/MCP_tools-64-blue.svg)](src/epiphan_mcp/server.py)
+[![Tests](https://img.shields.io/badge/tests-674_passing-brightgreen.svg)](tests/)
+[![Tools](https://img.shields.io/badge/MCP_tools-113-blue.svg)](src/epiphan_mcp/server.py)
+[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](CHANGELOG.md)
 
 MCP (Model Context Protocol) server for controlling Epiphan Pearl video capture devices through AI assistants like Claude.
 
@@ -19,31 +20,22 @@ MCP (Model Context Protocol) server for controlling Epiphan Pearl video capture 
 | Single-device focus | Fleet-wide orchestration |
 | Reactive troubleshooting | Proactive issue detection |
 
-### The AI Moat: No OpenAI
+## Integrations
 
-**Pearl Copilot uses Gemini, DeepSeek, and Qwen** — not OpenAI. Why?
+Pearl Copilot connects **9 systems** through a unified AI interface:
 
-1. **Epiphan's customers include OpenAI** (used Pearl for "12 Days of OpenAI" streaming)
-2. **Cost efficiency**: DeepSeek V3 provides GPT-4 quality at 1/10th the cost
-3. **Vision quality**: Gemini Flash excels at video analysis; Qwen VL 72B leads in OCR
-4. **No vendor lock-in**: Switch models via environment variables
-
-```bash
-# Default models (optimized for AV workflows)
-LLM_VISION_MODEL=google/gemini-2.0-flash-001      # Scene analysis
-LLM_OCR_MODEL=qwen/qwen2.5-vl-72b-instruct        # Text extraction
-LLM_TEXT_MODEL=deepseek/deepseek-chat-v3-0324     # Fleet intelligence
-```
-
-## Features
-
-- 🎬 **Recording Control** - Start, stop, and monitor recordings
-- 📡 **Streaming Control** - Manage live streams to RTMP, SRT destinations
-- 🎨 **Layout Switching** - Change scenes and video layouts
-- 🏢 **Fleet Management** - Control multiple Pearl devices from one interface
-- 🤖 **Natural Language** - "Start recording in Room 201" just works
-- 🔍 **AI Video Analysis** - Scene understanding, OCR, quality checks, change detection via vision LLMs
-- 🎓 **CMS Integration** - Panopto and Kaltura integration for lecture capture workflows
+| Integration | Tools | Description |
+|-------------|-------|-------------|
+| **Pearl REST API** | 46 | Core device control — recording, streaming, layouts, system |
+| **Panopto CMS** | 9 | Lecture capture — folders, sessions, S3 upload |
+| **Kaltura CMS** | 9 | Video platform — categories, media, chunked upload |
+| **Opencast CMS** | 9 | Open-source CMS — series, events, Dublin Core ingest |
+| **Q-SYS AV** | 5 | Room control — JSON-RPC over TCP to Q-SYS Core |
+| **YouTube Live** | 4 | Live streaming — broadcasts, RTMP credentials |
+| **EC20 PTZ Camera** | 10 | Camera control — pan/tilt/zoom, presets, AI tracking |
+| **Epiphan Cloud** | 12 | Fleet management — devices, commands, presets via go.epiphan.cloud |
+| **AI Analysis** | 9 | Vision LLMs — scene analysis, OCR, quality checks |
+| **Total** | **113** | |
 
 ## Quick Start
 
@@ -66,57 +58,13 @@ pip install -e ".[dev]"
 Create a `.env` file:
 
 ```bash
-# Single device
+# Pearl device(s) — comma-separated for multiple
 PEARL_DEVICES=192.168.1.100
 PEARL_USERNAME=admin
 PEARL_PASSWORD=your_password
 
-# Multiple devices (comma-separated)
+# Multiple devices
 PEARL_DEVICES=192.168.1.100,192.168.1.101,192.168.1.102
-
-# AI Analysis (optional - enables AI-powered tools)
-OPENROUTER_API_KEY=sk-or-v1-your-key-here
-```
-
-### AI Configuration (Optional)
-
-To enable AI-powered video analysis tools, add OpenRouter credentials:
-
-```bash
-# Required for AI features
-OPENROUTER_API_KEY=sk-or-v1-your-key-here
-
-# Optional: Override default models
-LLM_VISION_MODEL=google/gemini-2.0-flash-001      # Scene analysis
-LLM_OCR_MODEL=qwen/qwen2.5-vl-72b-instruct        # Text extraction
-LLM_QUALITY_MODEL=google/gemini-2.0-flash-001     # Quality checks
-LLM_TEXT_MODEL=deepseek/deepseek-chat-v3-0324     # Reasoning
-
-# Optional: Testing without API
-LLM_MOCK_MODE=true  # Returns mock responses
-```
-
-**Supported Vision Models** (via [OpenRouter](https://openrouter.ai)):
-- Google Gemini Flash - Fast, cost-effective (default)
-- Qwen VL 72B - Best for OCR/text extraction
-- Claude Sonnet - Premium quality reasoning
-- DeepSeek VL - Scientific/technical content
-
-> **Note**: AI features work without `OPENROUTER_API_KEY` in mock mode (`LLM_MOCK_MODE=true`), useful for testing.
-
-### Panopto CMS Integration (Optional)
-
-To enable Panopto lecture capture integration:
-
-```bash
-# Required for Panopto features
-PANOPTO_HOST=panopto.university.edu
-PANOPTO_CLIENT_ID=your-client-id
-PANOPTO_USERNAME=service@university.edu
-PANOPTO_PASSWORD=your-password
-
-# Optional: For confidential OAuth2 clients
-PANOPTO_CLIENT_SECRET=your-client-secret
 ```
 
 ### Usage with Claude Code
@@ -156,17 +104,26 @@ Claude: [Calls get_fleet_status] Fleet "classroom-pearls" has 12 devices:
         - 1 alert: Room 201 storage at 85%
 ```
 
-## Available Tools
+## Available Tools (113)
 
-### Device Status
+### Device & System (11 tools)
+
 | Tool | Description |
 |------|-------------|
 | `get_device_status` | Get health, storage, and activity of a device |
 | `list_devices` | List all configured devices |
 | `get_fleet_status` | Get status of entire fleet with health scores |
 | `fleet_health_report` | AI-summarized fleet health with recommendations |
+| `get_system_info` | Hardware model, firmware, uptime, storage, CPU, temperature |
+| `reboot_device` | Reboot device (requires `confirm=True`) |
+| `shutdown_device` | Shutdown device (requires `confirm=True`) |
+| `predict_storage_full` | Estimate hours until storage is full |
+| `get_device_health_score` | Aggregate health score (0-100) |
+| `single_touch_start` | Start all recorders and streams at once |
+| `single_touch_stop` | Stop all recorders and streams at once |
 
-### Recording
+### Recording (7 tools)
+
 | Tool | Description |
 |------|-------------|
 | `start_recording` | Start recording on a device |
@@ -174,45 +131,70 @@ Claude: [Calls get_fleet_status] Fleet "classroom-pearls" has 12 devices:
 | `get_recording_status` | Get current recording state |
 | `batch_start_recording` | Start recording on multiple devices |
 | `batch_stop_recording` | Stop recording on multiple devices |
+| `list_recorders` | Discover available recorders |
+| `list_archive_files` | Browse recorded files with pagination |
 
-### Streaming
+### Streaming & Publishers (9 tools)
+
 | Tool | Description |
 |------|-------------|
 | `start_stream` | Start streaming to configured destination |
 | `stop_stream` | Stop streaming |
 | `get_stream_status` | Get current stream state and duration |
+| `create_publisher` | Create RTMP/SRT/HLS streaming destination |
+| `delete_publisher` | Remove stream from channel |
+| `get_publisher_settings` | View stream configuration |
+| `update_publisher_settings` | Modify stream settings |
+| `list_publisher_types` | Available streaming protocols |
+| `rename_publisher` | Change stream display name |
 
-### Layout & Channels
+### Layout & Channels (6 tools)
+
 | Tool | Description |
 |------|-------------|
 | `switch_layout` | Change active layout/scene |
 | `list_layouts` | List available layouts for a channel |
+| `list_channels` | List all video processing pipelines |
+| `list_publishers` | List stream destinations on a channel |
+| `get_channel_preview` | Live preview snapshot (base64) |
 | `add_bookmark` | Add timestamp bookmark to recording |
 
-### Scheduling & Batch Control
-| Tool | Description |
-|------|-------------|
-| `get_scheduled_events` | Get CMS scheduled events (Kaltura/Panopto/Opencast) |
-| `single_touch_start` | Start all recorders and streams at once |
-| `single_touch_stop` | Stop all recorders and streams at once |
+### Input/Output Management (5 tools)
 
-### AI-Powered Analysis
 | Tool | Description |
 |------|-------------|
-| `analyze_channel_scene` | AI vision analysis of channel content (scene description, content detection, presenter detection) |
-| `extract_text_from_preview` | OCR text extraction from slides, graphics, and lower thirds |
-| `detect_layout_changes` | Monitor channel for scene transitions and slide advances |
-| `check_video_quality` | AI assessment of lighting, focus, framing, and production quality |
+| `create_network_input` | Add SRT/RTSP/NDI sources |
+| `get_input_settings` | View input configuration |
+| `update_input_settings` | Modify input config |
+| `list_outputs` | Available HDMI/SDI output ports |
+| `set_output_source` | Configure output routing |
+
+### Event Scheduling (5 tools)
+
+| Tool | Description |
+|------|-------------|
+| `get_scheduled_events` | Get CMS scheduled events |
+| `create_scheduled_event` | Create ad-hoc recording event |
+| `pause_event` | Pause active event |
+| `resume_event` | Resume paused event |
+| `get_input_preview` | Live preview from input source (base64) |
+
+### AI-Powered Analysis (9 tools)
+
+| Tool | Description |
+|------|-------------|
+| `analyze_channel_scene` | AI vision analysis of channel content |
+| `extract_text_from_preview` | OCR text extraction from slides and graphics |
+| `detect_layout_changes` | Monitor for scene transitions and slide advances |
+| `check_video_quality` | AI assessment of lighting, focus, framing |
 | `clear_change_detection_cache` | Reset change detection baseline |
+| `detect_recording_issues` | AI detection of recording problems |
+| `predict_storage_full` | Estimate hours until storage is full |
+| `get_device_health_score` | Aggregate health score (0-100) |
+| `fleet_health_report` | AI-summarized fleet health |
 
-### AI Predictive Maintenance
-| Tool | Description |
-|------|-------------|
-| `predict_storage_full` | Estimate hours until storage is full based on recording bitrate |
-| `get_device_health_score` | Aggregate health score (0-100) with category breakdown |
-| `fleet_health_report` | AI-summarized fleet health with prioritized recommendations |
+### Panopto CMS (9 tools)
 
-### Panopto CMS Integration
 | Tool | Description |
 |------|-------------|
 | `list_panopto_folders` | Browse folder hierarchy |
@@ -225,209 +207,171 @@ Claude: [Calls get_fleet_status] Fleet "classroom-pearls" has 12 devices:
 | `get_panopto_upload_status` | Check processing status |
 | `delete_panopto_session` | Remove session |
 
-#### Health Score Thresholds
+### Kaltura CMS (9 tools)
 
-| Score | Status | Action |
-|-------|--------|--------|
-| 80-100 | Healthy | No action needed |
-| 60-79 | Minor Issues | Review when convenient |
-| 40-59 | Needs Attention | Address issues soon |
-| 0-39 | Unhealthy | Immediate attention required |
+| Tool | Description |
+|------|-------------|
+| `list_kaltura_categories` | Browse content folders |
+| `get_kaltura_category` | Get folder details |
+| `create_kaltura_category` | Create new category |
+| `list_kaltura_media` | List video entries |
+| `get_kaltura_media` | Get media details |
+| `create_kaltura_media` | Create media placeholder |
+| `upload_to_kaltura` | Chunked upload workflow (10MB chunks) |
+| `schedule_kaltura_event` | Create scheduled events for Pearl auto-record |
+| `get_kaltura_upload_status` | Check processing status |
 
-**Scoring breakdown (0-100):**
-- **Storage (50 pts max)**: 50 = healthy, 30 = >75% used, 10 = >90% used
-- **Recording (50 pts max)**: 50 = accessible, 25 = degraded
+### Opencast CMS (9 tools)
 
-Fleet-level metrics:
-- `average_health`: Mean health score of online devices
-- `unhealthy_devices`: Count of devices with score < 60
+| Tool | Description |
+|------|-------------|
+| `list_opencast_series` | Browse series (courses/channels) |
+| `get_opencast_series` | Get series details |
+| `create_opencast_series` | Create new series |
+| `list_opencast_events` | List recordings |
+| `get_opencast_event` | Get event details |
+| `ingest_to_opencast` | Upload video with Dublin Core metadata |
+| `get_opencast_ingest_status` | Check processing workflow |
+| `schedule_opencast_capture` | Schedule Pearl auto-record |
+| `delete_opencast_event` | Remove event |
 
-#### AI Analysis Types
+### Q-SYS AV Control (5 tools)
 
-The `analyze_channel_scene` tool supports multiple analysis modes:
+| Tool | Description |
+|------|-------------|
+| `list_qsys_components` | Discover Pearl components in Q-SYS design |
+| `qsys_get_pearl_status` | Get recording/streaming state via Q-SYS |
+| `qsys_start_recording` | Start recording through Q-SYS Core |
+| `qsys_stop_recording` | Stop recording through Q-SYS Core |
+| `qsys_switch_layout` | Change Pearl layout via Q-SYS |
 
-- **scene_description** - General description of what's on screen
-- **content_detection** - Classify content type (educational, corporate, etc.)
-- **quality_check** - Technical quality assessment
-- **text_extraction** - OCR to extract visible text
-- **presenter_detection** - Detect and describe presenters in frame
+### YouTube Live (4 tools)
 
-#### Example AI Usage
+| Tool | Description |
+|------|-------------|
+| `create_youtube_broadcast` | Create broadcast + stream, returns RTMP credentials |
+| `get_youtube_broadcast_status` | Check broadcast/stream health |
+| `list_youtube_broadcasts` | List user's broadcasts |
+| `end_youtube_broadcast` | Transition broadcast to complete |
 
+### EC20 PTZ Camera (10 tools)
+
+| Tool | Description |
+|------|-------------|
+| `ec20_get_status` | Camera status, PTZ position, tracking state |
+| `ec20_pan_tilt` | Absolute pan/tilt positioning |
+| `ec20_zoom` | Zoom level control (1-36: optical + digital) |
+| `ec20_goto_preset` | Recall saved camera preset |
+| `ec20_save_preset` | Save current position as preset |
+| `ec20_home` | Return to home position |
+| `ec20_enable_tracking` | Enable AI tracking (presenter/zone/body) |
+| `ec20_disable_tracking` | Disable AI tracking |
+| `ec20_list_presets` | List all saved presets |
+| `ec20_get_preview` | Get preview image (base64) |
+
+### Epiphan Cloud (12 tools)
+
+| Tool | Description |
+|------|-------------|
+| `cloud_get_user` | Current authenticated user profile |
+| `cloud_list_devices` | List all paired devices |
+| `cloud_get_device` | Device details and telemetry |
+| `cloud_pair_device` | Pair new device via pairing code |
+| `cloud_unpair_device` | Unpair device from cloud |
+| `cloud_delete_device` | Delete device record |
+| `cloud_rename_device` | Rename device |
+| `cloud_run_command` | Run task on single device (recording, streaming, setprop) |
+| `cloud_batch_command` | Run task on multiple devices simultaneously |
+| `cloud_get_settings` | Get device configuration |
+| `cloud_get_preview` | Get device preview (base64 JPEG) |
+| `cloud_apply_preset` | Apply cloud/local preset to device |
+
+## Environment Variables
+
+### Pearl (Required)
+
+```bash
+PEARL_DEVICES=192.168.1.100,192.168.1.101
+PEARL_USERNAME=admin
+PEARL_PASSWORD=your_password
+PEARL_USE_HTTPS=false
+PEARL_TIMEOUT=30.0
+PEARL_FLEET_NAME=classroom-pearls
 ```
-You: What's happening on channel 1?
-Claude: [Calls analyze_channel_scene] The channel shows a corporate presentation
-        with a presenter on the left third of frame. A slide titled "Q4 Results"
-        is visible with bullet points and a bar chart.
 
-You: Is the video quality okay?
-Claude: [Calls check_video_quality] Quality assessment:
-        - Lighting: Good, even illumination
-        - Focus: Sharp
-        - Framing: Presenter has adequate headroom
-        Overall: Excellent production quality
+### EC20 PTZ Camera (Optional)
 
-You: What text is on the slide?
-Claude: [Calls extract_text_from_preview] Extracted text:
-        Title: Q4 Results Summary
-        - Revenue: $4.2M (+15% YoY)
-        - New customers: 847
-        - NPS Score: 72
-
-You: How's the device health?
-Claude: [Calls get_device_health_score] Health Score: 85/100
-        - Storage: 50/50 (healthy, 65% free)
-        - Recording: 35/50 (degraded - check input signal)
-        Recommendation: Device has minor issues - review when convenient
-
-You: How long until storage fills up?
-Claude: [Calls predict_storage_full] At current 8 Mbps bitrate:
-        - 127.3 hours until full (~5 days)
-        - 847 GB free of 1 TB
-        Storage capacity is sufficient.
+```bash
+EC20_DEVICES=192.168.1.50,192.168.1.51
+EC20_USERNAME=admin
+EC20_PASSWORD=your_ec20_password
+EC20_USE_HTTPS=false
+EC20_TIMEOUT=30.0
 ```
 
-## AI Tools Deep Dive
+### Epiphan Cloud (Optional)
 
-### Tool Reference
-
-#### `analyze_channel_scene`
-
-General-purpose AI vision analysis of channel content.
-
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `device_id` | string | `"default"` | Pearl device identifier |
-| `channel` | string | `"1"` | Channel ID (e.g., "1", "2") |
-| `analysis_type` | string | `"scene_description"` | Type of analysis (see below) |
-
-**Returns:**
-```json
-{
-  "success": true,
-  "analysis": "Scene shows a presenter at a podium...",
-  "analysis_type": "scene_description",
-  "model_used": "google/gemini-2.0-flash-001",
-  "timestamp": "2025-01-23T10:30:00.000Z",
-  "image_hash": "a1b2c3d4...",
-  "device_id": "default",
-  "channel": "1"
-}
+```bash
+EPIPHAN_CLOUD_API_URL=https://go.epiphan.cloud/api/v2
+EPIPHAN_CLOUD_API_TOKEN=your_bearer_token
 ```
 
-#### `extract_text_from_preview`
+### Panopto CMS (Optional)
 
-OCR-optimized text extraction for slides, graphics, and lower thirds.
+```bash
+PANOPTO_HOST=panopto.university.edu
+PANOPTO_CLIENT_ID=your-client-id
+PANOPTO_USERNAME=service@university.edu
+PANOPTO_PASSWORD=your-password
+PANOPTO_CLIENT_SECRET=your-client-secret  # For confidential clients
+```
 
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `device_id` | string | `"default"` | Pearl device identifier |
-| `channel` | string | `"1"` | Channel ID |
+### Kaltura CMS (Optional)
 
-**Returns:** `{ "success": true, "text": "Extracted text...", "model_used": "...", ... }`
+```bash
+KALTURA_SERVICE_URL=https://www.kaltura.com
+KALTURA_PARTNER_ID=your_partner_id
+KALTURA_APP_TOKEN_ID=your_token_id
+KALTURA_APP_TOKEN=your_app_token
+```
 
-**Best for:** Presentation slides, whiteboards, title cards, lower-third graphics.
+### Opencast CMS (Optional)
 
-#### `detect_layout_changes`
+```bash
+OPENCAST_HOST=https://opencast.university.edu
+OPENCAST_USERNAME=admin
+OPENCAST_PASSWORD=your_password
+```
 
-Monitors a channel for scene transitions and content changes.
+### Q-SYS AV Control (Optional)
 
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `device_id` | string | `"default"` | Pearl device identifier |
-| `channel` | string | `"1"` | Channel ID |
-| `sensitivity` | string | `"medium"` | Detection sensitivity: `"low"`, `"medium"`, `"high"` |
+```bash
+QSYS_CORE_IP=192.168.1.200
+QSYS_PORT=1710
+QSYS_PIN=your_pin  # Optional
+```
 
-**Sensitivity levels:**
-- `low` - Only major scene changes (camera switches, black frames)
-- `medium` - Slide advances, presenter movement, graphics changes
-- `high` - Any visible change including subtle movements
+### YouTube Live (Optional)
 
-**Returns:** `{ "success": true, "changed": true/false, "change_type": "...", "message": "..." }`
+```bash
+YOUTUBE_CLIENT_ID=your_client_id
+YOUTUBE_CLIENT_SECRET=your_client_secret
+YOUTUBE_REFRESH_TOKEN=your_refresh_token
+```
 
-**Use case:** Automated recording triggers, event logging, slide counting.
+### AI Analysis (Optional)
 
-#### `check_video_quality`
-
-Technical quality assessment for production monitoring.
-
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `device_id` | string | `"default"` | Pearl device identifier |
-| `channel` | string | `"1"` | Channel ID |
-
-**Returns:** `{ "success": true, "quality_report": "Detailed assessment...", ... }`
-
-**Checks:** Lighting, focus, framing, exposure, color balance, artifacts.
-
-#### `clear_change_detection_cache`
-
-Resets the change detection baseline.
-
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `device_id` | string | `None` | Device to clear (None = all devices) |
-| `channel` | string | `None` | Channel to clear (None = all channels) |
-
-**Use when:** Starting new sessions, after intentional scene changes, resetting monitoring.
-
-### Analysis Types Reference
-
-| Type | Use Case | Default Model |
-|------|----------|---------------|
-| `scene_description` | General understanding of what's on screen | Gemini Flash |
-| `content_detection` | Classify content (educational, corporate, entertainment) | Gemini Flash |
-| `quality_check` | Technical quality assessment | Gemini Flash |
-| `text_extraction` | OCR for slides, graphics, captions | Qwen VL 72B |
-| `presenter_detection` | Find and describe people in frame | Gemini Flash |
-
-### Model Selection
-
-Models are selected automatically based on task, but can be overridden:
-
-| Environment Variable | Purpose | Default |
-|---------------------|---------|---------|
-| `LLM_VISION_MODEL` | General scene analysis | `google/gemini-2.0-flash-001` |
-| `LLM_OCR_MODEL` | Text extraction (OCR) | `qwen/qwen2.5-vl-72b-instruct` |
-| `LLM_QUALITY_MODEL` | Quality assessment | `google/gemini-2.0-flash-001` |
-| `LLM_TEXT_MODEL` | Reasoning/planning | `deepseek/deepseek-chat-v3-0324` |
-
-**Model recommendations:**
-- **Gemini Flash** - Fast, cost-effective, good general vision
-- **Qwen VL 72B** - Superior OCR and text extraction
-- **Claude Sonnet** - Premium reasoning for complex analysis
-- **DeepSeek VL** - Technical/scientific content
-
-### Troubleshooting
-
-#### Mock Mode (No API Key)
-
-When `OPENROUTER_API_KEY` is not set, AI tools automatically use mock mode:
-- Returns realistic sample responses
-- Useful for development and testing
-- No API costs incurred
-
-Enable explicitly: `LLM_MOCK_MODE=true`
-
-#### Common Issues
-
-| Issue | Cause | Solution |
-|-------|-------|----------|
-| "API key not configured" | Missing `OPENROUTER_API_KEY` | Add key to `.env` file |
-| Empty analysis results | Invalid image from Pearl | Check Pearl preview is working |
-| Slow responses | Large images or complex analysis | Use faster models (Gemini Flash) |
-| Rate limiting | Too many requests | Add delays between calls |
-
-#### Cost Optimization
-
-- **Default models are cost-optimized** - Gemini Flash is ~$0.10/1M tokens
-- **OCR uses Qwen** - Better accuracy reduces retries
-- **Change detection uses hashing** - Only calls AI when changes detected
-- **Preview images are 720p** - Balances quality with token usage
+```bash
+OPENROUTER_API_KEY=sk-or-v1-your-key-here
+LLM_VISION_MODEL=google/gemini-2.0-flash-001
+LLM_OCR_MODEL=qwen/qwen2.5-vl-72b-instruct
+LLM_TEXT_MODEL=deepseek/deepseek-chat-v3-0324
+LLM_MOCK_MODE=true  # For testing without API key
+```
 
 ## Supported Devices
 
-All Pearl models share the same REST API v2.0, so Pearl Copilot works identically across:
+All Pearl models share the same REST API v2.0:
 
 | Model | Form Factor | Best For |
 |-------|-------------|----------|
@@ -442,11 +386,10 @@ Pearl Copilot works with any MCP-compatible AI tool:
 
 | Platform | Status | Integration |
 |----------|--------|-------------|
-| **Claude Code** | ✓ Ready | Native MCP |
-| **Claude Desktop** | ✓ Ready | Native MCP |
-| **Cursor** | ✓ Ready | MCP server |
-| **Windsurf** | ✓ Ready | MCP server |
-| **VS Code** | Planned | Extension wrapper |
+| **Claude Code** | Ready | Native MCP |
+| **Claude Desktop** | Ready | Native MCP |
+| **Cursor** | Ready | MCP server |
+| **Windsurf** | Ready | MCP server |
 
 ## Development
 
@@ -460,9 +403,6 @@ pytest
 # Run tests with coverage report
 pytest --cov=src/epiphan_mcp --cov-report=term-missing
 
-# Run tests verbosely
-pytest -v
-
 # Type checking
 mypy src/
 
@@ -475,16 +415,24 @@ ruff format src/
 
 ```
 tests/
-├── conftest.py          # Shared fixtures, mock configurations
+├── conftest.py              # Shared fixtures, mock configurations
 ├── fixtures/
-│   └── responses.py     # Mock API v2.0 responses
-├── test_client.py       # PearlClient API tests
-├── test_server.py       # MCP tool tests
-├── test_llm.py          # LLM provider and analyzer tests
-└── test_ai_tools.py     # AI-powered tool tests
+│   └── responses.py         # Mock API v2.0 responses
+├── test_client.py           # PearlClient API tests
+├── test_server.py           # MCP tool tests
+├── test_llm.py              # LLM provider and analyzer tests
+├── test_ai_tools.py         # AI-powered tool tests
+├── test_panopto.py          # Panopto CMS integration tests
+├── test_kaltura.py          # Kaltura CMS integration tests
+├── test_opencast.py         # Opencast CMS integration tests
+├── test_qsys.py             # Q-SYS AV control tests
+├── test_youtube.py          # YouTube Live tests
+├── test_ec20.py             # EC20 PTZ camera tests
+├── test_cloud.py            # Epiphan Cloud tests
+└── test_integration.py      # Integration tests (real hardware)
 ```
 
-**329 tests** with **95% coverage**. All tests use mocked HTTP responses - no real Pearl hardware or API keys required.
+**674 tests** with **~95% coverage**. All tests use mocked HTTP responses — no real Pearl hardware or API keys required.
 
 ## API Reference
 
@@ -496,11 +444,7 @@ Based on patterns from [harvard-dce/epipearl](https://github.com/harvard-dce/epi
 
 ## License
 
-MIT License - see [LICENSE](LICENSE) for details.
-
-## Contributing
-
-Contributions welcome! Please read the [contributing guidelines](CONTRIBUTING.md) first.
+MIT License — see [LICENSE](LICENSE) for details.
 
 ## Acknowledgments
 
@@ -510,4 +454,4 @@ Contributions welcome! Please read the [contributing guidelines](CONTRIBUTING.md
 
 ---
 
-**Built with ❤️ for the AV community**
+**Built for the AV community**

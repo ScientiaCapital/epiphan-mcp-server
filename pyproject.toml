@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "epiphan-mcp"
-version = "0.8.0"
+version = "1.0.0"
 description = "MCP server for Epiphan Pearl video capture devices"
 readme = "README.md"
 license = "MIT"
@@ -22,7 +22,7 @@ keywords = [
     "claude"
 ]
 classifiers = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
     "Intended Audience :: System Administrators",
     "License :: OSI Approved :: MIT License",
@@ -70,6 +70,7 @@ asyncio_mode = "auto"
 testpaths = ["tests"]
 markers = [
     "integration: marks tests requiring real hardware (deselect with '-m \"not integration\"')",
+    "destructive: marks tests that modify device state",
 ]
 
 [tool.mypy]

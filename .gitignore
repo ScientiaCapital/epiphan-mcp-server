@@ -152,3 +152,6 @@ Thumbs.db
 *.log
 .env.local
 .env.*.local
+
+# Serena
+.serena/

@@ -70,32 +70,30 @@ jobs:
           files: ./coverage.xml
           fail_ci_if_error: false
 
-  # NOTE: PyPI publish disabled for stealth mode
-  # Uncomment when ready to go public
-  # publish:
-  #   needs: [lint, test]
-  #   runs-on: ubuntu-latest
-  #   if: startsWith(github.ref, 'refs/tags/v')
-  #
-  #   permissions:
-  #     contents: read   # Required to checkout private repo
-  #     id-token: write  # Required for trusted publishing
-  #
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #
-  #     - name: Set up Python
-  #       uses: actions/setup-python@v5
-  #       with:
-  #         python-version: "3.11"
-  #
-  #     - name: Install build tools
-  #       run: |
-  #         python -m pip install --upgrade pip
-  #         pip install build
-  #
-  #     - name: Build package
-  #       run: python -m build
-  #
-  #     - name: Publish to PyPI
-  #       uses: pypa/gh-action-pypi-publish@release/v1
+  publish:
+    needs: [lint, test]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install build tools
+        run: |
+          python -m pip install --upgrade pip
+          pip install build
+
+      - name: Build package
+        run: python -m build
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1

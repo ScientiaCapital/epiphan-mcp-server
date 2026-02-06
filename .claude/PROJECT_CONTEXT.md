@@ -1,29 +1,28 @@
 # epiphan-mcp-server
 
-**Branch**: main | **Updated**: 2026-02-05
+**Branch**: feat/expose-pearl-discovery-tools | **Updated**: 2026-02-05
 
 ## Status
-MCP server for Epiphan Pearl video capture devices. Production-ready with 92 MCP tools, 579 tests, and 8 integrations (Pearl + Panopto + Kaltura + Opencast + Q-SYS + YouTube + EC20). EC20 PTZ camera integration complete with 10 new tools. Ready for hardware testing with Pearl Mini + EC20.
+MCP server for Epiphan Pearl video capture devices. Production-ready with 101 MCP tools, 618 tests, and 8 integrations (Pearl + Panopto + Kaltura + Opencast + Q-SYS + YouTube + LLM + EC20). Pearl discovery & system tools complete — all client methods now exposed as MCP tools.
 
 ## Today's Focus
-1. [x] Update docs - clean stale items from BACKLOG.md, TECHNICAL_ROADMAP.md
-2. [x] TDD: Write failing tests for EC20 client (21 tests)
-3. [x] TDD: Implement EC20 client to pass tests
-4. [x] TDD: Write failing tests for EC20 MCP tools (10 tests)
-5. [x] TDD: Implement EC20 MCP tools to pass tests
-6. [x] Register EC20 tools in server.py (10 new tools)
-7. [x] Update CLAUDE.md and docs with EC20 integration
-8. [ ] Hardware: Connect Pearl Mini to network, test existing tools
-9. [ ] Hardware: Connect EC20 via NDI, verify REST API endpoints
-10. [ ] Integration test: Recording + PTZ workflow end-to-end
+1. [x] TDD: Write failing tests for 9 new Pearl discovery/system tools (39 tests)
+2. [x] Implement list_recorders, list_archive_files
+3. [x] Implement list_channels, list_publishers, get_channel_preview
+4. [x] Implement get_input_preview
+5. [x] Implement reboot_device, shutdown_device, get_system_info
+6. [x] Register all 9 tools in server.py (101 total)
+7. [x] Update test_tools_imports.py assertions (92 → 101)
+8. [x] Full test suite: 618 passed, 0 failures
+9. [x] Security sweep: 0 secrets, 0 critical CVEs
+10. [x] Doc updates: CLAUDE.md, CHANGELOG.md, BACKLOG.md
 
 ## Done (This Session)
-- ✅ EC20 PTZ integration complete (10 new MCP tools)
-- ✅ 38 new tests for EC20 client, config, and tools
-- ✅ All 579 tests passing
+- ✅ 9 new Pearl discovery & system MCP tools implemented
+- ✅ 39 new tests (618 total, all passing)
 - ✅ Security sweep: 0 critical issues
-- ✅ Git pushed: commit 69505e9
-- ✅ End-of-day lockdown completed
+- ✅ Lint clean (ruff auto-fixed import sorting)
+- ✅ All docs updated
 
 ## Blockers
 - EC20 REST API endpoints are placeholder (need device access to verify actual endpoints)
@@ -35,30 +34,25 @@ Python 3.12+ | FastMCP | httpx | Pydantic v2 | OpenRouter (multi-model gateway)
 ## Metrics
 | Metric | Value |
 |--------|-------|
-| Tests | 579 passing |
+| Tests | 618 passing |
 | Coverage | ~95% |
-| MCP Tools | 92 total |
+| MCP Tools | 101 total |
 | Integrations | 8 (Pearl, Panopto, Kaltura, Opencast, Q-SYS, YouTube, LLM, EC20) |
 
-## Hardware Available
-- Pearl Mini (demo unit)
-- EC20 PTZ Camera (demo unit, launched Dec 2025)
-
-## EC20 Tools Added (10)
-- ec20_get_status - Camera status, PTZ position, tracking state
-- ec20_pan_tilt - Absolute pan/tilt positioning
-- ec20_zoom - Zoom level control (1-36)
-- ec20_goto_preset - Recall saved preset
-- ec20_save_preset - Save current position as preset
-- ec20_home - Return to home position
-- ec20_enable_tracking - Enable AI tracking (presenter/zone/body)
-- ec20_disable_tracking - Disable AI tracking
-- ec20_list_presets - List all saved presets
-- ec20_get_preview - Get preview image
+## New Tools Added (9)
+- list_recorders - Discover available recorders on a device
+- list_archive_files - Browse recorded files with pagination
+- list_channels - List all video processing pipelines
+- list_publishers - List stream destinations on a channel
+- get_channel_preview - Live preview snapshot from channel (base64)
+- get_input_preview - Live preview from input source (base64)
+- reboot_device - Reboot with `confirm=True` safety gate
+- shutdown_device - Shutdown with `confirm=True` safety gate
+- get_system_info - Hardware model, firmware, uptime, storage, CPU, temperature
 
 ## Next Session
-1. Hardware: Connect Pearl Mini and EC20 to network
-2. Verify EC20 REST API endpoints with real hardware
-3. Update placeholder endpoints in ec20.py
-4. End-to-end test: Recording + PTZ workflow
-5. PyPI publish when ready
+1. Merge feat/expose-pearl-discovery-tools → main
+2. Hardware: Connect Pearl Mini and EC20 to network
+3. Verify EC20 REST API endpoints with real hardware
+4. Launch readiness: CI/CD, PyPI publishing, v1.0 tag
+5. Demo video: Pearl Mini + EC20 AI workflow

@@ -1,7 +1,7 @@
 # Epiphan MCP Server - Feature Backlog
 
 **Last Updated**: 2026-02-05
-**Status**: Production Ready + EC20 Integration Complete
+**Status**: Production Ready + Pearl Discovery Tools Complete
 
 ---
 
@@ -18,8 +18,9 @@
 | Phase 4.4: AV Control | ✅ Complete | 9 | Q-SYS (5) + YouTube (4) |
 | Phase 5: Security Hardening | ✅ Complete | - | Audit logging, concurrency limits |
 | **Phase 6: EC20 PTZ** | ✅ Complete | 10 | PTZ camera control |
+| **Phase 7: Discovery & System** | ✅ Complete | 9 | list_recorders, previews, system control |
 
-**Total MCP Tools: 92**
+**Total MCP Tools: 101**
 
 ---
 

@@ -7,6 +7,7 @@ on Pearl channels. Publishers handle RTMP, SRT, HLS, RTSP, and MPEG-TS streaming
 import logging
 from typing import Any
 
+from ..audit import log_operation
 from ..client import PearlAPIError
 from .device import get_client
 
@@ -105,6 +106,11 @@ async def delete_publisher(
         async with get_client(device_id) as client:
             channel_id = f"channel-{channel}" if isinstance(channel, int) else str(channel)
             result = await client.delete_publisher(channel_id, publisher)
+            log_operation(
+                "delete_publisher",
+                client.host,
+                details={"channel": channel_id, "publisher": publisher},
+            )
             return result.model_dump()
     except PearlAPIError as e:
         return {

@@ -7,6 +7,7 @@ device reboot, shutdown, and system status information.
 import logging
 from typing import Any
 
+from ..audit import log_operation
 from ..client import PearlAPIError
 from .device import get_client
 
@@ -40,18 +41,21 @@ async def reboot_device(
     try:
         async with get_client(device_id) as client:
             result = await client.reboot()
+            log_operation("reboot", client.host, details={"device_id": device_id})
             return {
                 "success": result.success,
                 "device": client.host,
                 "message": result.message or "Device is rebooting",
             }
     except PearlAPIError as e:
+        log_operation("reboot", device_id, success=False, details={"error": str(e)})
         return {
             "success": False,
             "error": str(e),
             "device": device_id,
         }
     except ValueError as e:
+        log_operation("reboot", device_id, success=False, details={"error": str(e)})
         return {
             "success": False,
             "error": str(e),
@@ -87,18 +91,21 @@ async def shutdown_device(
     try:
         async with get_client(device_id) as client:
             result = await client.shutdown()
+            log_operation("shutdown", client.host, details={"device_id": device_id})
             return {
                 "success": result.success,
                 "device": client.host,
                 "message": result.message or "Device is shutting down",
             }
     except PearlAPIError as e:
+        log_operation("shutdown", device_id, success=False, details={"error": str(e)})
         return {
             "success": False,
             "error": str(e),
             "device": device_id,
         }
     except ValueError as e:
+        log_operation("shutdown", device_id, success=False, details={"error": str(e)})
         return {
             "success": False,
             "error": str(e),

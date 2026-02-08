@@ -301,3 +301,112 @@ class TestSettingsIntegration:
         assert settings.storage_warning_percent == 80.0
         assert settings.storage_critical_percent == 90.0
         assert settings.max_retries == 3
+
+
+# ============================================================
+# Device Host Validation Tests (C1 Security Fix)
+# ============================================================
+
+
+class TestDeviceHostValidation:
+    """Test _validate_host rejects malicious device_id values."""
+
+    def _make_settings(self, **kwargs):
+        """Create Settings with sensible defaults."""
+        defaults = {
+            "devices": "192.168.1.100,pearl-01.local",
+            "username": "admin",
+            "password": "test",
+        }
+        defaults.update(kwargs)
+        return Settings(**defaults)
+
+    def test_get_device_host_valid_ip(self):
+        """Valid IP address should pass validation."""
+        settings = self._make_settings()
+        assert settings.get_device_host("10.0.0.1") == "10.0.0.1"
+
+    def test_get_device_host_valid_ipv6(self):
+        """Valid IPv6 address should pass validation."""
+        settings = self._make_settings()
+        assert settings.get_device_host("::1") == "::1"
+
+    def test_get_device_host_valid_hostname(self):
+        """Valid hostname should pass validation."""
+        settings = self._make_settings()
+        assert settings.get_device_host("pearl-01.local") == "pearl-01.local"
+
+    def test_get_device_host_valid_simple_hostname(self):
+        """Simple hostname without dots should pass."""
+        settings = self._make_settings()
+        assert settings.get_device_host("pearl01") == "pearl01"
+
+    def test_get_device_host_configured_device_always_passes(self):
+        """A device in the configured list should always pass."""
+        settings = self._make_settings()
+        assert settings.get_device_host("192.168.1.100") == "192.168.1.100"
+
+    def test_get_device_host_rejects_url(self):
+        """URL-like input should be rejected."""
+        settings = self._make_settings()
+        with pytest.raises(ValueError, match="looks like a URL"):
+            settings.get_device_host("http://evil.com")
+
+    def test_get_device_host_rejects_at_sign(self):
+        """Input with @ should be rejected (possible user@host injection)."""
+        settings = self._make_settings()
+        with pytest.raises(ValueError, match="forbidden characters"):
+            settings.get_device_host("user@host")
+
+    def test_get_device_host_rejects_spaces(self):
+        """Input with spaces should be rejected."""
+        settings = self._make_settings()
+        with pytest.raises(ValueError, match="forbidden characters"):
+            settings.get_device_host("host name")
+
+    def test_get_device_host_rejects_path_traversal(self):
+        """Path traversal patterns should be rejected."""
+        settings = self._make_settings()
+        with pytest.raises(ValueError, match="path traversal"):
+            settings.get_device_host("../../etc/passwd")
+
+    def test_get_device_host_rejects_newlines(self):
+        """Input with newlines should be rejected (header injection)."""
+        settings = self._make_settings()
+        with pytest.raises(ValueError, match="forbidden characters"):
+            settings.get_device_host("host\r\nX-Injected: true")
+
+    def test_get_device_host_rejects_long_hostname(self):
+        """Hostnames over 253 chars should be rejected."""
+        settings = self._make_settings()
+        long_host = "a" * 254
+        with pytest.raises(ValueError, match="exceeds 253"):
+            settings.get_device_host(long_host)
+
+    def test_get_ec20_host_same_validation(self):
+        """EC20 host resolution should use the same validation."""
+        settings = self._make_settings()
+        # Valid input works
+        assert settings.get_ec20_host("10.0.0.50") == "10.0.0.50"
+        # Bad input rejected
+        with pytest.raises(ValueError, match="looks like a URL"):
+            settings.get_ec20_host("https://attacker.com")
+        with pytest.raises(ValueError, match="forbidden characters"):
+            settings.get_ec20_host("user@camera")
+
+    def test_get_device_host_rejects_special_chars(self):
+        """Hostnames with invalid characters should be rejected."""
+        settings = self._make_settings()
+        with pytest.raises(ValueError, match="not a valid IP or hostname"):
+            settings.get_device_host("pearl;drop")  # semicolon, no spaces
+
+    def test_get_device_host_default_still_works(self):
+        """'default' keyword should still resolve to first configured device."""
+        settings = self._make_settings()
+        assert settings.get_device_host("default") == "192.168.1.100"
+
+    def test_get_device_host_index_still_works(self):
+        """Numeric index should still resolve to configured device list."""
+        settings = self._make_settings()
+        assert settings.get_device_host("0") == "192.168.1.100"
+        assert settings.get_device_host("1") == "pearl-01.local"

@@ -75,6 +75,12 @@ SENSITIVE_OPERATIONS = {
     "create_scheduled_event",
     "pause_event",
     "resume_event",
+    # Cloud fleet management (destructive)
+    "cloud_unpair_device",
+    "cloud_delete_device",
+    # CMS destructive operations
+    "delete_panopto_session",
+    "delete_opencast_event",
 }
 
 

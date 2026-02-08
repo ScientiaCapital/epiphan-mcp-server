@@ -1,6 +1,13 @@
 """MCP tool implementations for Epiphan Pearl devices."""
 
-from .ai_tools import detect_recording_issues
+from .ai_tools import (
+    analyze_channel_scene,
+    check_video_quality,
+    clear_change_detection_cache,
+    detect_layout_changes,
+    detect_recording_issues,
+    extract_text_from_preview,
+)
 from .device import get_client, get_device_status, list_devices
 from .fleet import (
     batch_start_recording,
@@ -107,6 +114,18 @@ from .cloud import (
     cloud_run_command,
     cloud_unpair_device,
 )
+from .ec20 import (
+    ec20_disable_tracking,
+    ec20_enable_tracking,
+    ec20_get_preview,
+    ec20_get_status,
+    ec20_goto_preset,
+    ec20_home,
+    ec20_list_presets,
+    ec20_pan_tilt,
+    ec20_save_preset,
+    ec20_zoom,
+)
 from .youtube import (
     create_youtube_broadcast,
     end_youtube_broadcast,
@@ -152,6 +171,12 @@ __all__ = [
     "suggest_maintenance_window",
     "predict_fleet_issues",
     "generate_shift_handoff",
+    # AI analysis tools
+    "analyze_channel_scene",
+    "extract_text_from_preview",
+    "detect_layout_changes",
+    "check_video_quality",
+    "clear_change_detection_cache",
     # Schedule tools
     "get_scheduled_events",
     "single_touch_start",
@@ -231,4 +256,15 @@ __all__ = [
     "cloud_get_settings",
     "cloud_get_preview",
     "cloud_apply_preset",
+    # EC20 PTZ camera control tools
+    "ec20_get_status",
+    "ec20_pan_tilt",
+    "ec20_zoom",
+    "ec20_goto_preset",
+    "ec20_save_preset",
+    "ec20_home",
+    "ec20_enable_tracking",
+    "ec20_disable_tracking",
+    "ec20_list_presets",
+    "ec20_get_preview",
 ]

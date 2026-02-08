@@ -1,9 +1,16 @@
 """Configuration management for Epiphan MCP Server."""
 
+import ipaddress
+import re
 from functools import lru_cache
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# RFC 1123 hostname pattern: alphanumeric + hyphens + dots, max 253 chars
+_HOSTNAME_RE = re.compile(
+    r"^(?!-)[A-Za-z0-9-]{1,63}(?<!-)(\.[A-Za-z0-9-]{1,63})*$"
+)
 
 
 class Settings(BaseSettings):
@@ -85,8 +92,8 @@ class Settings(BaseSettings):
                 return devices[idx]
             raise ValueError(f"EC20 index {idx} out of range. Have {len(devices)} cameras.")
 
-        # Assume it's a direct hostname/IP
-        return device_id
+        # Validate before returning as direct hostname/IP
+        return self._validate_host(device_id, "EC20")
 
     # Health thresholds
     storage_warning_percent: float = Field(
@@ -134,6 +141,58 @@ class Settings(BaseSettings):
         ge=1.0,
     )
 
+    def _validate_host(self, device_id: str, device_type: str = "device") -> str:
+        """Validate a device_id looks like a safe IP address or hostname.
+
+        Args:
+            device_id: The raw device identifier to validate.
+            device_type: Label for error messages (e.g., "Pearl", "EC20").
+
+        Returns:
+            The validated device_id string.
+
+        Raises:
+            ValueError: If device_id contains suspicious characters or
+                doesn't match IP/hostname format.
+        """
+        # Check against configured device lists first (always safe)
+        all_configured = self.get_device_list() + self.get_ec20_device_list()
+        if device_id in all_configured:
+            return device_id
+
+        # Reject dangerous patterns
+        if any(c in device_id for c in ("@", " ", "\t", "\n", "\r")):
+            raise ValueError(
+                f"Invalid {device_type} identifier: contains forbidden characters"
+            )
+        if "://" in device_id:
+            raise ValueError(
+                f"Invalid {device_type} identifier: looks like a URL, expected hostname or IP"
+            )
+        if ".." in device_id:
+            raise ValueError(
+                f"Invalid {device_type} identifier: contains path traversal pattern"
+            )
+
+        # Try parsing as IP address (IPv4 or IPv6)
+        try:
+            ipaddress.ip_address(device_id)
+            return device_id
+        except ValueError:
+            pass
+
+        # Validate as hostname (RFC 1123)
+        if len(device_id) > 253:
+            raise ValueError(
+                f"Invalid {device_type} hostname: exceeds 253 characters"
+            )
+        if not _HOSTNAME_RE.match(device_id):
+            raise ValueError(
+                f"Invalid {device_type} identifier: '{device_id}' is not a valid IP or hostname"
+            )
+
+        return device_id
+
     def get_device_list(self) -> list[str]:
         """Get list of configured device hosts."""
         if not self.devices:
@@ -172,8 +231,8 @@ class Settings(BaseSettings):
                 return devices[idx]
             raise ValueError(f"Device index {idx} out of range. Have {len(devices)} devices.")
 
-        # Assume it's a direct hostname/IP
-        return device_id
+        # Validate before returning as direct hostname/IP
+        return self._validate_host(device_id, "Pearl")
 
 
 @lru_cache

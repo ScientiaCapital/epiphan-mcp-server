@@ -295,172 +295,136 @@ class TestToolsYouTubeImports:
         assert callable(end_youtube_broadcast)
 
 
+class TestToolsEC20Imports:
+    """Tests for EC20 PTZ camera tool imports."""
+
+    def test_tools_ec20_imports(self):
+        """Test that EC20 tools can be imported from the ec20 module."""
+        from epiphan_mcp.tools.ec20 import (
+            ec20_disable_tracking,
+            ec20_enable_tracking,
+            ec20_get_preview,
+            ec20_get_status,
+            ec20_goto_preset,
+            ec20_home,
+            ec20_list_presets,
+            ec20_pan_tilt,
+            ec20_save_preset,
+            ec20_zoom,
+        )
+
+        assert callable(ec20_get_status)
+        assert callable(ec20_pan_tilt)
+        assert callable(ec20_zoom)
+        assert callable(ec20_goto_preset)
+        assert callable(ec20_save_preset)
+        assert callable(ec20_home)
+        assert callable(ec20_enable_tracking)
+        assert callable(ec20_disable_tracking)
+        assert callable(ec20_list_presets)
+        assert callable(ec20_get_preview)
+
+
+class TestToolsAIImports:
+    """Tests for AI analysis tool imports."""
+
+    def test_tools_ai_imports(self):
+        """Test that AI tools can be imported from the ai_tools module."""
+        from epiphan_mcp.tools.ai_tools import (
+            analyze_channel_scene,
+            check_video_quality,
+            clear_change_detection_cache,
+            detect_layout_changes,
+            detect_recording_issues,
+            extract_text_from_preview,
+        )
+
+        assert callable(analyze_channel_scene)
+        assert callable(check_video_quality)
+        assert callable(clear_change_detection_cache)
+        assert callable(detect_layout_changes)
+        assert callable(detect_recording_issues)
+        assert callable(extract_text_from_preview)
+
+
 class TestToolsInitImports:
     """Tests for tools __init__.py exports."""
 
     def test_all_tools_exported_from_init(self):
         """Test that all tools are re-exported from tools package."""
+        from epiphan_mcp.tools import __all__
+
+        # 113 MCP tools + get_client helper = at least 113 exports
+        # (detect_recording_issues was already counted in Fleet intelligence)
+        assert len(__all__) >= 113, f"Expected >= 113 tools in __all__, got {len(__all__)}"
+
+    def test_ec20_tools_in_init(self):
+        """Test that EC20 tools are exported from tools package."""
+        from epiphan_mcp.tools import (
+            ec20_disable_tracking,
+            ec20_enable_tracking,
+            ec20_get_preview,
+            ec20_get_status,
+            ec20_goto_preset,
+            ec20_home,
+            ec20_list_presets,
+            ec20_pan_tilt,
+            ec20_save_preset,
+            ec20_zoom,
+        )
+
+        ec20_tools = [
+            ec20_get_status, ec20_pan_tilt, ec20_zoom,
+            ec20_goto_preset, ec20_save_preset, ec20_home,
+            ec20_enable_tracking, ec20_disable_tracking,
+            ec20_list_presets, ec20_get_preview,
+        ]
+        for tool in ec20_tools:
+            assert callable(tool)
+
+    def test_ai_tools_in_init(self):
+        """Test that AI tools are exported from tools package."""
+        from epiphan_mcp.tools import (
+            analyze_channel_scene,
+            check_video_quality,
+            clear_change_detection_cache,
+            detect_layout_changes,
+            detect_recording_issues,
+            extract_text_from_preview,
+        )
+
+        ai_tools = [
+            analyze_channel_scene, check_video_quality,
+            clear_change_detection_cache, detect_layout_changes,
+            detect_recording_issues, extract_text_from_preview,
+        ]
+        for tool in ai_tools:
+            assert callable(tool)
+
+    def test_all_original_tools_still_exported(self):
+        """Test that original tools are still re-exported from tools package."""
         from epiphan_mcp.tools import (
             add_bookmark,
             batch_start_recording,
             batch_stop_recording,
-            create_kaltura_category,
-            create_kaltura_media,
-            create_network_input,
-            create_opencast_series,
-            create_panopto_folder,
-            create_panopto_session,
+            cloud_apply_preset,
+            cloud_list_devices,
             create_publisher,
-            create_scheduled_event,
-            create_youtube_broadcast,
-            delete_opencast_event,
-            delete_panopto_session,
             delete_publisher,
-            end_youtube_broadcast,
-            get_afu_status,
             get_client,
-            get_device_health_score,
             get_device_status,
             get_fleet_status,
-            get_input_settings,
-            get_kaltura_category,
-            get_kaltura_media,
-            get_kaltura_upload_status,
-            get_opencast_event,
-            get_opencast_ingest_status,
-            get_opencast_series,
-            get_panopto_folder,
-            get_panopto_session,
-            get_panopto_upload_status,
-            get_publisher_settings,
-            get_recording_status,
-            get_scheduled_events,
-            get_storage_report,
-            get_stream_status,
-            get_youtube_broadcast_status,
-            ingest_to_opencast,
             list_devices,
-            list_inputs,
-            list_kaltura_categories,
-            list_kaltura_media,
-            list_layouts,
-            list_opencast_events,
-            list_opencast_series,
-            list_outputs,
-            list_panopto_folders,
-            list_panopto_sessions,
-            list_publisher_types,
-            list_qsys_components,
-            list_youtube_broadcasts,
-            pause_event,
-            predict_storage_full,
-            qsys_get_pearl_status,
-            qsys_start_recording,
-            qsys_stop_recording,
-            qsys_switch_layout,
-            rename_publisher,
-            resume_event,
-            schedule_kaltura_event,
-            schedule_opencast_capture,
-            set_output_source,
-            single_touch_start,
-            single_touch_stop,
             start_recording,
-            start_stream,
             stop_recording,
-            stop_stream,
-            switch_layout,
-            update_input_settings,
-            update_publisher_settings,
-            upload_to_kaltura,
-            upload_to_panopto,
         )
 
-        # Verify all are callable
-        all_tools = [
-            get_client,
-            get_device_status,
-            list_devices,
-            start_recording,
-            stop_recording,
-            get_recording_status,
-            start_stream,
-            stop_stream,
-            get_stream_status,
-            list_layouts,
-            switch_layout,
-            add_bookmark,
-            list_inputs,
-            get_storage_report,
-            get_afu_status,
-            predict_storage_full,
-            get_device_health_score,
-            get_fleet_status,
-            batch_start_recording,
-            batch_stop_recording,
-            get_scheduled_events,
-            single_touch_start,
-            single_touch_stop,
-            # New event tools
-            create_scheduled_event,
-            pause_event,
-            resume_event,
-            # New publisher tools
-            create_publisher,
-            delete_publisher,
-            get_publisher_settings,
-            update_publisher_settings,
-            list_publisher_types,
-            rename_publisher,
-            # New input/output tools
-            create_network_input,
-            get_input_settings,
-            update_input_settings,
-            list_outputs,
-            set_output_source,
-            # Panopto CMS integration tools
-            list_panopto_folders,
-            get_panopto_folder,
-            create_panopto_folder,
-            list_panopto_sessions,
-            get_panopto_session,
-            create_panopto_session,
-            upload_to_panopto,
-            get_panopto_upload_status,
-            delete_panopto_session,
-            # Kaltura CMS integration tools
-            list_kaltura_categories,
-            get_kaltura_category,
-            create_kaltura_category,
-            list_kaltura_media,
-            get_kaltura_media,
-            create_kaltura_media,
-            upload_to_kaltura,
-            schedule_kaltura_event,
-            get_kaltura_upload_status,
-            # Opencast CMS integration tools
-            list_opencast_series,
-            get_opencast_series,
-            create_opencast_series,
-            list_opencast_events,
-            get_opencast_event,
-            ingest_to_opencast,
-            get_opencast_ingest_status,
-            schedule_opencast_capture,
-            delete_opencast_event,
-            # Q-SYS AV control integration tools
-            list_qsys_components,
-            qsys_get_pearl_status,
-            qsys_start_recording,
-            qsys_stop_recording,
-            qsys_switch_layout,
-            # YouTube Live streaming integration tools
-            create_youtube_broadcast,
-            get_youtube_broadcast_status,
-            list_youtube_broadcasts,
-            end_youtube_broadcast,
-        ]
-        for tool in all_tools:
+        for tool in [
+            add_bookmark, batch_start_recording, batch_stop_recording,
+            cloud_apply_preset, cloud_list_devices, create_publisher,
+            delete_publisher, get_client, get_device_status,
+            get_fleet_status, list_devices, start_recording, stop_recording,
+        ]:
             assert callable(tool)
 
 

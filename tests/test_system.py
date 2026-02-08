@@ -94,6 +94,55 @@ class TestRebootDevice:
         assert result["success"] is False
         assert "No default device configured" in result["error"]
 
+    @pytest.mark.asyncio
+    async def test_reboot_audit_logged_on_success(self):
+        """Successful reboot should produce an audit log entry."""
+        from epiphan_mcp.tools.system import reboot_device
+
+        mock_client = AsyncMock()
+        mock_client.host = "192.168.1.100"
+        mock_client.reboot = AsyncMock(
+            return_value=OperationResult(
+                success=True, message="Rebooting", device="192.168.1.100"
+            )
+        )
+
+        with (
+            patch(
+                "epiphan_mcp.tools.system.get_client",
+                return_value=AsyncMock(__aenter__=AsyncMock(return_value=mock_client)),
+            ),
+            patch("epiphan_mcp.tools.system.log_operation") as mock_audit,
+        ):
+            await reboot_device(device_id="default", confirm=True)
+
+        mock_audit.assert_called_once_with(
+            "reboot", "192.168.1.100", details={"device_id": "default"}
+        )
+
+    @pytest.mark.asyncio
+    async def test_reboot_audit_logged_on_failure(self):
+        """Failed reboot should produce an audit log with success=False."""
+        from epiphan_mcp.tools.system import reboot_device
+
+        with (
+            patch(
+                "epiphan_mcp.tools.system.get_client",
+                return_value=AsyncMock(
+                    __aenter__=AsyncMock(
+                        side_effect=PearlAPIError("Connection refused")
+                    )
+                ),
+            ),
+            patch("epiphan_mcp.tools.system.log_operation") as mock_audit,
+        ):
+            await reboot_device(device_id="default", confirm=True)
+
+        mock_audit.assert_called_once()
+        call_kwargs = mock_audit.call_args
+        assert call_kwargs[0][0] == "reboot"
+        assert call_kwargs[1]["success"] is False
+
 
 # ============================================================
 # shutdown_device Tests

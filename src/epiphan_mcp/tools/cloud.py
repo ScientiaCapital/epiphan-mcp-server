@@ -12,6 +12,7 @@ Environment Variables Required:
 import base64
 import os
 
+from epiphan_mcp.audit import log_operation
 from epiphan_mcp.integrations.cloud import (
     EpiphanCloudAPIError,
     EpiphanCloudAuthError,
@@ -177,6 +178,7 @@ async def cloud_unpair_device(device_id: str) -> dict:
     try:
         async with EpiphanCloudClient(**config) as client:
             await client.unpair_device(device_id)
+            log_operation("cloud_unpair_device", device_id)
             return {"message": f"Unpaired device {device_id}", "success": True}
     except EpiphanCloudAuthError as e:
         return {"error": f"Authentication failed: {e}"}
@@ -209,6 +211,7 @@ async def cloud_delete_device(device_id: str) -> dict:
     try:
         async with EpiphanCloudClient(**config) as client:
             await client.delete_device(device_id)
+            log_operation("cloud_delete_device", device_id)
             return {"message": f"Deleted device {device_id}", "success": True}
     except EpiphanCloudAuthError as e:
         return {"error": f"Authentication failed: {e}"}

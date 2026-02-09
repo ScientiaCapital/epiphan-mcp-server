@@ -410,3 +410,64 @@ class TestDeviceHostValidation:
         settings = self._make_settings()
         assert settings.get_device_host("0") == "192.168.1.100"
         assert settings.get_device_host("1") == "pearl-01.local"
+
+
+# ============================================================
+# Max Concurrent Ops (Semaphore) Tests
+# ============================================================
+
+
+class TestMaxConcurrentOps:
+    """Test configurable max_concurrent_ops setting."""
+
+    def test_max_concurrent_ops_default(self):
+        """Default max_concurrent_ops should be 10."""
+        settings = Settings(
+            devices="192.168.1.100",
+            username="admin",
+            password="test",
+        )
+        assert settings.max_concurrent_ops == 10
+
+    def test_max_concurrent_ops_custom(self):
+        """Custom max_concurrent_ops value should be accepted."""
+        settings = Settings(
+            devices="192.168.1.100",
+            username="admin",
+            password="test",
+            max_concurrent_ops=20,
+        )
+        assert settings.max_concurrent_ops == 20
+
+    def test_max_concurrent_ops_env_override(self, monkeypatch):
+        """PEARL_MAX_CONCURRENT_OPS env var should override default."""
+        get_settings.cache_clear()
+
+        monkeypatch.setenv("PEARL_MAX_CONCURRENT_OPS", "25")
+        monkeypatch.setenv("PEARL_DEVICES", "192.168.1.100")
+        monkeypatch.setenv("PEARL_PASSWORD", "test")
+
+        settings = get_settings()
+        assert settings.max_concurrent_ops == 25
+
+        get_settings.cache_clear()
+
+    def test_max_concurrent_ops_bounds_lower(self):
+        """max_concurrent_ops below 1 should fail validation."""
+        with pytest.raises(ValueError):
+            Settings(
+                devices="192.168.1.100",
+                username="admin",
+                password="test",
+                max_concurrent_ops=0,
+            )
+
+    def test_max_concurrent_ops_bounds_upper(self):
+        """max_concurrent_ops above 100 should fail validation."""
+        with pytest.raises(ValueError):
+            Settings(
+                devices="192.168.1.100",
+                username="admin",
+                password="test",
+                max_concurrent_ops=101,
+            )

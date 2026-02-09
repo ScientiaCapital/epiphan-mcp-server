@@ -9,6 +9,7 @@ import logging
 from typing import Any
 
 from ..client import PearlAPIError
+from ..validation import ValidationError, validate_streaming_url
 from .device import get_client
 
 logger = logging.getLogger(__name__)
@@ -45,6 +46,16 @@ async def create_network_input(
             "error": "Input name is required",
             "device": device_id,
         }
+
+    if url:
+        try:
+            validate_streaming_url(url)
+        except ValidationError as e:
+            return {
+                "success": False,
+                "error": f"Invalid URL: {e}",
+                "device": device_id,
+            }
 
     try:
         async with get_client(device_id) as client:
@@ -158,6 +169,17 @@ async def update_input_settings(
             "error": "Input ID is required",
             "device": device_id,
         }
+
+    # Validate URL if provided (SSRF prevention)
+    if url is not None:
+        try:
+            validate_streaming_url(url)
+        except ValidationError as e:
+            return {
+                "success": False,
+                "error": f"Invalid URL: {e}",
+                "device": device_id,
+            }
 
     # Build settings dict with only provided values
     settings: dict[str, Any] = {}

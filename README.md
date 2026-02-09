@@ -2,7 +2,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
-[![Tests](https://img.shields.io/badge/tests-674_passing-brightgreen.svg)](tests/)
+[![Tests](https://img.shields.io/badge/tests-754_passing-brightgreen.svg)](tests/)
 [![Tools](https://img.shields.io/badge/MCP_tools-113-blue.svg)](src/epiphan_mcp/server.py)
 [![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](CHANGELOG.md)
 
@@ -432,7 +432,7 @@ tests/
 └── test_integration.py      # Integration tests (real hardware)
 ```
 
-**674 tests** with **~95% coverage**. All tests use mocked HTTP responses — no real Pearl hardware or API keys required.
+**754 tests** with **~95% coverage**. All tests use mocked HTTP responses — no real Pearl hardware or API keys required.
 
 ## API Reference
 

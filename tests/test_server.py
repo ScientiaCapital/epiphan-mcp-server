@@ -641,7 +641,7 @@ class TestGetFleetStatus:
 
         api_base = f"http://{mock_pearl_host}/api/v2.0"
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.fleet.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(mock_pearl_host)
 
             with respx.mock(assert_all_called=False) as router:
@@ -670,7 +670,7 @@ class TestGetFleetStatus:
 
         api_base = f"http://{mock_pearl_host}/api/v2.0"
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.fleet.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(mock_pearl_host)
 
             with respx.mock(assert_all_called=False) as router:
@@ -695,7 +695,7 @@ class TestGetFleetStatus:
 
         api_base = f"http://{mock_pearl_host}/api/v2.0"
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.fleet.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(mock_pearl_host)
 
             with respx.mock(assert_all_called=False) as router:
@@ -718,7 +718,7 @@ class TestGetFleetStatus:
         """Test fleet status with no devices configured."""
         from epiphan_mcp.server import get_fleet_status
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.fleet.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(devices="")
 
             result = await get_fleet_status.fn()
@@ -735,7 +735,7 @@ class TestGetFleetStatus:
 
         api_base = f"http://{mock_pearl_host}/api/v2.0"
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.fleet.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(mock_pearl_host)
 
             with respx.mock(assert_all_called=False) as router:
@@ -957,7 +957,7 @@ class TestBatchStartRecording:
 
         api_base = f"http://{mock_pearl_host}/api/v2.0"
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.fleet.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(mock_pearl_host)
 
             with respx.mock(assert_all_called=False) as router:
@@ -980,7 +980,7 @@ class TestBatchStartRecording:
         api_base1 = "http://192.168.1.100/api/v2.0"
         api_base2 = "http://192.168.1.101/api/v2.0"
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.fleet.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(devices=devices)
 
             with respx.mock(assert_all_called=False) as router:
@@ -1007,7 +1007,7 @@ class TestBatchStartRecording:
         api_base1 = "http://192.168.1.100/api/v2.0"
         api_base2 = "http://192.168.1.101/api/v2.0"
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.fleet.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(devices=devices)
 
             with respx.mock(assert_all_called=False) as router:
@@ -1028,7 +1028,7 @@ class TestBatchStartRecording:
         """Test batch start with no devices."""
         from epiphan_mcp.server import batch_start_recording
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.fleet.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(devices="")
 
             result = await batch_start_recording.fn(device_ids="all")
@@ -1046,7 +1046,7 @@ class TestBatchStopRecording:
 
         api_base = f"http://{mock_pearl_host}/api/v2.0"
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.fleet.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(mock_pearl_host)
 
             with respx.mock(assert_all_called=False) as router:
@@ -1316,7 +1316,7 @@ class TestServerErrorBranches:
         api_base1 = "http://192.168.1.100/api/v2.0"
         api_base2 = "http://192.168.1.101/api/v2.0"
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.fleet.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(devices=devices)
 
             with respx.mock(assert_all_called=False) as router:
@@ -1339,7 +1339,7 @@ class TestServerErrorBranches:
         """Test batch_stop_recording with no devices."""
         from epiphan_mcp.server import batch_stop_recording
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.fleet.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(devices="")
             result = await batch_stop_recording.fn(device_ids="all")
 
@@ -1365,7 +1365,7 @@ class TestServerErrorBranches:
         api_base1 = "http://192.168.1.100/api/v2.0"
         api_base2 = "http://192.168.1.101/api/v2.0"
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.fleet.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(devices="192.168.1.200")
 
             with respx.mock(assert_all_called=False) as router:

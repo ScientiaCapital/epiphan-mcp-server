@@ -15,6 +15,27 @@ from ..llm.providers import LLMError, get_provider
 
 logger = logging.getLogger(__name__)
 
+# Security: Configurable concurrency limit for fleet operations
+_fleet_semaphore: asyncio.Semaphore | None = None
+
+
+def _get_fleet_semaphore() -> asyncio.Semaphore:
+    """Get or create the fleet semaphore from config."""
+    global _fleet_semaphore
+    if _fleet_semaphore is None:
+        settings = get_settings()
+        _fleet_semaphore = asyncio.Semaphore(settings.max_concurrent_ops)
+    return _fleet_semaphore
+
+
+def _reset_fleet_semaphore() -> None:
+    """Reset the fleet semaphore so it re-reads config on next access.
+
+    Call this in tests to prevent state leaking between test cases.
+    """
+    global _fleet_semaphore
+    _fleet_semaphore = None
+
 
 # ============================================================
 # Health Score Calculation
@@ -93,6 +114,10 @@ async def _execute_on_fleet(
     """
     Execute operation on all devices in parallel using asyncio.gather.
 
+    Concurrency is limited by the fleet semaphore (configurable via
+    PEARL_MAX_CONCURRENT_OPS) to prevent overwhelming the network or
+    devices with too many simultaneous connections.
+
     Args:
         hosts: List of device hostnames/IPs to operate on.
         operation: Async function that takes a PearlClient and returns a result dict.
@@ -106,35 +131,36 @@ async def _execute_on_fleet(
     """
 
     async def _device_op(host: str) -> dict[str, Any]:
-        """Execute operation on a single device with timeout and error handling."""
-        try:
-            async with asyncio.timeout(timeout_per_device):
-                async with PearlClient.from_settings(host, settings) as client:
-                    return await operation(client)
-        except TimeoutError:
-            return {
-                "host": host,
-                "success": False,
-                "online": False,
-                "error": "Device timeout",
-                "alert": {
-                    "device": host,
-                    "severity": "error",
-                    "message": "Device timeout",
-                },
-            }
-        except Exception as e:
-            return {
-                "host": host,
-                "success": False,
-                "online": False,
-                "error": str(e),
-                "alert": {
-                    "device": host,
-                    "severity": "error",
-                    "message": f"Device offline: {e}",
-                },
-            }
+        """Execute operation on a single device with semaphore, timeout, and error handling."""
+        async with _get_fleet_semaphore():
+            try:
+                async with asyncio.timeout(timeout_per_device):
+                    async with PearlClient.from_settings(host, settings) as client:
+                        return await operation(client)
+            except TimeoutError:
+                return {
+                    "host": host,
+                    "success": False,
+                    "online": False,
+                    "error": "Device timeout",
+                    "alert": {
+                        "device": host,
+                        "severity": "error",
+                        "message": "Device timeout",
+                    },
+                }
+            except Exception as e:
+                return {
+                    "host": host,
+                    "success": False,
+                    "online": False,
+                    "error": str(e),
+                    "alert": {
+                        "device": host,
+                        "severity": "error",
+                        "message": f"Device offline: {e}",
+                    },
+                }
 
     tasks = [_device_op(host) for host in hosts]
     return await asyncio.gather(*tasks, return_exceptions=False)

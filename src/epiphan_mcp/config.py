@@ -41,6 +41,12 @@ class Settings(BaseSettings):
 
     # Fleet settings
     fleet_name: str = Field(default="default", description="Fleet identifier")
+    max_concurrent_ops: int = Field(
+        default=10,
+        description="Maximum concurrent fleet operations",
+        ge=1,
+        le=100,
+    )
 
     # Testing
     test_ip: str | None = Field(default=None, description="Pearl IP for integration tests")

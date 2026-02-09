@@ -12,6 +12,7 @@ from .device import get_client, get_device_status, list_devices
 from .fleet import (
     batch_start_recording,
     batch_stop_recording,
+    fleet_health_report,
     generate_shift_handoff,
     get_fleet_status,
     predict_fleet_issues,
@@ -166,6 +167,7 @@ __all__ = [
     "get_fleet_status",
     "batch_start_recording",
     "batch_stop_recording",
+    "fleet_health_report",
     # Fleet intelligence tools (Sprint 3)
     "detect_recording_issues",
     "suggest_maintenance_window",

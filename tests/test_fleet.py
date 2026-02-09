@@ -79,7 +79,7 @@ class TestFleetStatusParallel:
             await asyncio.sleep(delay_per_device)
             return Response(200, json=DEVICE_RESPONSE)
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.fleet.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(devices=devices)
 
             with respx.mock(assert_all_called=False) as router:
@@ -112,7 +112,7 @@ class TestFleetStatusParallel:
 
         devices = "192.168.1.100,192.168.1.101,192.168.1.102"
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.fleet.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(devices=devices)
 
             with respx.mock(assert_all_called=False) as router:
@@ -174,7 +174,7 @@ class TestFleetStatusParallel:
             await asyncio.sleep(20)  # Long delay (would timeout)
             return Response(200, json=DEVICE_RESPONSE)
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.fleet.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(devices=devices)
 
             with respx.mock(assert_all_called=False) as router:
@@ -233,7 +233,7 @@ class TestBatchStartParallel:
             await asyncio.sleep(delay_per_device)
             return Response(200, json=CONTROL_SUCCESS_RESPONSE)
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.fleet.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(devices=devices)
 
             with respx.mock(assert_all_called=False) as router:
@@ -261,7 +261,7 @@ class TestBatchStartParallel:
 
         devices = "192.168.1.100,192.168.1.101,192.168.1.102"
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.fleet.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(devices=devices)
 
             with respx.mock(assert_all_called=False) as router:
@@ -305,7 +305,7 @@ class TestBatchStopParallel:
             await asyncio.sleep(delay_per_device)
             return Response(200, json=CONTROL_SUCCESS_RESPONSE)
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.fleet.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(devices=devices)
 
             with respx.mock(assert_all_called=False) as router:
@@ -332,7 +332,7 @@ class TestBatchStopParallel:
 
         devices = "192.168.1.100,192.168.1.101"
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.fleet.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(devices=devices)
 
             with respx.mock(assert_all_called=False) as router:
@@ -385,7 +385,7 @@ class TestParallelTiming:
             await asyncio.sleep(delay_per_device)
             return Response(200, json=RECORDER_STATUS_STOPPED)
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.fleet.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(devices=devices)
 
             with respx.mock(assert_all_called=False) as router:
@@ -437,7 +437,7 @@ class TestFleetErrorHandling:
 
         devices = "192.168.1.100,192.168.1.101"
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.fleet.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(devices=devices)
 
             with respx.mock(assert_all_called=False) as router:
@@ -467,7 +467,7 @@ class TestFleetErrorHandling:
         """Test fleet operations with no devices configured."""
         from epiphan_mcp.server import batch_start_recording, batch_stop_recording, get_fleet_status
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.fleet.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(devices="")
 
             # Fleet status should handle empty list
@@ -489,7 +489,7 @@ class TestFleetErrorHandling:
         """Test fleet operations with a single device."""
         from epiphan_mcp.server import get_fleet_status
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.fleet.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(devices="192.168.1.100")
 
             with respx.mock(assert_all_called=False) as router:
@@ -525,7 +525,7 @@ class TestFleetHealthScores:
 
         devices = "192.168.1.100,192.168.1.101"
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.fleet.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(devices=devices)
 
             with respx.mock(assert_all_called=False) as router:
@@ -582,7 +582,7 @@ class TestFleetHealthScores:
             ]
         }
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.fleet.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(devices="192.168.1.100")
 
             with respx.mock(assert_all_called=False) as router:
@@ -610,7 +610,7 @@ class TestFleetHealthScores:
         """Verify offline devices are handled correctly in health calculations."""
         from epiphan_mcp.server import get_fleet_status
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.fleet.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(devices="192.168.1.100")
 
             with respx.mock(assert_all_called=False) as router:
@@ -643,7 +643,7 @@ class TestFleetHealthReport:
         """Verify fleet_health_report returns correct structure with mocked LLM."""
         from epiphan_mcp.server import fleet_health_report
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.fleet.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(
                 devices="192.168.1.100,192.168.1.101"
             )
@@ -662,7 +662,7 @@ class TestFleetHealthReport:
                     )
 
                 # Mock the LLM provider
-                with patch("epiphan_mcp.server.get_provider") as mock_provider:
+                with patch("epiphan_mcp.tools.fleet.get_provider") as mock_provider:
                     mock_llm = AsyncMock()
                     mock_llm.complete = AsyncMock(
                         return_value="Fleet is healthy with all devices online.\n\n1. Continue monitoring\n2. Schedule maintenance"
@@ -702,7 +702,7 @@ class TestFleetHealthReport:
             ]
         }
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.fleet.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(
                 devices="192.168.1.100,192.168.1.101"
             )
@@ -733,7 +733,7 @@ class TestFleetHealthReport:
                 )
 
                 # Mock the LLM provider
-                with patch("epiphan_mcp.server.get_provider") as mock_provider:
+                with patch("epiphan_mcp.tools.fleet.get_provider") as mock_provider:
                     mock_llm = AsyncMock()
                     mock_llm.complete = AsyncMock(
                         return_value="Fleet has issues.\n\n1. Clear storage on 192.168.1.101"
@@ -758,7 +758,7 @@ class TestFleetHealthReport:
         """Verify report handles empty fleet gracefully."""
         from epiphan_mcp.server import fleet_health_report
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.fleet.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(devices="")
 
             result = await fleet_health_report.fn()
@@ -772,7 +772,7 @@ class TestFleetHealthReport:
         from epiphan_mcp.llm.providers import LLMError
         from epiphan_mcp.server import fleet_health_report
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.fleet.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(devices="192.168.1.100")
 
             with respx.mock(assert_all_called=False) as router:
@@ -788,7 +788,7 @@ class TestFleetHealthReport:
                 )
 
                 # Mock the LLM provider to raise an error
-                with patch("epiphan_mcp.server.get_provider") as mock_provider:
+                with patch("epiphan_mcp.tools.fleet.get_provider") as mock_provider:
                     mock_llm = AsyncMock()
                     mock_llm.complete = AsyncMock(side_effect=LLMError("API error"))
                     mock_provider.return_value = mock_llm
@@ -814,7 +814,7 @@ class TestSuggestMaintenanceWindow:
         """Verify suggest_maintenance_window returns correct structure."""
         from epiphan_mcp.server import suggest_maintenance_window
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.fleet.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(
                 devices="192.168.1.100,192.168.1.101"
             )
@@ -854,7 +854,7 @@ class TestSuggestMaintenanceWindow:
         """Verify handling of empty fleet."""
         from epiphan_mcp.server import suggest_maintenance_window
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.fleet.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(devices="")
 
             result = await suggest_maintenance_window.fn(min_duration_hours=2.0)
@@ -871,7 +871,7 @@ class TestPredictFleetIssues:
         """Verify predict_fleet_issues returns correct structure."""
         from epiphan_mcp.server import predict_fleet_issues
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.fleet.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(
                 devices="192.168.1.100,192.168.1.101"
             )
@@ -958,7 +958,7 @@ class TestPredictFleetIssues:
         """Verify handling of empty fleet."""
         from epiphan_mcp.server import predict_fleet_issues
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.fleet.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(devices="")
 
             result = await predict_fleet_issues.fn(hours_ahead=24)
@@ -1065,7 +1065,7 @@ class TestGenerateShiftHandoff:
         """Verify handling of empty fleet."""
         from epiphan_mcp.server import generate_shift_handoff
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.fleet.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(devices="")
 
             result = await generate_shift_handoff.fn(shift_hours=8)
@@ -1078,7 +1078,7 @@ class TestGenerateShiftHandoff:
         from epiphan_mcp.llm.providers import LLMError
         from epiphan_mcp.server import generate_shift_handoff
 
-        with patch("epiphan_mcp.server.get_settings") as mock_settings:
+        with patch("epiphan_mcp.tools.fleet.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(devices="192.168.1.100")
 
             with respx.mock(assert_all_called=False) as router:

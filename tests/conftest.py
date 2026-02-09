@@ -12,6 +12,21 @@ from httpx import Response
 
 from epiphan_mcp.client import PearlClient
 from epiphan_mcp.config import Settings
+from epiphan_mcp.tools.fleet import _reset_fleet_semaphore
+
+
+# ============================================================
+# Fleet Semaphore Isolation
+# ============================================================
+
+
+@pytest.fixture(autouse=True)
+def _reset_semaphore_between_tests():
+    """Reset the fleet semaphore before each test to prevent state leakage."""
+    _reset_fleet_semaphore()
+    yield
+    _reset_fleet_semaphore()
+
 
 # ============================================================
 # Settings Patch Helper
@@ -34,7 +49,6 @@ def patch_settings(settings: Settings):
     """
     # Modules that actually call get_settings()
     patch_locations = [
-        "epiphan_mcp.server.get_settings",  # Fleet tools in server.py
         "epiphan_mcp.tools.device.get_settings",  # get_client(), list_devices()
         "epiphan_mcp.tools.fleet.get_settings",  # Fleet operations
         "epiphan_mcp.tools.ai_tools.get_settings",  # AI tools

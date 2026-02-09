@@ -92,3 +92,45 @@ class TestValidateStreamingUrl:
         """Hostnames ending in .local should be allowed (Pearl devices)."""
         result = validate_streaming_url("rtmp://pearl-01.local/stream")
         assert result == "rtmp://pearl-01.local/stream"
+
+    # --- SSRF bypass vector tests (S1/S6) ---
+
+    def test_octal_ip_rejected(self):
+        """Octal-encoded IP 0177.0.0.1 (= 127.0.0.1) should be rejected."""
+        with pytest.raises(ValidationError, match="Suspicious IP encoding|private/internal"):
+            validate_streaming_url("http://0177.0.0.1/test")
+
+    def test_hex_ip_rejected(self):
+        """Hex-encoded IP 0x7f.0.0.1 (= 127.0.0.1) should be rejected."""
+        with pytest.raises(ValidationError, match="Suspicious IP encoding|private/internal"):
+            validate_streaming_url("http://0x7f.0.0.1/test")
+
+    def test_decimal_ip_rejected(self):
+        """Decimal-encoded IP 2130706433 (= 127.0.0.1) should be rejected."""
+        with pytest.raises(ValidationError, match="Suspicious IP encoding|private/internal"):
+            validate_streaming_url("http://2130706433/test")
+
+    def test_ipv4_mapped_ipv6_private_rejected(self):
+        """IPv4-mapped IPv6 ::ffff:192.168.1.1 should be rejected as private."""
+        with pytest.raises(ValidationError, match="private/internal"):
+            validate_streaming_url("http://[::ffff:192.168.1.1]/test")
+
+    def test_ipv4_mapped_ipv6_loopback_rejected(self):
+        """IPv4-mapped IPv6 ::ffff:127.0.0.1 should be rejected as loopback."""
+        with pytest.raises(ValidationError, match="private/internal"):
+            validate_streaming_url("http://[::ffff:127.0.0.1]/test")
+
+    def test_octal_hex_mixed_rejected(self):
+        """Mixed octal/hex encoding should be rejected."""
+        with pytest.raises(ValidationError, match="Suspicious IP encoding|private/internal"):
+            validate_streaming_url("http://0x7f.0.0.01/test")
+
+    def test_normal_public_ip_still_allowed(self):
+        """Normal public IP addresses should still pass validation."""
+        result = validate_streaming_url("rtmp://8.8.8.8/stream")
+        assert result == "rtmp://8.8.8.8/stream"
+
+    def test_normal_hostname_with_numbers_allowed(self):
+        """Hostnames containing numbers but also letters should pass."""
+        result = validate_streaming_url("rtmp://stream42.example.com/live")
+        assert result == "rtmp://stream42.example.com/live"

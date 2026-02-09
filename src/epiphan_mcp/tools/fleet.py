@@ -6,7 +6,7 @@ Fleet operations execute in parallel using asyncio.gather for improved performan
 import asyncio
 import logging
 from collections.abc import Awaitable, Callable
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any
 
 from ..client import PearlClient
@@ -20,7 +20,13 @@ _fleet_semaphore: asyncio.Semaphore | None = None
 
 
 def _get_fleet_semaphore() -> asyncio.Semaphore:
-    """Get or create the fleet semaphore from config."""
+    """Get or create the fleet semaphore from config.
+
+    Note on thread safety: This lazy-init pattern has a theoretical TOCTOU
+    race in multi-threaded contexts.  However, FastMCP runs a single-threaded
+    asyncio event loop, so only one coroutine executes this function at a time.
+    No lock is needed.
+    """
     global _fleet_semaphore
     if _fleet_semaphore is None:
         settings = get_settings()
@@ -45,17 +51,21 @@ def _reset_fleet_semaphore() -> None:
 def _calculate_health_score(
     storage_used_percent: float,
     recorder_accessible: bool = True,
+    storage_weight: int = 50,
+    recording_weight: int = 50,
 ) -> dict[str, Any]:
     """
     Calculate health score for a device (0-100).
 
-    Scoring breakdown:
-    - Storage health: 50 points max
-    - Recording system health: 50 points max
+    Scoring breakdown is configurable via weights (should sum to 100):
+    - Storage health: ``storage_weight`` points max
+    - Recording system health: ``recording_weight`` points max
 
     Args:
         storage_used_percent: Current storage usage percentage
         recorder_accessible: Whether recorder status was accessible
+        storage_weight: Max points for storage health (from config)
+        recording_weight: Max points for recording health (from config)
 
     Returns:
         Dict with score (0-100), issues list, and category breakdown
@@ -63,32 +73,32 @@ def _calculate_health_score(
     issues: list[str] = []
     categories: dict[str, dict[str, Any]] = {}
 
-    # Storage health (50 points max)
+    # Storage health (storage_weight points max)
     if storage_used_percent >= 90:
-        storage_score = 10  # Critical
+        storage_score = round(storage_weight * 0.2)  # Critical: 20% of weight
         issues.append(f"Storage critically low: {storage_used_percent:.0f}% used")
     elif storage_used_percent >= 75:
-        storage_score = 30  # Warning
+        storage_score = round(storage_weight * 0.6)  # Warning: 60% of weight
         issues.append(f"Storage running low: {storage_used_percent:.0f}% used")
     else:
-        storage_score = 50  # Healthy
+        storage_score = storage_weight  # Healthy: full weight
 
     categories["storage"] = {
         "score": storage_score,
-        "max": 50,
+        "max": storage_weight,
         "used_percent": round(storage_used_percent, 1),
     }
 
-    # Recording system health (50 points max)
+    # Recording system health (recording_weight points max)
     if recorder_accessible:
-        recording_score = 50
+        recording_score = recording_weight
     else:
-        recording_score = 25
+        recording_score = round(recording_weight * 0.5)
         issues.append("Could not check recorder status")
 
     categories["recording"] = {
         "score": recording_score,
-        "max": 50,
+        "max": recording_weight,
     }
 
     total_score = storage_score + recording_score
@@ -210,10 +220,12 @@ async def get_fleet_status() -> dict[str, Any]:
                 recorder_accessible = False
                 is_recording = False
 
-            # Calculate health score
+            # Calculate health score using configurable weights
             health = _calculate_health_score(
                 storage_used_percent=status.storage_used_percent,
                 recorder_accessible=recorder_accessible,
+                storage_weight=settings.health_score_storage_weight,
+                recording_weight=settings.health_score_recording_weight,
             )
 
             result: dict[str, Any] = {
@@ -1048,10 +1060,11 @@ async def generate_shift_handoff(
 
     # Generate AI summary
     current_time = datetime.now()
-    shift_start = current_time.replace(
-        hour=max(0, current_time.hour - shift_hours),
+    # Use timedelta to correctly handle midnight crossing (e.g. 2am - 8h = 6pm yesterday)
+    shift_start = (current_time - timedelta(hours=shift_hours)).replace(
         minute=0,
         second=0,
+        microsecond=0,
     )
 
     prompt = f"""Generate a shift handoff summary for an AV operations team.

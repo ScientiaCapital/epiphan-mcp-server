@@ -12,7 +12,7 @@
     "url": "https://github.com/tmkipper/epiphan-mcp-server"
   },
   "license": "MIT",
-  "transport": ["stdio"],
+  "transport": "stdio",
   "tools_count": 113,
   "categories": ["hardware", "video", "av-control", "iot"],
   "integrations": [
@@ -27,7 +27,7 @@
     "OpenRouter (Vision LLMs)"
   ],
   "installation": {
-    "pip": "pip install epiphan-mcp",
+    "pip": "pip install epiphan-mcp (pending PyPI publish)",
     "source": "git clone https://github.com/tmkipper/epiphan-mcp-server.git && pip install -e '.[dev]'"
   },
   "configuration": {

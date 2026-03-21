@@ -226,8 +226,55 @@ async def list_archive_files(
         }
 
 
+async def get_all_recorder_status(device_id: str = "default") -> dict[str, Any]:
+    """
+    Get recording status for ALL recorders on a Pearl device at once.
+
+    More efficient than calling get_recording_status for each recorder individually.
+    Useful for multi-recorder Pearl setups (e.g., lecture halls with 2+ recorders).
+
+    Args:
+        device_id: Device identifier. Use "default" for the primary configured device,
+                   or specify an IP address, hostname, or device index.
+
+    Returns:
+        List of all recorders with their current state, duration, file size, and filename.
+    """
+    try:
+        async with get_client(device_id) as client:
+            statuses = await client.get_all_recorder_status()
+            return {
+                "success": True,
+                "device": client.host,
+                "total_recorders": len(statuses),
+                "recorders": [
+                    {
+                        "id": s.id,
+                        "state": s.state.value,
+                        "duration_seconds": s.duration_seconds,
+                        "file_size_bytes": s.file_size_bytes,
+                        "filename": s.filename,
+                    }
+                    for s in statuses
+                ],
+            }
+    except PearlAPIError as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "device": device_id,
+        }
+    except ValueError as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "device": device_id,
+        }
+
+
 def register(server: FastMCP) -> None:
     """Register recording MCP tools."""
+    server.tool()(get_all_recorder_status)
     server.tool()(get_recording_status)
     server.tool()(list_archive_files)
     server.tool()(list_recorders)

@@ -11,6 +11,7 @@ from httpx import ConnectError, Response, TimeoutException
 from epiphan_mcp.config import Settings
 from epiphan_mcp.models import RecorderInfo
 from epiphan_mcp.tools.recording import (
+    get_all_recorder_status,
     get_recording_status,
     list_archive_files,
     list_recorders,
@@ -596,3 +597,63 @@ class TestListArchiveFiles:
         mock_client.get_archive_files.assert_called_once_with(
             "recorder-2", from_index=0, limit=100
         )
+
+
+class TestGetAllRecorderStatus:
+    """Tests for get_all_recorder_status tool."""
+
+    @pytest.mark.asyncio
+    async def test_get_all_recorder_status_success(self):
+        """Test successful retrieval of all recorder statuses."""
+        mock_statuses = [
+            AsyncMock(
+                id="recorder-1",
+                state=AsyncMock(value="recording"),
+                duration_seconds=120,
+                file_size_bytes=50000000,
+                filename="recording_001.mp4",
+            ),
+            AsyncMock(
+                id="recorder-2",
+                state=AsyncMock(value="stopped"),
+                duration_seconds=0,
+                file_size_bytes=0,
+                filename="",
+            ),
+        ]
+        mock_client = AsyncMock()
+        mock_client.host = "192.168.1.100"
+        mock_client.get_all_recorder_status = AsyncMock(return_value=mock_statuses)
+
+        with patch(
+            "epiphan_mcp.tools.recording.get_client",
+            return_value=AsyncMock(__aenter__=AsyncMock(return_value=mock_client)),
+        ):
+            result = await get_all_recorder_status(device_id="default")
+
+        assert result["success"] is True
+        assert result["device"] == "192.168.1.100"
+        assert result["total_recorders"] == 2
+        assert result["recorders"][0]["id"] == "recorder-1"
+        assert result["recorders"][0]["state"] == "recording"
+        assert result["recorders"][1]["id"] == "recorder-2"
+        assert result["recorders"][1]["state"] == "stopped"
+
+    @pytest.mark.asyncio
+    async def test_get_all_recorder_status_error(self):
+        """Test error handling for get_all_recorder_status."""
+        from epiphan_mcp.client import PearlAPIError
+
+        mock_client = AsyncMock()
+        mock_client.get_all_recorder_status = AsyncMock(
+            side_effect=PearlAPIError("Connection refused")
+        )
+
+        with patch(
+            "epiphan_mcp.tools.recording.get_client",
+            return_value=AsyncMock(__aenter__=AsyncMock(return_value=mock_client)),
+        ):
+            result = await get_all_recorder_status(device_id="default")
+
+        assert result["success"] is False
+        assert "Connection refused" in result["error"]

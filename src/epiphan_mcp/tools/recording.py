@@ -272,11 +272,77 @@ async def get_all_recorder_status(device_id: str = "default") -> dict[str, Any]:
         }
 
 
+async def start_all_recorders(device_id: str = "default") -> dict[str, Any]:
+    """
+    Start ALL recorders on a Pearl device simultaneously.
+
+    More efficient than starting each recorder individually. Useful for lecture halls
+    and multi-recorder setups where all recorders should start at the same time.
+
+    Args:
+        device_id: Device identifier. Use "default" for the primary configured device,
+                   or specify an IP address, hostname, or device index.
+
+    Returns:
+        Confirmation that all recorders have been started.
+    """
+    try:
+        async with get_client(device_id) as client:
+            result = await client.start_all_recorders()
+            return result.model_dump()
+    except PearlAPIError as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "device": device_id,
+        }
+    except ValueError as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "device": device_id,
+        }
+
+
+async def stop_all_recorders(device_id: str = "default") -> dict[str, Any]:
+    """
+    Stop ALL recorders on a Pearl device simultaneously.
+
+    More efficient than stopping each recorder individually. Ensures all recorders
+    stop at the same time, producing consistent end timestamps across recordings.
+
+    Args:
+        device_id: Device identifier. Use "default" for the primary configured device,
+                   or specify an IP address, hostname, or device index.
+
+    Returns:
+        Confirmation that all recorders have been stopped.
+    """
+    try:
+        async with get_client(device_id) as client:
+            result = await client.stop_all_recorders()
+            return result.model_dump()
+    except PearlAPIError as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "device": device_id,
+        }
+    except ValueError as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "device": device_id,
+        }
+
+
 def register(server: FastMCP) -> None:
     """Register recording MCP tools."""
     server.tool()(get_all_recorder_status)
     server.tool()(get_recording_status)
     server.tool()(list_archive_files)
     server.tool()(list_recorders)
+    server.tool()(start_all_recorders)
     server.tool()(start_recording)
+    server.tool()(stop_all_recorders)
     server.tool()(stop_recording)

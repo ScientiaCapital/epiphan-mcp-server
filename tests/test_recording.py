@@ -15,7 +15,9 @@ from epiphan_mcp.tools.recording import (
     get_recording_status,
     list_archive_files,
     list_recorders,
+    start_all_recorders,
     start_recording,
+    stop_all_recorders,
     stop_recording,
 )
 
@@ -657,3 +659,97 @@ class TestGetAllRecorderStatus:
 
         assert result["success"] is False
         assert "Connection refused" in result["error"]
+
+
+class TestStartAllRecorders:
+    """Tests for start_all_recorders tool."""
+
+    @pytest.mark.asyncio
+    async def test_start_all_recorders_success(self):
+        """Test starting all recorders simultaneously."""
+        from unittest.mock import MagicMock
+
+        mock_result = MagicMock()
+        mock_result.model_dump.return_value = {
+            "success": True,
+            "message": "Recording started on all recorder(s)",
+            "device": "192.168.1.100",
+            "details": {"recorders": "all"},
+        }
+        mock_client = AsyncMock()
+        mock_client.start_all_recorders = AsyncMock(return_value=mock_result)
+
+        with patch(
+            "epiphan_mcp.tools.recording.get_client",
+            return_value=AsyncMock(__aenter__=AsyncMock(return_value=mock_client)),
+        ):
+            result = await start_all_recorders(device_id="default")
+
+        assert result["success"] is True
+        mock_client.start_all_recorders.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_start_all_recorders_error(self):
+        """Test error handling for start_all_recorders."""
+        from epiphan_mcp.client import PearlAPIError
+
+        mock_client = AsyncMock()
+        mock_client.start_all_recorders = AsyncMock(
+            side_effect=PearlAPIError("Device busy")
+        )
+
+        with patch(
+            "epiphan_mcp.tools.recording.get_client",
+            return_value=AsyncMock(__aenter__=AsyncMock(return_value=mock_client)),
+        ):
+            result = await start_all_recorders(device_id="default")
+
+        assert result["success"] is False
+        assert "Device busy" in result["error"]
+
+
+class TestStopAllRecorders:
+    """Tests for stop_all_recorders tool."""
+
+    @pytest.mark.asyncio
+    async def test_stop_all_recorders_success(self):
+        """Test stopping all recorders simultaneously."""
+        from unittest.mock import MagicMock
+
+        mock_result = MagicMock()
+        mock_result.model_dump.return_value = {
+            "success": True,
+            "message": "Recording stopped on all recorder(s)",
+            "device": "192.168.1.100",
+            "details": {"recorders": "all"},
+        }
+        mock_client = AsyncMock()
+        mock_client.stop_all_recorders = AsyncMock(return_value=mock_result)
+
+        with patch(
+            "epiphan_mcp.tools.recording.get_client",
+            return_value=AsyncMock(__aenter__=AsyncMock(return_value=mock_client)),
+        ):
+            result = await stop_all_recorders(device_id="default")
+
+        assert result["success"] is True
+        mock_client.stop_all_recorders.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_stop_all_recorders_error(self):
+        """Test error handling for stop_all_recorders."""
+        from epiphan_mcp.client import PearlAPIError
+
+        mock_client = AsyncMock()
+        mock_client.stop_all_recorders = AsyncMock(
+            side_effect=PearlAPIError("Not recording")
+        )
+
+        with patch(
+            "epiphan_mcp.tools.recording.get_client",
+            return_value=AsyncMock(__aenter__=AsyncMock(return_value=mock_client)),
+        ):
+            result = await stop_all_recorders(device_id="default")
+
+        assert result["success"] is False
+        assert "Not recording" in result["error"]

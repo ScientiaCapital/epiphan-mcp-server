@@ -3,14 +3,17 @@
 import logging
 from typing import Any
 
+from fastmcp import FastMCP
+
 from ..client import PearlAPIError
 from .device import get_client
+from .discovery import get_default_recorder
 
 logger = logging.getLogger(__name__)
 
 
 async def predict_storage_full(
-    device_id: str = "default", recorder: int = 1, assumed_bitrate_mbps: float = 8.0
+    device_id: str = "default", recorder: int | None = None, assumed_bitrate_mbps: float = 8.0
 ) -> dict[str, Any]:
     """
     Predict when device storage will be full based on current recording rate.
@@ -21,6 +24,7 @@ async def predict_storage_full(
     Args:
         device_id: Device identifier. Use "default" for the primary configured device.
         recorder: Recorder number (1-based) to check for active recording.
+                  Auto-detected if not specified.
         assumed_bitrate_mbps: Assumed recording bitrate in Mbps if not actively recording.
                               Default 8.0 Mbps is typical for 1080p H.264.
 
@@ -33,6 +37,8 @@ async def predict_storage_full(
         - bitrate_mbps: Actual or assumed recording bitrate
         - warning: True if storage is critically low (<10%)
     """
+    if recorder is None:
+        recorder = await get_default_recorder(device_id)
     try:
         async with get_client(device_id) as client:
             # Get storage info
@@ -111,6 +117,7 @@ async def get_device_health_score(device_id: str = "default") -> dict[str, Any]:
         - is_recording: Whether device is currently recording
         - recommendation: Suggested action if any issues found
     """
+    recorder = await get_default_recorder(device_id)
     try:
         async with get_client(device_id) as client:
             issues: list[str] = []
@@ -142,7 +149,7 @@ async def get_device_health_score(device_id: str = "default") -> dict[str, Any]:
 
             # Recording health (50 points max)
             try:
-                recorder_status = await client.get_recorder_status("recorder-1")
+                recorder_status = await client.get_recorder_status(f"recorder-{recorder}")
                 is_recording = recorder_status.state.value == "recording"
                 recording_score = 50  # Healthy - device is responsive
                 recording_healthy = True
@@ -193,3 +200,9 @@ async def get_device_health_score(device_id: str = "default") -> dict[str, Any]:
             "error": str(e),
             "device": device_id,
         }
+
+
+def register(server: FastMCP) -> None:
+    """Register maintenance MCP tools."""
+    server.tool()(get_device_health_score)
+    server.tool()(predict_storage_full)

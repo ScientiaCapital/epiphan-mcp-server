@@ -32,6 +32,8 @@ import base64
 import logging
 from typing import Any
 
+from fastmcp import FastMCP
+
 from epiphan_mcp.config import get_settings
 from epiphan_mcp.integrations.ec20 import EC20Client, EC20APIError, EC20ConnectionError
 
@@ -607,3 +609,17 @@ async def ec20_get_preview(camera_id: str = "default") -> dict[str, Any]:
             "camera_id": camera_id,
             "error": f"API error: {e}",
         }
+
+
+def register(server: FastMCP) -> None:
+    """Register EC20 MCP tools."""
+    server.tool()(ec20_disable_tracking)
+    server.tool()(ec20_enable_tracking)
+    server.tool()(ec20_get_preview)
+    server.tool()(ec20_get_status)
+    server.tool()(ec20_goto_preset)
+    server.tool()(ec20_home)
+    server.tool()(ec20_list_presets)
+    server.tool()(ec20_pan_tilt)
+    server.tool()(ec20_save_preset)
+    server.tool()(ec20_zoom)

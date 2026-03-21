@@ -9,9 +9,12 @@ from collections.abc import Awaitable, Callable
 from datetime import datetime, timedelta
 from typing import Any
 
+from fastmcp import FastMCP
+
 from ..client import PearlClient
 from ..config import Settings, get_settings
 from ..llm.providers import LLMError, get_provider
+from .discovery import get_default_recorder
 
 logger = logging.getLogger(__name__)
 
@@ -214,7 +217,8 @@ async def get_fleet_status() -> dict[str, Any]:
             status = await client.get_system_status()
             recorder_accessible = True
             try:
-                recorder = await client.get_recorder_status("recorder-1")
+                recorder_num = await get_default_recorder(host)
+                recorder = await client.get_recorder_status(f"recorder-{recorder_num}")
                 is_recording = recorder.state.value == "recording"
             except Exception:
                 recorder_accessible = False
@@ -343,7 +347,8 @@ async def batch_start_recording(device_ids: str = "all") -> dict[str, Any]:
         """Start recording on a single device."""
         host = client.host
         try:
-            await client.start_recording("recorder-1")
+            recorder_num = await get_default_recorder(host)
+            await client.start_recording(f"recorder-{recorder_num}")
             return {"device": host, "success": True}
         except Exception as e:
             return {"device": host, "success": False, "error": str(e)}
@@ -397,7 +402,8 @@ async def batch_stop_recording(device_ids: str = "all") -> dict[str, Any]:
         """Stop recording on a single device."""
         host = client.host
         try:
-            await client.stop_recording("recorder-1")
+            recorder_num = await get_default_recorder(host)
+            await client.stop_recording(f"recorder-{recorder_num}")
             return {"device": host, "success": True}
         except Exception as e:
             return {"device": host, "success": False, "error": str(e)}
@@ -1138,3 +1144,14 @@ def _format_attention_items(items: list[dict[str, str]]) -> str:
     for item in items[:5]:
         lines.append(f"- {item['device']}: {item['issue']} (priority: {item['priority']})")
     return "\n".join(lines)
+
+
+def register(server: FastMCP) -> None:
+    """Register fleet MCP tools."""
+    server.tool()(batch_start_recording)
+    server.tool()(batch_stop_recording)
+    server.tool()(fleet_health_report)
+    server.tool()(generate_shift_handoff)
+    server.tool()(get_fleet_status)
+    server.tool()(predict_fleet_issues)
+    server.tool()(suggest_maintenance_window)

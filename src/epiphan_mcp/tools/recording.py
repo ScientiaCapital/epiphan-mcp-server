@@ -3,14 +3,17 @@
 import logging
 from typing import Any
 
+from fastmcp import FastMCP
+
 from ..client import PearlAPIError
 from ..models import RecorderInfo
 from .device import get_client
+from .discovery import get_default_recorder
 
 logger = logging.getLogger(__name__)
 
 
-async def start_recording(device_id: str = "default", recorder: int = 1) -> dict[str, Any]:
+async def start_recording(device_id: str = "default", recorder: int | None = None) -> dict[str, Any]:
     """
     Start recording on an Epiphan Pearl device.
 
@@ -19,12 +22,14 @@ async def start_recording(device_id: str = "default", recorder: int = 1) -> dict
     Args:
         device_id: Device identifier. Use "default" for the primary configured device,
                    or specify an IP address, hostname, or device index.
-        recorder: Recorder number (1-based). Most setups use recorder 1.
+        recorder: Recorder number (1-based). Auto-detected if not specified.
                   Use higher numbers for multi-recorder configurations.
 
     Returns:
         Confirmation of recording start with device and recorder details.
     """
+    if recorder is None:
+        recorder = await get_default_recorder(device_id)
     try:
         async with get_client(device_id) as client:
             # Convert int to string recorder ID (e.g., 1 -> "recorder-1")
@@ -46,7 +51,7 @@ async def start_recording(device_id: str = "default", recorder: int = 1) -> dict
         }
 
 
-async def stop_recording(device_id: str = "default", recorder: int = 1) -> dict[str, Any]:
+async def stop_recording(device_id: str = "default", recorder: int | None = None) -> dict[str, Any]:
     """
     Stop recording on an Epiphan Pearl device.
 
@@ -55,11 +60,13 @@ async def stop_recording(device_id: str = "default", recorder: int = 1) -> dict[
     Args:
         device_id: Device identifier. Use "default" for the primary configured device,
                    or specify an IP address, hostname, or device index.
-        recorder: Recorder number (1-based). Must match the recorder that's recording.
+        recorder: Recorder number (1-based). Auto-detected if not specified.
 
     Returns:
         Confirmation of recording stop with device and recorder details.
     """
+    if recorder is None:
+        recorder = await get_default_recorder(device_id)
     try:
         async with get_client(device_id) as client:
             recorder_id = f"recorder-{recorder}" if isinstance(recorder, int) else str(recorder)
@@ -80,17 +87,19 @@ async def stop_recording(device_id: str = "default", recorder: int = 1) -> dict[
         }
 
 
-async def get_recording_status(device_id: str = "default", recorder: int = 1) -> dict[str, Any]:
+async def get_recording_status(device_id: str = "default", recorder: int | None = None) -> dict[str, Any]:
     """
     Get the current recording status of an Epiphan Pearl device.
 
     Args:
         device_id: Device identifier. Use "default" for the primary configured device.
-        recorder: Recorder number (1-based).
+        recorder: Recorder number (1-based). Auto-detected if not specified.
 
     Returns:
         Recording state (recording, stopped, paused, error) and details.
     """
+    if recorder is None:
+        recorder = await get_default_recorder(device_id)
     try:
         async with get_client(device_id) as client:
             recorder_id = f"recorder-{recorder}" if isinstance(recorder, int) else str(recorder)
@@ -166,7 +175,7 @@ async def list_recorders(device_id: str = "default") -> dict[str, Any]:
 
 async def list_archive_files(
     device_id: str = "default",
-    recorder: int = 1,
+    recorder: int | None = None,
     from_index: int | None = None,
     limit: int | None = None,
 ) -> dict[str, Any]:
@@ -178,13 +187,15 @@ async def list_archive_files(
 
     Args:
         device_id: Device identifier. Use "default" for the primary configured device.
-        recorder: Recorder number (1-based).
+        recorder: Recorder number (1-based). Auto-detected if not specified.
         from_index: Starting index for pagination (0-based).
         limit: Maximum number of files to return.
 
     Returns:
         List of archive files with filenames, sizes, durations, and creation timestamps.
     """
+    if recorder is None:
+        recorder = await get_default_recorder(device_id)
     try:
         async with get_client(device_id) as client:
             recorder_id = f"recorder-{recorder}" if isinstance(recorder, int) else str(recorder)
@@ -213,3 +224,12 @@ async def list_archive_files(
             "error": str(e),
             "device": device_id,
         }
+
+
+def register(server: FastMCP) -> None:
+    """Register recording MCP tools."""
+    server.tool()(get_recording_status)
+    server.tool()(list_archive_files)
+    server.tool()(list_recorders)
+    server.tool()(start_recording)
+    server.tool()(stop_recording)

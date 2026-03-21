@@ -20,6 +20,8 @@ import os
 from datetime import datetime
 from pathlib import Path
 
+from fastmcp import FastMCP
+
 from epiphan_mcp.integrations.kaltura import (
     KalturaAPIError,
     KalturaAuthError,
@@ -539,3 +541,16 @@ KALTURA_TOOLS = [
     schedule_kaltura_event,
     get_kaltura_upload_status,
 ]
+
+
+def register(server: FastMCP) -> None:
+    """Register Kaltura MCP tools."""
+    server.tool()(create_kaltura_category)
+    server.tool()(create_kaltura_media)
+    server.tool()(get_kaltura_category)
+    server.tool()(get_kaltura_media)
+    server.tool()(get_kaltura_upload_status)
+    server.tool()(list_kaltura_categories)
+    server.tool()(list_kaltura_media)
+    server.tool()(schedule_kaltura_event)
+    server.tool()(upload_to_kaltura)

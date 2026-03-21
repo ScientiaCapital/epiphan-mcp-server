@@ -12,6 +12,8 @@ Environment Variables Required:
 import base64
 import os
 
+from fastmcp import FastMCP
+
 from epiphan_mcp.audit import log_operation
 from epiphan_mcp.integrations.cloud import (
     EpiphanCloudAPIError,
@@ -474,3 +476,19 @@ CLOUD_TOOLS = [
     cloud_get_preview,
     cloud_apply_preset,
 ]
+
+
+def register(server: FastMCP) -> None:
+    """Register Cloud MCP tools."""
+    server.tool()(cloud_apply_preset)
+    server.tool()(cloud_batch_command)
+    server.tool()(cloud_delete_device)
+    server.tool()(cloud_get_device)
+    server.tool()(cloud_get_preview)
+    server.tool()(cloud_get_settings)
+    server.tool()(cloud_get_user)
+    server.tool()(cloud_list_devices)
+    server.tool()(cloud_pair_device)
+    server.tool()(cloud_rename_device)
+    server.tool()(cloud_run_command)
+    server.tool()(cloud_unpair_device)

@@ -4,13 +4,16 @@ import base64
 import logging
 from typing import Any
 
+from fastmcp import FastMCP
+
 from ..client import PearlAPIError
 from .device import get_client
+from .discovery import get_default_channel
 
 logger = logging.getLogger(__name__)
 
 
-async def start_stream(device_id: str = "default", channel: int = 1) -> dict[str, Any]:
+async def start_stream(device_id: str = "default", channel: int | None = None) -> dict[str, Any]:
     """
     Start streaming on an Epiphan Pearl device.
 
@@ -20,11 +23,13 @@ async def start_stream(device_id: str = "default", channel: int = 1) -> dict[str
 
     Args:
         device_id: Device identifier. Use "default" for the primary configured device.
-        channel: Channel number (1-based) to start streaming.
+        channel: Channel number (1-based) to start streaming. Auto-detected if not specified.
 
     Returns:
         Confirmation of stream start with device and channel details.
     """
+    if channel is None:
+        channel = await get_default_channel(device_id)
     try:
         async with get_client(device_id) as client:
             channel_id = f"channel-{channel}" if isinstance(channel, int) else str(channel)
@@ -45,7 +50,7 @@ async def start_stream(device_id: str = "default", channel: int = 1) -> dict[str
         }
 
 
-async def stop_stream(device_id: str = "default", channel: int = 1) -> dict[str, Any]:
+async def stop_stream(device_id: str = "default", channel: int | None = None) -> dict[str, Any]:
     """
     Stop streaming on an Epiphan Pearl device.
 
@@ -53,11 +58,13 @@ async def stop_stream(device_id: str = "default", channel: int = 1) -> dict[str,
 
     Args:
         device_id: Device identifier. Use "default" for the primary configured device.
-        channel: Channel number (1-based) to stop streaming.
+        channel: Channel number (1-based) to stop streaming. Auto-detected if not specified.
 
     Returns:
         Confirmation of stream stop with device and channel details.
     """
+    if channel is None:
+        channel = await get_default_channel(device_id)
     try:
         async with get_client(device_id) as client:
             channel_id = f"channel-{channel}" if isinstance(channel, int) else str(channel)
@@ -79,7 +86,7 @@ async def stop_stream(device_id: str = "default", channel: int = 1) -> dict[str,
 
 
 async def get_stream_status(
-    device_id: str = "default", channel: int = 1, publisher: str = "publisher-1"
+    device_id: str = "default", channel: int | None = None, publisher: str = "publisher-1"
 ) -> dict[str, Any]:
     """
     Get the status of a specific stream/publisher on an Epiphan Pearl device.
@@ -88,7 +95,7 @@ async def get_stream_status(
 
     Args:
         device_id: Device identifier. Use "default" for the primary configured device.
-        channel: Channel number (1-based) containing the publisher.
+        channel: Channel number (1-based) containing the publisher. Auto-detected if not specified.
         publisher: Publisher ID (e.g., "publisher-1").
 
     Returns:
@@ -99,6 +106,8 @@ async def get_stream_status(
         - bytes_sent: Total bytes sent since stream started
         - destination: Stream destination URL
     """
+    if channel is None:
+        channel = await get_default_channel(device_id)
     try:
         async with get_client(device_id) as client:
             channel_id = f"channel-{channel}" if isinstance(channel, int) else str(channel)
@@ -177,7 +186,7 @@ async def list_channels(
 
 async def list_publishers(
     device_id: str = "default",
-    channel: int = 1,
+    channel: int | None = None,
 ) -> dict[str, Any]:
     """
     List all publishers (stream destinations) on a channel.
@@ -187,11 +196,13 @@ async def list_publishers(
 
     Args:
         device_id: Device identifier. Use "default" for the primary configured device.
-        channel: Channel number (1-based).
+        channel: Channel number (1-based). Auto-detected if not specified.
 
     Returns:
         List of publishers with their IDs, names, types, and enabled status.
     """
+    if channel is None:
+        channel = await get_default_channel(device_id)
     try:
         async with get_client(device_id) as client:
             channel_id = f"channel-{channel}" if isinstance(channel, int) else str(channel)
@@ -220,7 +231,7 @@ async def list_publishers(
 
 async def get_channel_preview(
     device_id: str = "default",
-    channel: int = 1,
+    channel: int | None = None,
     resolution: str | None = None,
     format: str = "jpg",
 ) -> dict[str, Any]:
@@ -232,7 +243,7 @@ async def get_channel_preview(
 
     Args:
         device_id: Device identifier. Use "default" for the primary configured device.
-        channel: Channel number (1-based).
+        channel: Channel number (1-based). Auto-detected if not specified.
         resolution: Optional resolution (e.g., "1920x1080", "640x360").
                     If not specified, uses the channel's native resolution.
         format: Image format - "jpg" (default) or "png".
@@ -240,6 +251,8 @@ async def get_channel_preview(
     Returns:
         Preview image as base64-encoded string with format and resolution metadata.
     """
+    if channel is None:
+        channel = await get_default_channel(device_id)
     try:
         async with get_client(device_id) as client:
             channel_id = f"channel-{channel}" if isinstance(channel, int) else str(channel)
@@ -273,3 +286,13 @@ async def get_channel_preview(
             "error": str(e),
             "device": device_id,
         }
+
+
+def register(server: FastMCP) -> None:
+    """Register streaming MCP tools."""
+    server.tool()(get_channel_preview)
+    server.tool()(get_stream_status)
+    server.tool()(list_channels)
+    server.tool()(list_publishers)
+    server.tool()(start_stream)
+    server.tool()(stop_stream)

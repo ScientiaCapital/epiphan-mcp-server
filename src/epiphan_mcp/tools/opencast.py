@@ -20,6 +20,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+from fastmcp import FastMCP
+
 from epiphan_mcp.integrations.opencast import (
     OpencastAPIError,
     OpencastAuthError,
@@ -487,3 +489,16 @@ OPENCAST_TOOLS = [
     schedule_opencast_capture,
     delete_opencast_event,
 ]
+
+
+def register(server: FastMCP) -> None:
+    """Register Opencast MCP tools."""
+    server.tool()(create_opencast_series)
+    server.tool()(delete_opencast_event)
+    server.tool()(get_opencast_event)
+    server.tool()(get_opencast_ingest_status)
+    server.tool()(get_opencast_series)
+    server.tool()(ingest_to_opencast)
+    server.tool()(list_opencast_events)
+    server.tool()(list_opencast_series)
+    server.tool()(schedule_opencast_capture)

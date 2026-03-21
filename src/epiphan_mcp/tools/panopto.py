@@ -15,6 +15,8 @@ Environment Variables Required:
 import os
 from pathlib import Path
 
+from fastmcp import FastMCP
+
 from epiphan_mcp.integrations.panopto import (
     PanoptoAPIError,
     PanoptoAuthError,
@@ -431,3 +433,16 @@ PANOPTO_TOOLS = [
     get_panopto_upload_status,
     delete_panopto_session,
 ]
+
+
+def register(server: FastMCP) -> None:
+    """Register Panopto MCP tools."""
+    server.tool()(create_panopto_folder)
+    server.tool()(create_panopto_session)
+    server.tool()(delete_panopto_session)
+    server.tool()(get_panopto_folder)
+    server.tool()(get_panopto_session)
+    server.tool()(get_panopto_upload_status)
+    server.tool()(list_panopto_folders)
+    server.tool()(list_panopto_sessions)
+    server.tool()(upload_to_panopto)

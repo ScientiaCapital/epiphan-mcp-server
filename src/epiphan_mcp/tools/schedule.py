@@ -3,6 +3,8 @@
 import logging
 from typing import Any
 
+from fastmcp import FastMCP
+
 from ..client import PearlAPIError
 from .device import get_client
 
@@ -269,3 +271,13 @@ async def resume_event(
             "error": str(e),
             "device": device_id,
         }
+
+
+def register(server: FastMCP) -> None:
+    """Register schedule MCP tools."""
+    server.tool()(create_scheduled_event)
+    server.tool()(get_scheduled_events)
+    server.tool()(pause_event)
+    server.tool()(resume_event)
+    server.tool()(single_touch_start)
+    server.tool()(single_touch_stop)

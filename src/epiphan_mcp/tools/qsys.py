@@ -16,6 +16,8 @@ Environment Variables Required:
 import os
 from typing import Any
 
+from fastmcp import FastMCP
+
 from epiphan_mcp.integrations.qsys import (
     QSysAuthError,
     QSysClient,
@@ -262,3 +264,12 @@ QSYS_TOOLS = [
     qsys_stop_recording,
     qsys_switch_layout,
 ]
+
+
+def register(server: FastMCP) -> None:
+    """Register Q-SYS MCP tools."""
+    server.tool()(list_qsys_components)
+    server.tool()(qsys_get_pearl_status)
+    server.tool()(qsys_start_recording)
+    server.tool()(qsys_stop_recording)
+    server.tool()(qsys_switch_layout)

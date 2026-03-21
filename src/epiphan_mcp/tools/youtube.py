@@ -13,6 +13,8 @@ Environment Variables Required:
 import os
 from typing import Any
 
+from fastmcp import FastMCP
+
 from epiphan_mcp.integrations.youtube import (
     YouTubeAPIError,
     YouTubeAuthError,
@@ -276,3 +278,11 @@ YOUTUBE_TOOLS = [
     list_youtube_broadcasts,
     end_youtube_broadcast,
 ]
+
+
+def register(server: FastMCP) -> None:
+    """Register YouTube MCP tools."""
+    server.tool()(create_youtube_broadcast)
+    server.tool()(end_youtube_broadcast)
+    server.tool()(get_youtube_broadcast_status)
+    server.tool()(list_youtube_broadcasts)

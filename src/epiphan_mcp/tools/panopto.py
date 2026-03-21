@@ -13,7 +13,11 @@ Environment Variables Required:
 """
 
 import os
+from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
+
+from fastmcp import FastMCP
 
 from epiphan_mcp.integrations.panopto import (
     PanoptoAPIError,
@@ -22,7 +26,18 @@ from epiphan_mcp.integrations.panopto import (
 )
 
 
-def _get_panopto_config() -> dict[str, str]:
+@dataclass(frozen=True)
+class _PanoptoConfig:
+    """Validated Panopto configuration."""
+
+    host: str
+    client_id: str
+    username: str
+    password: str
+    client_secret: str | None
+
+
+def _get_panopto_config() -> _PanoptoConfig:
     """Get Panopto configuration from environment."""
     host = os.environ.get("PANOPTO_HOST")
     client_id = os.environ.get("PANOPTO_CLIENT_ID")
@@ -44,19 +59,25 @@ def _get_panopto_config() -> dict[str, str]:
             f"Missing Panopto configuration. Set environment variables: {', '.join(missing)}"
         )
 
-    return {
-        "host": host,
-        "client_id": client_id,
-        "username": username,
-        "password": password,
-        "client_secret": os.environ.get("PANOPTO_CLIENT_SECRET"),
-    }
+    # After validation, all required fields are guaranteed non-None
+    assert host is not None
+    assert client_id is not None
+    assert username is not None
+    assert password is not None
+
+    return _PanoptoConfig(
+        host=host,
+        client_id=client_id,
+        username=username,
+        password=password,
+        client_secret=os.environ.get("PANOPTO_CLIENT_SECRET"),
+    )
 
 
 async def list_panopto_folders(
     parent_folder_id: str = "",
     search_query: str = "",
-) -> dict:
+) -> dict[str, Any]:
     """List folders in Panopto.
 
     Retrieves folders accessible to the configured service account.
@@ -80,7 +101,13 @@ async def list_panopto_folders(
         return {"error": str(e), "folders": []}
 
     try:
-        async with PanoptoClient(**config) as client:
+        async with PanoptoClient(
+            host=config.host,
+            client_id=config.client_id,
+            username=config.username,
+            password=config.password,
+            client_secret=config.client_secret,
+        ) as client:
             folders = await client.list_folders(
                 parent_folder_id=parent_folder_id or None,
                 search_query=search_query or None,
@@ -96,7 +123,7 @@ async def list_panopto_folders(
         return {"error": f"API error: {e}", "folders": []}
 
 
-async def get_panopto_folder(folder_id: str) -> dict:
+async def get_panopto_folder(folder_id: str) -> dict[str, Any]:
     """Get details of a specific Panopto folder.
 
     Args:
@@ -117,7 +144,13 @@ async def get_panopto_folder(folder_id: str) -> dict:
         return {"error": str(e)}
 
     try:
-        async with PanoptoClient(**config) as client:
+        async with PanoptoClient(
+            host=config.host,
+            client_id=config.client_id,
+            username=config.username,
+            password=config.password,
+            client_secret=config.client_secret,
+        ) as client:
             folder = await client.get_folder(folder_id)
             return {"folder": folder}
     except PanoptoAuthError as e:
@@ -130,7 +163,7 @@ async def create_panopto_folder(
     name: str,
     parent_folder_id: str = "",
     description: str = "",
-) -> dict:
+) -> dict[str, Any]:
     """Create a new folder in Panopto.
 
     Args:
@@ -154,7 +187,13 @@ async def create_panopto_folder(
         return {"error": str(e)}
 
     try:
-        async with PanoptoClient(**config) as client:
+        async with PanoptoClient(
+            host=config.host,
+            client_id=config.client_id,
+            username=config.username,
+            password=config.password,
+            client_secret=config.client_secret,
+        ) as client:
             folder = await client.create_folder(
                 name=name,
                 parent_folder_id=parent_folder_id or None,
@@ -170,7 +209,7 @@ async def create_panopto_folder(
 async def list_panopto_sessions(
     folder_id: str = "",
     search_query: str = "",
-) -> dict:
+) -> dict[str, Any]:
     """List sessions (recordings) in Panopto.
 
     Args:
@@ -191,7 +230,13 @@ async def list_panopto_sessions(
         return {"error": str(e), "sessions": []}
 
     try:
-        async with PanoptoClient(**config) as client:
+        async with PanoptoClient(
+            host=config.host,
+            client_id=config.client_id,
+            username=config.username,
+            password=config.password,
+            client_secret=config.client_secret,
+        ) as client:
             sessions = await client.list_sessions(
                 folder_id=folder_id or None,
                 search_query=search_query or None,
@@ -207,7 +252,7 @@ async def list_panopto_sessions(
         return {"error": f"API error: {e}", "sessions": []}
 
 
-async def get_panopto_session(session_id: str) -> dict:
+async def get_panopto_session(session_id: str) -> dict[str, Any]:
     """Get details of a specific Panopto session.
 
     Args:
@@ -228,7 +273,13 @@ async def get_panopto_session(session_id: str) -> dict:
         return {"error": str(e)}
 
     try:
-        async with PanoptoClient(**config) as client:
+        async with PanoptoClient(
+            host=config.host,
+            client_id=config.client_id,
+            username=config.username,
+            password=config.password,
+            client_secret=config.client_secret,
+        ) as client:
             session = await client.get_session(session_id)
             return {"session": session}
     except PanoptoAuthError as e:
@@ -241,7 +292,7 @@ async def create_panopto_session(
     folder_id: str,
     name: str,
     description: str = "",
-) -> dict:
+) -> dict[str, Any]:
     """Create a new session (recording placeholder) in Panopto.
 
     Creates an empty session that can receive uploaded video content.
@@ -268,7 +319,13 @@ async def create_panopto_session(
         return {"error": str(e)}
 
     try:
-        async with PanoptoClient(**config) as client:
+        async with PanoptoClient(
+            host=config.host,
+            client_id=config.client_id,
+            username=config.username,
+            password=config.password,
+            client_secret=config.client_secret,
+        ) as client:
             session = await client.create_session(
                 folder_id=folder_id,
                 name=name,
@@ -286,7 +343,7 @@ async def upload_to_panopto(
     file_path: str,
     session_name: str = "",
     wait_for_processing: bool = False,
-) -> dict:
+) -> dict[str, Any]:
     """Upload a video file to Panopto.
 
     Handles the complete upload workflow:
@@ -323,7 +380,13 @@ async def upload_to_panopto(
         return {"error": str(e)}
 
     try:
-        async with PanoptoClient(**config) as client:
+        async with PanoptoClient(
+            host=config.host,
+            client_id=config.client_id,
+            username=config.username,
+            password=config.password,
+            client_secret=config.client_secret,
+        ) as client:
             result = await client.upload_video(
                 folder_id=folder_id,
                 file_path=path,
@@ -341,7 +404,7 @@ async def upload_to_panopto(
         return {"error": f"API error: {e}"}
 
 
-async def get_panopto_upload_status(upload_id: str) -> dict:
+async def get_panopto_upload_status(upload_id: str) -> dict[str, Any]:
     """Check the status of a Panopto upload.
 
     Args:
@@ -362,7 +425,13 @@ async def get_panopto_upload_status(upload_id: str) -> dict:
         return {"error": str(e)}
 
     try:
-        async with PanoptoClient(**config) as client:
+        async with PanoptoClient(
+            host=config.host,
+            client_id=config.client_id,
+            username=config.username,
+            password=config.password,
+            client_secret=config.client_secret,
+        ) as client:
             status = await client.get_upload_status(upload_id)
 
             # Map state codes to readable names
@@ -389,7 +458,7 @@ async def get_panopto_upload_status(upload_id: str) -> dict:
         return {"error": f"API error: {e}"}
 
 
-async def delete_panopto_session(session_id: str) -> dict:
+async def delete_panopto_session(session_id: str) -> dict[str, Any]:
     """Delete a session from Panopto.
 
     Args:
@@ -410,7 +479,13 @@ async def delete_panopto_session(session_id: str) -> dict:
         return {"error": str(e)}
 
     try:
-        async with PanoptoClient(**config) as client:
+        async with PanoptoClient(
+            host=config.host,
+            client_id=config.client_id,
+            username=config.username,
+            password=config.password,
+            client_secret=config.client_secret,
+        ) as client:
             await client.delete_session(session_id)
             return {"message": f"Deleted session {session_id}", "success": True}
     except PanoptoAuthError as e:
@@ -431,3 +506,16 @@ PANOPTO_TOOLS = [
     get_panopto_upload_status,
     delete_panopto_session,
 ]
+
+
+def register(server: FastMCP) -> None:
+    """Register Panopto MCP tools."""
+    server.tool()(create_panopto_folder)
+    server.tool()(create_panopto_session)
+    server.tool()(delete_panopto_session)
+    server.tool()(get_panopto_folder)
+    server.tool()(get_panopto_session)
+    server.tool()(get_panopto_upload_status)
+    server.tool()(list_panopto_folders)
+    server.tool()(list_panopto_sessions)
+    server.tool()(upload_to_panopto)

@@ -131,7 +131,8 @@ class EpiphanCloudClient:
             if response.status_code == 204:
                 return {}
 
-            return response.json()
+            result: dict[str, Any] = response.json()
+            return result
 
         except httpx.RequestError as e:
             raise EpiphanCloudAPIError(f"Request failed: {e}") from e
@@ -210,7 +211,8 @@ class EpiphanCloudClient:
         # Cloud API may return devices directly or wrapped in a response object
         if isinstance(result, list):
             return result
-        return result.get("devices", result.get("data", []))
+        devices: list[dict[str, Any]] = result.get("devices", result.get("data", []))
+        return devices
 
     async def get_device(self, device_id: str) -> dict[str, Any]:
         """Get device details and telemetry.

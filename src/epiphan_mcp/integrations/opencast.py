@@ -220,7 +220,8 @@ class OpencastClient:
                     status_code=response.status_code,
                 )
 
-            return response.json()
+            result: dict[str, Any] | list[Any] = response.json()
+            return result
 
         except httpx.RequestError as e:
             raise OpencastAPIError(f"Request failed: {e}") from e
@@ -269,7 +270,8 @@ class OpencastClient:
 
             # Try JSON, fall back to text
             try:
-                return response.json()
+                result: dict[str, Any] | str = response.json()
+                return result
             except Exception:
                 return response.text
 

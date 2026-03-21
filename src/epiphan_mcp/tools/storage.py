@@ -3,6 +3,8 @@
 import logging
 from typing import Any
 
+from fastmcp import FastMCP
+
 from ..client import PearlAPIError
 from .device import get_client
 
@@ -161,3 +163,10 @@ async def get_afu_status(device_id: str = "default") -> dict[str, Any]:
             "error": str(e),
             "device": device_id,
         }
+
+
+def register(server: FastMCP) -> None:
+    """Register storage MCP tools."""
+    server.tool()(get_afu_status)
+    server.tool()(get_storage_report)
+    server.tool()(list_inputs)

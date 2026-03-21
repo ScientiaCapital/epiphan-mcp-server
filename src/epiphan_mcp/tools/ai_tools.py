@@ -4,10 +4,13 @@ import asyncio
 import logging
 from typing import Any, Literal
 
+from fastmcp import FastMCP
+
 from epiphan_mcp.client import PearlClient
 from epiphan_mcp.config import get_settings
 from epiphan_mcp.llm.analyzer import VideoAnalyzer
 from epiphan_mcp.llm.config import AnalysisType
+from epiphan_mcp.tools.discovery import get_default_channel
 
 logger = logging.getLogger(__name__)
 
@@ -84,7 +87,7 @@ async def _get_channel_preview(device_id: str, channel: str) -> bytes:
 
 async def analyze_channel_scene(
     device_id: str = "default",
-    channel: str = "1",
+    channel: str | None = None,
     analysis_type: Literal[
         "scene_description",
         "content_detection",
@@ -101,7 +104,7 @@ async def analyze_channel_scene(
 
     Args:
         device_id: Pearl device identifier (default: first configured device)
-        channel: Channel ID to analyze (e.g., "1", "2")
+        channel: Channel ID to analyze (e.g., "1", "2"). Auto-detected if not specified.
         analysis_type: Type of analysis to perform:
             - scene_description: General description of the scene
             - content_detection: Classify content type and subject
@@ -128,6 +131,8 @@ async def analyze_channel_scene(
         >>> print(result["analysis"])
         "Video quality assessment: Resolution appears to be 1080p..."
     """
+    if channel is None:
+        channel = str(await get_default_channel(device_id))
     try:
         # Get preview image from Pearl
         logger.info(f"Fetching preview from device={device_id}, channel={channel}")
@@ -166,7 +171,7 @@ async def analyze_channel_scene(
 
 async def extract_text_from_preview(
     device_id: str = "default",
-    channel: str = "1",
+    channel: str | None = None,
 ) -> dict[str, Any]:
     """
     Extract visible text from a Pearl channel preview using OCR.
@@ -177,7 +182,7 @@ async def extract_text_from_preview(
 
     Args:
         device_id: Pearl device identifier
-        channel: Channel ID to analyze
+        channel: Channel ID to analyze. Auto-detected if not specified.
 
     Returns:
         dict containing:
@@ -193,6 +198,8 @@ async def extract_text_from_preview(
         >>> print(result["text"])
         "Title: Introduction to Machine Learning..."
     """
+    if channel is None:
+        channel = str(await get_default_channel(device_id))
     try:
         image_data = await _get_channel_preview(device_id, channel)
 
@@ -221,7 +228,7 @@ async def extract_text_from_preview(
 
 async def detect_layout_changes(
     device_id: str = "default",
-    channel: str = "1",
+    channel: str | None = None,
     sensitivity: Literal["low", "medium", "high"] = "medium",
 ) -> dict[str, Any]:
     """
@@ -236,7 +243,7 @@ async def detect_layout_changes(
 
     Args:
         device_id: Pearl device identifier
-        channel: Channel ID to monitor
+        channel: Channel ID to monitor. Auto-detected if not specified.
         sensitivity: Change detection sensitivity:
             - low: Only detect major scene changes
             - medium: Detect slide changes, presenter movement
@@ -264,6 +271,8 @@ async def detect_layout_changes(
         >>> if result["changed"]:
         ...     print(result["message"])  # "Slide advanced to new content"
     """
+    if channel is None:
+        channel = str(await get_default_channel(device_id))
     try:
         image_data = await _get_channel_preview(device_id, channel)
 
@@ -296,7 +305,7 @@ async def detect_layout_changes(
 
 async def check_video_quality(
     device_id: str = "default",
-    channel: str = "1",
+    channel: str | None = None,
 ) -> dict[str, Any]:
     """
     Check video quality on a Pearl channel.
@@ -307,7 +316,7 @@ async def check_video_quality(
 
     Args:
         device_id: Pearl device identifier
-        channel: Channel ID to check
+        channel: Channel ID to check. Auto-detected if not specified.
 
     Returns:
         dict containing:
@@ -327,6 +336,8 @@ async def check_video_quality(
         - Issues: None detected
         Overall quality: Excellent"
     """
+    if channel is None:
+        channel = str(await get_default_channel(device_id))
     try:
         image_data = await _get_channel_preview(device_id, channel)
 
@@ -402,7 +413,7 @@ async def clear_change_detection_cache(
 
 async def detect_recording_issues(
     device_id: str = "default",
-    channel: str = "1",
+    channel: str | None = None,
 ) -> dict[str, Any]:
     """
     Detect video quality issues during an active recording.
@@ -420,7 +431,7 @@ async def detect_recording_issues(
 
     Args:
         device_id: Pearl device identifier
-        channel: Channel ID to monitor
+        channel: Channel ID to monitor. Auto-detected if not specified.
 
     Returns:
         dict containing:
@@ -437,6 +448,8 @@ async def detect_recording_issues(
         >>> if result["issues_detected"]:
         ...     print(f"Alert: {result['issues'][0]['description']}")
     """
+    if channel is None:
+        channel = str(await get_default_channel(device_id))
     try:
         image_data = await _get_channel_preview(device_id, channel)
 
@@ -532,3 +545,13 @@ def _calculate_quality_score(issues: list[dict[str, Any]]) -> int:
         score -= penalty
 
     return max(0, score)
+
+
+def register(server: FastMCP) -> None:
+    """Register AI MCP tools."""
+    server.tool()(analyze_channel_scene)
+    server.tool()(check_video_quality)
+    server.tool()(clear_change_detection_cache)
+    server.tool()(detect_layout_changes)
+    server.tool()(detect_recording_issues)
+    server.tool()(extract_text_from_preview)

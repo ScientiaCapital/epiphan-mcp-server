@@ -11,6 +11,10 @@ Environment Variables Required:
 
 import base64
 import os
+from dataclasses import dataclass
+from typing import Any
+
+from fastmcp import FastMCP
 
 from epiphan_mcp.audit import log_operation
 from epiphan_mcp.integrations.cloud import (
@@ -20,20 +24,28 @@ from epiphan_mcp.integrations.cloud import (
 )
 
 
-def _get_cloud_config() -> dict[str, str]:
+@dataclass(frozen=True)
+class _CloudConfig:
+    """Validated Epiphan Cloud configuration."""
+
+    token: str
+    host: str
+
+
+def _get_cloud_config() -> _CloudConfig:
     """Get Cloud configuration from environment."""
     token = os.environ.get("EPIPHAN_CLOUD_TOKEN")
     if not token:
         raise ValueError(
             "Missing Cloud configuration. Set EPIPHAN_CLOUD_TOKEN environment variable."
         )
-    return {
-        "token": token,
-        "host": os.environ.get("EPIPHAN_CLOUD_HOST", "go.epiphan.cloud"),
-    }
+    return _CloudConfig(
+        token=token,
+        host=os.environ.get("EPIPHAN_CLOUD_HOST", "go.epiphan.cloud"),
+    )
 
 
-async def cloud_get_user() -> dict:
+async def cloud_get_user() -> dict[str, Any]:
     """Get current Epiphan Cloud user profile.
 
     Returns account information for the authenticated API token.
@@ -51,7 +63,7 @@ async def cloud_get_user() -> dict:
         return {"error": str(e)}
 
     try:
-        async with EpiphanCloudClient(**config) as client:
+        async with EpiphanCloudClient(token=config.token, host=config.host) as client:
             user = await client.get_current_user()
             return {"user": user}
     except EpiphanCloudAuthError as e:
@@ -60,7 +72,7 @@ async def cloud_get_user() -> dict:
         return {"error": f"API error: {e}"}
 
 
-async def cloud_list_devices() -> dict:
+async def cloud_list_devices() -> dict[str, Any]:
     """List all devices paired to your Epiphan Cloud account.
 
     Shows device names, IDs, online status, and firmware versions.
@@ -78,7 +90,7 @@ async def cloud_list_devices() -> dict:
         return {"error": str(e), "devices": []}
 
     try:
-        async with EpiphanCloudClient(**config) as client:
+        async with EpiphanCloudClient(token=config.token, host=config.host) as client:
             devices = await client.list_devices()
             return {"devices": devices, "count": len(devices)}
     except EpiphanCloudAuthError as e:
@@ -87,7 +99,7 @@ async def cloud_list_devices() -> dict:
         return {"error": f"API error: {e}", "devices": []}
 
 
-async def cloud_get_device(device_id: str) -> dict:
+async def cloud_get_device(device_id: str) -> dict[str, Any]:
     """Get details of a specific cloud-managed device.
 
     Args:
@@ -109,7 +121,7 @@ async def cloud_get_device(device_id: str) -> dict:
         return {"error": str(e)}
 
     try:
-        async with EpiphanCloudClient(**config) as client:
+        async with EpiphanCloudClient(token=config.token, host=config.host) as client:
             device = await client.get_device(device_id)
             return {"device": device}
     except EpiphanCloudAuthError as e:
@@ -118,7 +130,7 @@ async def cloud_get_device(device_id: str) -> dict:
         return {"error": f"API error: {e}"}
 
 
-async def cloud_pair_device(pairing_code: str, name: str) -> dict:
+async def cloud_pair_device(pairing_code: str, name: str) -> dict[str, Any]:
     """Pair a new device to your Epiphan Cloud account.
 
     The pairing code is displayed on the device's screen or web UI.
@@ -144,7 +156,7 @@ async def cloud_pair_device(pairing_code: str, name: str) -> dict:
         return {"error": str(e)}
 
     try:
-        async with EpiphanCloudClient(**config) as client:
+        async with EpiphanCloudClient(token=config.token, host=config.host) as client:
             device = await client.pair_device(pairing_code=pairing_code, name=name)
             return {"device": device, "message": f"Paired device '{name}'"}
     except EpiphanCloudAuthError as e:
@@ -153,7 +165,7 @@ async def cloud_pair_device(pairing_code: str, name: str) -> dict:
         return {"error": f"API error: {e}"}
 
 
-async def cloud_unpair_device(device_id: str) -> dict:
+async def cloud_unpair_device(device_id: str) -> dict[str, Any]:
     """Unpair a device from your Epiphan Cloud account.
 
     The device will remain functional but no longer manageable via cloud.
@@ -176,7 +188,7 @@ async def cloud_unpair_device(device_id: str) -> dict:
         return {"error": str(e)}
 
     try:
-        async with EpiphanCloudClient(**config) as client:
+        async with EpiphanCloudClient(token=config.token, host=config.host) as client:
             await client.unpair_device(device_id)
             log_operation("cloud_unpair_device", device_id)
             return {"message": f"Unpaired device {device_id}", "success": True}
@@ -186,7 +198,7 @@ async def cloud_unpair_device(device_id: str) -> dict:
         return {"error": f"API error: {e}"}
 
 
-async def cloud_delete_device(device_id: str) -> dict:
+async def cloud_delete_device(device_id: str) -> dict[str, Any]:
     """Delete a device from your Epiphan Cloud account.
 
     This permanently removes the device record from cloud.
@@ -209,7 +221,7 @@ async def cloud_delete_device(device_id: str) -> dict:
         return {"error": str(e)}
 
     try:
-        async with EpiphanCloudClient(**config) as client:
+        async with EpiphanCloudClient(token=config.token, host=config.host) as client:
             await client.delete_device(device_id)
             log_operation("cloud_delete_device", device_id)
             return {"message": f"Deleted device {device_id}", "success": True}
@@ -219,7 +231,7 @@ async def cloud_delete_device(device_id: str) -> dict:
         return {"error": f"API error: {e}"}
 
 
-async def cloud_rename_device(device_id: str, new_name: str) -> dict:
+async def cloud_rename_device(device_id: str, new_name: str) -> dict[str, Any]:
     """Rename a cloud-managed device.
 
     Args:
@@ -243,7 +255,7 @@ async def cloud_rename_device(device_id: str, new_name: str) -> dict:
         return {"error": str(e)}
 
     try:
-        async with EpiphanCloudClient(**config) as client:
+        async with EpiphanCloudClient(token=config.token, host=config.host) as client:
             await client.rename_device(device_id, new_name)
             return {
                 "message": f"Renamed device {device_id} to '{new_name}'",
@@ -255,7 +267,7 @@ async def cloud_rename_device(device_id: str, new_name: str) -> dict:
         return {"error": f"API error: {e}"}
 
 
-async def cloud_run_command(device_id: str, command: str) -> dict:
+async def cloud_run_command(device_id: str, command: str) -> dict[str, Any]:
     """Run a command on a cloud-managed device.
 
     Supported commands include:
@@ -286,7 +298,7 @@ async def cloud_run_command(device_id: str, command: str) -> dict:
         return {"error": str(e)}
 
     try:
-        async with EpiphanCloudClient(**config) as client:
+        async with EpiphanCloudClient(token=config.token, host=config.host) as client:
             result = await client.run_task(device_id, command)
             return {
                 "result": result,
@@ -298,7 +310,7 @@ async def cloud_run_command(device_id: str, command: str) -> dict:
         return {"error": f"API error: {e}"}
 
 
-async def cloud_batch_command(device_ids: str, command: str) -> dict:
+async def cloud_batch_command(device_ids: str, command: str) -> dict[str, Any]:
     """Run a command on multiple cloud-managed devices simultaneously.
 
     Args:
@@ -327,7 +339,7 @@ async def cloud_batch_command(device_ids: str, command: str) -> dict:
         return {"error": str(e)}
 
     try:
-        async with EpiphanCloudClient(**config) as client:
+        async with EpiphanCloudClient(token=config.token, host=config.host) as client:
             result = await client.batch_task(ids_list, command)
             return {
                 "result": result,
@@ -340,7 +352,7 @@ async def cloud_batch_command(device_ids: str, command: str) -> dict:
         return {"error": f"API error: {e}"}
 
 
-async def cloud_get_settings(device_id: str) -> dict:
+async def cloud_get_settings(device_id: str) -> dict[str, Any]:
     """Get all settings for a cloud-managed device.
 
     Args:
@@ -361,7 +373,7 @@ async def cloud_get_settings(device_id: str) -> dict:
         return {"error": str(e)}
 
     try:
-        async with EpiphanCloudClient(**config) as client:
+        async with EpiphanCloudClient(token=config.token, host=config.host) as client:
             settings = await client.get_device_settings(device_id)
             return {"settings": settings, "device_id": device_id}
     except EpiphanCloudAuthError as e:
@@ -370,7 +382,7 @@ async def cloud_get_settings(device_id: str) -> dict:
         return {"error": f"API error: {e}"}
 
 
-async def cloud_get_preview(device_id: str) -> dict:
+async def cloud_get_preview(device_id: str) -> dict[str, Any]:
     """Get a preview image from a cloud-managed device.
 
     Returns the current video preview as a base64-encoded image.
@@ -394,7 +406,7 @@ async def cloud_get_preview(device_id: str) -> dict:
         return {"error": str(e)}
 
     try:
-        async with EpiphanCloudClient(**config) as client:
+        async with EpiphanCloudClient(token=config.token, host=config.host) as client:
             preview_bytes = await client.get_device_preview(device_id)
             encoded = base64.b64encode(preview_bytes).decode("utf-8")
             return {
@@ -413,7 +425,7 @@ async def cloud_apply_preset(
     device_id: str,
     preset_name: str,
     preset_type: str = "cloud",
-) -> dict:
+) -> dict[str, Any]:
     """Apply a preset to a cloud-managed device.
 
     Presets configure the device's encoding, layout, and streaming settings.
@@ -443,7 +455,7 @@ async def cloud_apply_preset(
         return {"error": str(e)}
 
     try:
-        async with EpiphanCloudClient(**config) as client:
+        async with EpiphanCloudClient(token=config.token, host=config.host) as client:
             result = await client.apply_preset(
                 device_id=device_id,
                 preset_data={"name": preset_name},
@@ -474,3 +486,19 @@ CLOUD_TOOLS = [
     cloud_get_preview,
     cloud_apply_preset,
 ]
+
+
+def register(server: FastMCP) -> None:
+    """Register Cloud MCP tools."""
+    server.tool()(cloud_apply_preset)
+    server.tool()(cloud_batch_command)
+    server.tool()(cloud_delete_device)
+    server.tool()(cloud_get_device)
+    server.tool()(cloud_get_preview)
+    server.tool()(cloud_get_settings)
+    server.tool()(cloud_get_user)
+    server.tool()(cloud_list_devices)
+    server.tool()(cloud_pair_device)
+    server.tool()(cloud_rename_device)
+    server.tool()(cloud_run_command)
+    server.tool()(cloud_unpair_device)

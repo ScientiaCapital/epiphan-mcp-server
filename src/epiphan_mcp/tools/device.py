@@ -3,6 +3,8 @@
 import logging
 from typing import Any
 
+from fastmcp import FastMCP
+
 from ..client import PearlAPIError, PearlClient
 from ..config import get_settings
 
@@ -43,9 +45,12 @@ async def get_device_status(device_id: str = "default") -> dict[str, Any]:
         - Current recording/streaming state
     """
     try:
+        from .discovery import get_default_recorder
+
+        recorder = await get_default_recorder(device_id)
         async with get_client(device_id) as client:
             status = await client.get_system_status()
-            recorder_status = await client.get_recorder_status("recorder-1")
+            recorder_status = await client.get_recorder_status(f"recorder-{recorder}")
 
             return {
                 "success": True,
@@ -94,3 +99,9 @@ async def list_devices() -> dict[str, Any]:
         "device_count": len(devices),
         "devices": [{"index": i, "host": host} for i, host in enumerate(devices)],
     }
+
+
+def register(server: FastMCP) -> None:
+    """Register device MCP tools."""
+    server.tool()(get_device_status)
+    server.tool()(list_devices)

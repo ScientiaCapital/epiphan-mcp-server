@@ -3,13 +3,16 @@
 import logging
 from typing import Any
 
+from fastmcp import FastMCP
+
 from ..client import PearlAPIError
 from .device import get_client
+from .discovery import get_default_channel
 
 logger = logging.getLogger(__name__)
 
 
-async def list_layouts(device_id: str = "default", channel: int = 1) -> dict[str, Any]:
+async def list_layouts(device_id: str = "default", channel: int | None = None) -> dict[str, Any]:
     """
     List available layouts for a channel on an Epiphan Pearl device.
 
@@ -18,13 +21,15 @@ async def list_layouts(device_id: str = "default", channel: int = 1) -> dict[str
 
     Args:
         device_id: Device identifier. Use "default" for the primary configured device.
-        channel: Channel number (1-based).
+        channel: Channel number (1-based). Auto-detected if not specified.
 
     Returns:
         List of available layouts including:
         - Layout ID and name
         - Which layout is currently active
     """
+    if channel is None:
+        channel = await get_default_channel(device_id)
     try:
         async with get_client(device_id) as client:
             channel_id = f"channel-{channel}" if isinstance(channel, int) else str(channel)
@@ -56,7 +61,7 @@ async def list_layouts(device_id: str = "default", channel: int = 1) -> dict[str
 
 
 async def switch_layout(
-    device_id: str = "default", channel: int = 1, layout_id: str = ""
+    device_id: str = "default", channel: int | None = None, layout_id: str = ""
 ) -> dict[str, Any]:
     """
     Switch the active layout/scene on an Epiphan Pearl channel.
@@ -65,12 +70,14 @@ async def switch_layout(
 
     Args:
         device_id: Device identifier. Use "default" for the primary configured device.
-        channel: Channel number (1-based).
+        channel: Channel number (1-based). Auto-detected if not specified.
         layout_id: Layout identifier to switch to.
 
     Returns:
         Confirmation of layout switch with device and channel details.
     """
+    if channel is None:
+        channel = await get_default_channel(device_id)
     if not layout_id:
         return {
             "success": False,
@@ -100,7 +107,7 @@ async def switch_layout(
 
 
 async def add_bookmark(
-    device_id: str = "default", channel: int = 1, text: str = ""
+    device_id: str = "default", channel: int | None = None, text: str = ""
 ) -> dict[str, Any]:
     """
     Add a bookmark to an active recording on an Epiphan Pearl device.
@@ -109,12 +116,14 @@ async def add_bookmark(
 
     Args:
         device_id: Device identifier. Use "default" for the primary configured device.
-        channel: Channel number (1-based) with the active recording.
+        channel: Channel number (1-based) with the active recording. Auto-detected if not specified.
         text: Optional bookmark text/label.
 
     Returns:
         Confirmation of bookmark creation with device and channel details.
     """
+    if channel is None:
+        channel = await get_default_channel(device_id)
     try:
         async with get_client(device_id) as client:
             channel_id = f"channel-{channel}" if isinstance(channel, int) else str(channel)
@@ -139,3 +148,10 @@ async def add_bookmark(
             "error": str(e),
             "device": device_id,
         }
+
+
+def register(server: FastMCP) -> None:
+    """Register layout MCP tools."""
+    server.tool()(add_bookmark)
+    server.tool()(list_layouts)
+    server.tool()(switch_layout)

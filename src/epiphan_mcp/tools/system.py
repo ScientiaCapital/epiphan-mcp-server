@@ -7,6 +7,8 @@ device reboot, shutdown, and system status information.
 import logging
 from typing import Any
 
+from fastmcp import FastMCP
+
 from ..audit import log_operation
 from ..client import PearlAPIError
 from .device import get_client
@@ -150,3 +152,10 @@ async def get_system_info(device_id: str = "default") -> dict[str, Any]:
             "error": str(e),
             "device": device_id,
         }
+
+
+def register(server: FastMCP) -> None:
+    """Register system MCP tools."""
+    server.tool()(get_system_info)
+    server.tool()(reboot_device)
+    server.tool()(shutdown_device)

@@ -23,6 +23,7 @@ Example:
 """
 
 import asyncio
+import contextlib
 import json
 import logging
 from dataclasses import dataclass, field
@@ -133,28 +134,22 @@ class QSysClient:
         # Cancel keep-alive task
         if self._keepalive_task:
             self._keepalive_task.cancel()
-            try:
+            with contextlib.suppress(asyncio.CancelledError):
                 await self._keepalive_task
-            except asyncio.CancelledError:
-                pass
             self._keepalive_task = None
 
         # Cancel reader task
         if self._reader_task:
             self._reader_task.cancel()
-            try:
+            with contextlib.suppress(asyncio.CancelledError):
                 await self._reader_task
-            except asyncio.CancelledError:
-                pass
             self._reader_task = None
 
         # Close writer
         if self._writer:
             self._writer.close()
-            try:
+            with contextlib.suppress(Exception):
                 await self._writer.wait_closed()
-            except Exception:
-                pass
             self._writer = None
 
         self._reader = None
@@ -294,7 +289,8 @@ class QSysClient:
             message = error.get("message", str(error)) if isinstance(error, dict) else str(error)
             raise QSysRPCError(message, code=code)
 
-        return response.get("result", {})
+        rpc_result: dict[str, Any] = response.get("result", {})
+        return rpc_result
 
     # =========================================================================
     # Component Operations
@@ -310,7 +306,7 @@ class QSysClient:
             List of component info dicts with Name, Type, etc.
         """
         result = await self._send_request("Component.GetComponents", {})
-        components = result if isinstance(result, list) else []
+        components: list[dict[str, Any]] = result if isinstance(result, list) else []
 
         if name_filter:
             components = [

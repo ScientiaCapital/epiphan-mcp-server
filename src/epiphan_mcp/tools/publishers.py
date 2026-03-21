@@ -7,17 +7,20 @@ on Pearl channels. Publishers handle RTMP, SRT, HLS, RTSP, and MPEG-TS streaming
 import logging
 from typing import Any
 
+from fastmcp import FastMCP
+
 from ..audit import log_operation
 from ..client import PearlAPIError
 from ..validation import ValidationError, validate_streaming_url
 from .device import get_client
+from .discovery import get_default_channel
 
 logger = logging.getLogger(__name__)
 
 
 async def create_publisher(
     device_id: str = "default",
-    channel: int = 1,
+    channel: int | None = None,
     name: str = "",
     publisher_type: str = "rtmp",
     url: str | None = None,
@@ -29,7 +32,7 @@ async def create_publisher(
 
     Args:
         device_id: Device identifier. Use "default" for the primary configured device.
-        channel: Channel number (1-based).
+        channel: Channel number (1-based). Auto-detected if not specified.
         name: Display name for the publisher.
         publisher_type: Stream protocol - rtmp, srt, hls, rtsp, or mpeg_ts.
         url: Destination URL (e.g., rtmp://live.twitch.tv/app).
@@ -39,6 +42,8 @@ async def create_publisher(
     Returns:
         Created publisher info including the assigned ID.
     """
+    if channel is None:
+        channel = await get_default_channel(device_id)
     if not name:
         return {
             "success": False,
@@ -99,7 +104,7 @@ async def create_publisher(
 
 async def delete_publisher(
     device_id: str = "default",
-    channel: int = 1,
+    channel: int | None = None,
     publisher: str = "publisher-1",
 ) -> dict[str, Any]:
     """
@@ -107,12 +112,14 @@ async def delete_publisher(
 
     Args:
         device_id: Device identifier. Use "default" for the primary configured device.
-        channel: Channel number (1-based).
+        channel: Channel number (1-based). Auto-detected if not specified.
         publisher: Publisher ID to delete (e.g., "publisher-1").
 
     Returns:
         Confirmation of deletion.
     """
+    if channel is None:
+        channel = await get_default_channel(device_id)
     try:
         async with get_client(device_id) as client:
             channel_id = f"channel-{channel}" if isinstance(channel, int) else str(channel)
@@ -141,7 +148,7 @@ async def delete_publisher(
 
 async def get_publisher_settings(
     device_id: str = "default",
-    channel: int = 1,
+    channel: int | None = None,
     publisher: str = "publisher-1",
 ) -> dict[str, Any]:
     """
@@ -149,12 +156,14 @@ async def get_publisher_settings(
 
     Args:
         device_id: Device identifier. Use "default" for the primary configured device.
-        channel: Channel number (1-based).
+        channel: Channel number (1-based). Auto-detected if not specified.
         publisher: Publisher ID (e.g., "publisher-1").
 
     Returns:
         Publisher settings including URL, stream key, bitrate, etc.
     """
+    if channel is None:
+        channel = await get_default_channel(device_id)
     try:
         async with get_client(device_id) as client:
             channel_id = f"channel-{channel}" if isinstance(channel, int) else str(channel)
@@ -184,7 +193,7 @@ async def get_publisher_settings(
 
 async def update_publisher_settings(
     device_id: str = "default",
-    channel: int = 1,
+    channel: int | None = None,
     publisher: str = "publisher-1",
     url: str | None = None,
     stream_key: str | None = None,
@@ -198,7 +207,7 @@ async def update_publisher_settings(
 
     Args:
         device_id: Device identifier. Use "default" for the primary configured device.
-        channel: Channel number (1-based).
+        channel: Channel number (1-based). Auto-detected if not specified.
         publisher: Publisher ID (e.g., "publisher-1").
         url: New destination URL.
         stream_key: New stream key.
@@ -208,6 +217,8 @@ async def update_publisher_settings(
     Returns:
         Confirmation of settings update.
     """
+    if channel is None:
+        channel = await get_default_channel(device_id)
     if url is not None:
         try:
             validate_streaming_url(url)
@@ -259,7 +270,7 @@ async def update_publisher_settings(
 
 async def list_publisher_types(
     device_id: str = "default",
-    channel: int = 1,
+    channel: int | None = None,
 ) -> dict[str, Any]:
     """
     List available streaming protocols for a channel.
@@ -268,11 +279,13 @@ async def list_publisher_types(
 
     Args:
         device_id: Device identifier. Use "default" for the primary configured device.
-        channel: Channel number (1-based).
+        channel: Channel number (1-based). Auto-detected if not specified.
 
     Returns:
         List of available publisher types (rtmp, srt, hls, etc.).
     """
+    if channel is None:
+        channel = await get_default_channel(device_id)
     try:
         async with get_client(device_id) as client:
             channel_id = f"channel-{channel}" if isinstance(channel, int) else str(channel)
@@ -300,7 +313,7 @@ async def list_publisher_types(
 
 async def rename_publisher(
     device_id: str = "default",
-    channel: int = 1,
+    channel: int | None = None,
     publisher: str = "publisher-1",
     name: str = "",
 ) -> dict[str, Any]:
@@ -309,13 +322,15 @@ async def rename_publisher(
 
     Args:
         device_id: Device identifier. Use "default" for the primary configured device.
-        channel: Channel number (1-based).
+        channel: Channel number (1-based). Auto-detected if not specified.
         publisher: Publisher ID (e.g., "publisher-1").
         name: New display name for the publisher.
 
     Returns:
         Confirmation of rename operation.
     """
+    if channel is None:
+        channel = await get_default_channel(device_id)
     if not name:
         return {
             "success": False,
@@ -342,3 +357,13 @@ async def rename_publisher(
             "error": str(e),
             "device": device_id,
         }
+
+
+def register(server: FastMCP) -> None:
+    """Register publisher MCP tools."""
+    server.tool()(create_publisher)
+    server.tool()(delete_publisher)
+    server.tool()(get_publisher_settings)
+    server.tool()(list_publisher_types)
+    server.tool()(rename_publisher)
+    server.tool()(update_publisher_settings)

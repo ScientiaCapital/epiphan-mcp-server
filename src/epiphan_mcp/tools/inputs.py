@@ -8,6 +8,8 @@ import base64
 import logging
 from typing import Any
 
+from fastmcp import FastMCP
+
 from ..client import PearlAPIError
 from ..validation import ValidationError, validate_streaming_url
 from .device import get_client
@@ -337,7 +339,7 @@ async def get_input_preview(
         async with get_client(device_id) as client:
             image_bytes = await client.get_input_preview(
                 input_id,
-                resolution=resolution,
+                resolution=resolution or "640x360",
                 format=format,
             )
             preview_b64 = base64.b64encode(image_bytes).decode("ascii")
@@ -365,3 +367,13 @@ async def get_input_preview(
             "error": str(e),
             "device": device_id,
         }
+
+
+def register(server: FastMCP) -> None:
+    """Register input/output MCP tools."""
+    server.tool()(create_network_input)
+    server.tool()(get_input_preview)
+    server.tool()(get_input_settings)
+    server.tool()(list_outputs)
+    server.tool()(set_output_source)
+    server.tool()(update_input_settings)

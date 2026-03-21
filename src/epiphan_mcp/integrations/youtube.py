@@ -171,7 +171,8 @@ class YouTubeClient:
             if response.status_code == 204 or not response.content:
                 return {"success": True}
 
-            return response.json()
+            result: dict[str, Any] = response.json()
+            return result
 
         except httpx.HTTPStatusError as e:
             try:
@@ -270,7 +271,8 @@ class YouTubeClient:
         if not items:
             raise YouTubeAPIError(f"Broadcast not found: {broadcast_id}")
 
-        return items[0]
+        first_item: dict[str, Any] = items[0]
+        return first_item
 
     async def list_broadcasts(
         self,
@@ -296,7 +298,8 @@ class YouTubeClient:
             params["broadcastStatus"] = status_filter
 
         result = await self._request("GET", "liveBroadcasts", params=params)
-        return result.get("items", [])
+        items: list[dict[str, Any]] = result.get("items", [])
+        return items
 
     async def transition_broadcast(
         self,
@@ -406,7 +409,8 @@ class YouTubeClient:
         if not items:
             raise YouTubeAPIError(f"Stream not found: {stream_id}")
 
-        return items[0]
+        first_item: dict[str, Any] = items[0]
+        return first_item
 
     async def list_streams(self, max_results: int = 25) -> list[dict[str, Any]]:
         """List streams for the authenticated user.
@@ -426,7 +430,8 @@ class YouTubeClient:
                 "maxResults": min(max_results, 50),
             },
         )
-        return result.get("items", [])
+        items: list[dict[str, Any]] = result.get("items", [])
+        return items
 
     async def delete_stream(self, stream_id: str) -> dict[str, Any]:
         """Delete a stream.

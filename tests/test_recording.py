@@ -522,7 +522,7 @@ class TestListArchiveFiles:
         assert result["total_files"] == len(mock_files)
         assert len(result["files"]) == len(mock_files)
         mock_client.get_archive_files.assert_called_once_with(
-            "recorder-1", from_index=None, limit=None
+            "recorder-1", from_index=0, limit=100
         )
 
     @pytest.mark.asyncio
@@ -594,5 +594,5 @@ class TestListArchiveFiles:
         assert result["success"] is True
         assert result["recorder"] == "recorder-2"
         mock_client.get_archive_files.assert_called_once_with(
-            "recorder-2", from_index=None, limit=None
+            "recorder-2", from_index=0, limit=100
         )

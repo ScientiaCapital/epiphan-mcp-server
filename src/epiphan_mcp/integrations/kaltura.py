@@ -265,7 +265,8 @@ class KalturaClient:
                 error_code = result.get("code", "UNKNOWN")
                 raise KalturaAPIError(f"[{error_code}] {error_msg}", code=error_code)
 
-            return result
+            api_result: dict[str, Any] = result
+            return api_result
 
         except httpx.RequestError as e:
             raise KalturaAPIError(f"Request failed: {e}") from e
@@ -298,7 +299,8 @@ class KalturaClient:
         filter_data["pager:pageIndex"] = page_index
 
         result = await self._request("category", "list", filter_data)
-        return result.get("objects", [])
+        categories: list[dict[str, Any]] = result.get("objects", [])
+        return categories
 
     async def get_category(self, category_id: int) -> dict[str, Any]:
         """Get category details.
@@ -372,7 +374,8 @@ class KalturaClient:
         filter_data["pager:pageIndex"] = page_index
 
         result = await self._request("media", "list", filter_data)
-        return result.get("objects", [])
+        entries: list[dict[str, Any]] = result.get("objects", [])
+        return entries
 
     async def get_media(self, entry_id: str) -> dict[str, Any]:
         """Get media entry details.
@@ -509,7 +512,8 @@ class KalturaClient:
                     code=result.get("code"),
                 )
 
-            return result
+            upload_result: dict[str, Any] = result
+            return upload_result
 
         except httpx.RequestError as e:
             raise KalturaAPIError(f"Upload request failed: {e}") from e
@@ -740,4 +744,5 @@ class KalturaClient:
             filter_data["filter:endDateLessThanOrEqual"] = int(end_date.timestamp())
 
         result = await self._request("scheduleEvent", "list", filter_data)
-        return result.get("objects", [])
+        events: list[dict[str, Any]] = result.get("objects", [])
+        return events

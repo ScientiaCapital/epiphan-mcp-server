@@ -19,6 +19,7 @@ Environment Variables Required:
 import os
 from datetime import datetime
 from pathlib import Path
+from typing import Any
 
 from fastmcp import FastMCP
 
@@ -66,7 +67,7 @@ async def list_kaltura_categories(
     parent_id: int | None = None,
     page_size: int = 50,
     page_index: int = 1,
-) -> dict:
+) -> dict[str, Any]:
     """List categories (folders) in Kaltura.
 
     Retrieves categories accessible to the configured service account.
@@ -109,7 +110,7 @@ async def list_kaltura_categories(
         return {"error": f"API error: {e}", "categories": []}
 
 
-async def get_kaltura_category(category_id: int) -> dict:
+async def get_kaltura_category(category_id: int) -> dict[str, Any]:
     """Get details of a specific Kaltura category.
 
     Args:
@@ -143,7 +144,7 @@ async def create_kaltura_category(
     name: str,
     parent_id: int | None = None,
     description: str = "",
-) -> dict:
+) -> dict[str, Any]:
     """Create a new category in Kaltura.
 
     Args:
@@ -185,7 +186,7 @@ async def list_kaltura_media(
     search_text: str = "",
     page_size: int = 50,
     page_index: int = 1,
-) -> dict:
+) -> dict[str, Any]:
     """List media entries (videos) in Kaltura.
 
     Args:
@@ -236,7 +237,7 @@ async def list_kaltura_media(
         return {"error": f"API error: {e}", "media": []}
 
 
-async def get_kaltura_media(entry_id: str) -> dict:
+async def get_kaltura_media(entry_id: str) -> dict[str, Any]:
     """Get details of a specific Kaltura media entry.
 
     Args:
@@ -288,7 +289,7 @@ async def create_kaltura_media(
     description: str = "",
     tags: str = "",
     category_ids: str = "",
-) -> dict:
+) -> dict[str, Any]:
     """Create a new media entry (video placeholder) in Kaltura.
 
     Creates an empty media entry that can receive uploaded video content.
@@ -344,7 +345,7 @@ async def upload_to_kaltura(
     description: str = "",
     category_ids: str = "",
     wait_for_ready: bool = False,
-) -> dict:
+) -> dict[str, Any]:
     """Upload a video file to Kaltura.
 
     Handles the complete upload workflow:
@@ -416,7 +417,7 @@ async def schedule_kaltura_event(
     entry_id: str = "",
     resource_id: str = "",
     description: str = "",
-) -> dict:
+) -> dict[str, Any]:
     """Schedule a recording event in Kaltura for Pearl auto-record.
 
     Creates a scheduled event that Pearl devices synced with Kaltura
@@ -480,7 +481,7 @@ async def schedule_kaltura_event(
         return {"error": f"API error: {e}"}
 
 
-async def get_kaltura_upload_status(upload_token_id: str) -> dict:
+async def get_kaltura_upload_status(upload_token_id: str) -> dict[str, Any]:
     """Check the status of a Kaltura upload.
 
     Args:

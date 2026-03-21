@@ -207,7 +207,8 @@ class EC20Client:
 
         # Parse JSON response
         try:
-            return response.json()
+            result: dict[str, Any] = response.json()
+            return result
         except Exception:
             # Return empty dict for non-JSON responses (e.g., images)
             return {}
@@ -329,7 +330,8 @@ class EC20Client:
         """
         # TODO: Replace with actual endpoint discovered from hardware
         result = await self._get("/api/ptz/presets")
-        return result.get("presets", [])
+        presets: list[dict[str, Any]] = result.get("presets", [])
+        return presets
 
     async def goto_preset(self, preset_id: int) -> dict[str, Any]:
         """Move camera to saved preset position.

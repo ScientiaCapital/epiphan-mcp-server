@@ -201,8 +201,8 @@ async def list_archive_files(
             recorder_id = f"recorder-{recorder}" if isinstance(recorder, int) else str(recorder)
             files = await client.get_archive_files(
                 recorder_id,
-                from_index=from_index,
-                limit=limit,
+                from_index=from_index if from_index is not None else 0,
+                limit=limit if limit is not None else 100,
             )
             return {
                 "success": True,

@@ -228,7 +228,8 @@ class PanoptoClient:
             if response.status_code == 204:
                 return {"success": True}
 
-            return response.json()
+            result: dict[str, Any] = response.json()
+            return result
 
         except httpx.RequestError as e:
             raise PanoptoAPIError(f"Request failed: {e}") from e
@@ -258,7 +259,8 @@ class PanoptoClient:
             params["searchQuery"] = search_query
 
         result = await self._request("GET", "/folders", params=params)
-        return result.get("Results", [])
+        folders: list[dict[str, Any]] = result.get("Results", [])
+        return folders
 
     async def get_folder(self, folder_id: str) -> dict[str, Any]:
         """Get folder details.
@@ -315,7 +317,8 @@ class PanoptoClient:
         result = await self._request(
             "GET", f"/folders/{folder_id}/sessions", params=params
         )
-        return result.get("Results", [])
+        sessions: list[dict[str, Any]] = result.get("Results", [])
+        return sessions
 
     # =========================================================================
     # Session Management
@@ -342,7 +345,8 @@ class PanoptoClient:
             params["searchQuery"] = search_query
 
         result = await self._request("GET", "/sessions", params=params)
-        return result.get("Results", [])
+        sessions: list[dict[str, Any]] = result.get("Results", [])
+        return sessions
 
     async def get_session(self, session_id: str) -> dict[str, Any]:
         """Get session details.
@@ -623,7 +627,8 @@ class PanoptoClient:
         result = await self._request(
             "GET", "/users/search", params={"searchQuery": search_query}
         )
-        return result.get("Results", [])
+        users: list[dict[str, Any]] = result.get("Results", [])
+        return users
 
     async def get_user(self, user_id: str) -> dict[str, Any]:
         """Get user details.

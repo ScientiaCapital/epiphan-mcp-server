@@ -294,7 +294,8 @@ class QSysClient:
             message = error.get("message", str(error)) if isinstance(error, dict) else str(error)
             raise QSysRPCError(message, code=code)
 
-        return response.get("result", {})
+        rpc_result: dict[str, Any] = response.get("result", {})
+        return rpc_result
 
     # =========================================================================
     # Component Operations
@@ -310,7 +311,7 @@ class QSysClient:
             List of component info dicts with Name, Type, etc.
         """
         result = await self._send_request("Component.GetComponents", {})
-        components = result if isinstance(result, list) else []
+        components: list[dict[str, Any]] = result if isinstance(result, list) else []
 
         if name_filter:
             components = [

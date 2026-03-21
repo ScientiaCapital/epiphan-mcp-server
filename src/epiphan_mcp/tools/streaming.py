@@ -258,7 +258,7 @@ async def get_channel_preview(
             channel_id = f"channel-{channel}" if isinstance(channel, int) else str(channel)
             image_bytes = await client.get_channel_preview(
                 channel_id,
-                resolution=resolution,
+                resolution=resolution or "640x360",
                 format=format,
             )
             preview_b64 = base64.b64encode(image_bytes).decode("ascii")

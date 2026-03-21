@@ -718,7 +718,8 @@ class PearlClient:
         if settings:
             payload["settings"] = settings
         data = await self._post(f"/channels/{channel_id}/publishers", json=payload)
-        return data.get("result", {})
+        pub_result: dict[str, Any] = data.get("result", {})
+        return pub_result
 
     async def delete_publisher(self, channel_id: str, publisher_id: str) -> OperationResult:
         """
@@ -910,7 +911,8 @@ class PearlClient:
         if settings:
             payload["settings"] = settings
         data = await self._post("/inputs", json=payload)
-        return data.get("result", {})
+        input_result: dict[str, Any] = data.get("result", {})
+        return input_result
 
     async def get_input_settings(self, input_id: str) -> dict[str, Any]:
         """
@@ -987,7 +989,7 @@ class PearlClient:
             OperationResult with status.
         """
         logger.info(f"Setting output {output_id} source to {source_channel_id or 'disabled'}")
-        settings = {"source": source_channel_id} if source_channel_id else {"source": None}
+        settings: dict[str, str | None] = {"source": source_channel_id} if source_channel_id else {"source": None}
         await self._put(f"/outputs/{output_id}/settings", json=settings)
         return OperationResult(
             success=True,
@@ -1200,7 +1202,8 @@ class PearlClient:
             payload["publishers"] = publishers
 
         data = await self._post("/schedule/events", json=payload)
-        return data.get("result", {})
+        event_result: dict[str, Any] = data.get("result", {})
+        return event_result
 
     async def pause_event(self, event_id: str) -> OperationResult:
         """

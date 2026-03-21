@@ -1,0 +1,2 @@
+timestamp	commit	tests	skipped	mypy	ruff	score
+2026-03-21T20:41:58Z	fbe6518 refactor: decompose server.py monolith + dynamic discovery + mypy cleanup (#1)	tests=777/777	skipped=7	mypy=0	ruff=0	score=7770

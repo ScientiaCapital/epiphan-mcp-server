@@ -226,10 +226,123 @@ async def list_archive_files(
         }
 
 
+async def get_all_recorder_status(device_id: str = "default") -> dict[str, Any]:
+    """
+    Get recording status for ALL recorders on a Pearl device at once.
+
+    More efficient than calling get_recording_status for each recorder individually.
+    Useful for multi-recorder Pearl setups (e.g., lecture halls with 2+ recorders).
+
+    Args:
+        device_id: Device identifier. Use "default" for the primary configured device,
+                   or specify an IP address, hostname, or device index.
+
+    Returns:
+        List of all recorders with their current state, duration, file size, and filename.
+    """
+    try:
+        async with get_client(device_id) as client:
+            statuses = await client.get_all_recorder_status()
+            return {
+                "success": True,
+                "device": client.host,
+                "total_recorders": len(statuses),
+                "recorders": [
+                    {
+                        "id": s.id,
+                        "state": s.state.value,
+                        "duration_seconds": s.duration_seconds,
+                        "file_size_bytes": s.file_size_bytes,
+                        "filename": s.filename,
+                    }
+                    for s in statuses
+                ],
+            }
+    except PearlAPIError as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "device": device_id,
+        }
+    except ValueError as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "device": device_id,
+        }
+
+
+async def start_all_recorders(device_id: str = "default") -> dict[str, Any]:
+    """
+    Start ALL recorders on a Pearl device simultaneously.
+
+    More efficient than starting each recorder individually. Useful for lecture halls
+    and multi-recorder setups where all recorders should start at the same time.
+
+    Args:
+        device_id: Device identifier. Use "default" for the primary configured device,
+                   or specify an IP address, hostname, or device index.
+
+    Returns:
+        Confirmation that all recorders have been started.
+    """
+    try:
+        async with get_client(device_id) as client:
+            result = await client.start_all_recorders()
+            return result.model_dump()
+    except PearlAPIError as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "device": device_id,
+        }
+    except ValueError as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "device": device_id,
+        }
+
+
+async def stop_all_recorders(device_id: str = "default") -> dict[str, Any]:
+    """
+    Stop ALL recorders on a Pearl device simultaneously.
+
+    More efficient than stopping each recorder individually. Ensures all recorders
+    stop at the same time, producing consistent end timestamps across recordings.
+
+    Args:
+        device_id: Device identifier. Use "default" for the primary configured device,
+                   or specify an IP address, hostname, or device index.
+
+    Returns:
+        Confirmation that all recorders have been stopped.
+    """
+    try:
+        async with get_client(device_id) as client:
+            result = await client.stop_all_recorders()
+            return result.model_dump()
+    except PearlAPIError as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "device": device_id,
+        }
+    except ValueError as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "device": device_id,
+        }
+
+
 def register(server: FastMCP) -> None:
     """Register recording MCP tools."""
+    server.tool()(get_all_recorder_status)
     server.tool()(get_recording_status)
     server.tool()(list_archive_files)
     server.tool()(list_recorders)
+    server.tool()(start_all_recorders)
     server.tool()(start_recording)
+    server.tool()(stop_all_recorders)
     server.tool()(stop_recording)

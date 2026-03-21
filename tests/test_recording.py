@@ -11,10 +11,13 @@ from httpx import ConnectError, Response, TimeoutException
 from epiphan_mcp.config import Settings
 from epiphan_mcp.models import RecorderInfo
 from epiphan_mcp.tools.recording import (
+    get_all_recorder_status,
     get_recording_status,
     list_archive_files,
     list_recorders,
+    start_all_recorders,
     start_recording,
+    stop_all_recorders,
     stop_recording,
 )
 
@@ -596,3 +599,157 @@ class TestListArchiveFiles:
         mock_client.get_archive_files.assert_called_once_with(
             "recorder-2", from_index=0, limit=100
         )
+
+
+class TestGetAllRecorderStatus:
+    """Tests for get_all_recorder_status tool."""
+
+    @pytest.mark.asyncio
+    async def test_get_all_recorder_status_success(self):
+        """Test successful retrieval of all recorder statuses."""
+        mock_statuses = [
+            AsyncMock(
+                id="recorder-1",
+                state=AsyncMock(value="recording"),
+                duration_seconds=120,
+                file_size_bytes=50000000,
+                filename="recording_001.mp4",
+            ),
+            AsyncMock(
+                id="recorder-2",
+                state=AsyncMock(value="stopped"),
+                duration_seconds=0,
+                file_size_bytes=0,
+                filename="",
+            ),
+        ]
+        mock_client = AsyncMock()
+        mock_client.host = "192.168.1.100"
+        mock_client.get_all_recorder_status = AsyncMock(return_value=mock_statuses)
+
+        with patch(
+            "epiphan_mcp.tools.recording.get_client",
+            return_value=AsyncMock(__aenter__=AsyncMock(return_value=mock_client)),
+        ):
+            result = await get_all_recorder_status(device_id="default")
+
+        assert result["success"] is True
+        assert result["device"] == "192.168.1.100"
+        assert result["total_recorders"] == 2
+        assert result["recorders"][0]["id"] == "recorder-1"
+        assert result["recorders"][0]["state"] == "recording"
+        assert result["recorders"][1]["id"] == "recorder-2"
+        assert result["recorders"][1]["state"] == "stopped"
+
+    @pytest.mark.asyncio
+    async def test_get_all_recorder_status_error(self):
+        """Test error handling for get_all_recorder_status."""
+        from epiphan_mcp.client import PearlAPIError
+
+        mock_client = AsyncMock()
+        mock_client.get_all_recorder_status = AsyncMock(
+            side_effect=PearlAPIError("Connection refused")
+        )
+
+        with patch(
+            "epiphan_mcp.tools.recording.get_client",
+            return_value=AsyncMock(__aenter__=AsyncMock(return_value=mock_client)),
+        ):
+            result = await get_all_recorder_status(device_id="default")
+
+        assert result["success"] is False
+        assert "Connection refused" in result["error"]
+
+
+class TestStartAllRecorders:
+    """Tests for start_all_recorders tool."""
+
+    @pytest.mark.asyncio
+    async def test_start_all_recorders_success(self):
+        """Test starting all recorders simultaneously."""
+        from unittest.mock import MagicMock
+
+        mock_result = MagicMock()
+        mock_result.model_dump.return_value = {
+            "success": True,
+            "message": "Recording started on all recorder(s)",
+            "device": "192.168.1.100",
+            "details": {"recorders": "all"},
+        }
+        mock_client = AsyncMock()
+        mock_client.start_all_recorders = AsyncMock(return_value=mock_result)
+
+        with patch(
+            "epiphan_mcp.tools.recording.get_client",
+            return_value=AsyncMock(__aenter__=AsyncMock(return_value=mock_client)),
+        ):
+            result = await start_all_recorders(device_id="default")
+
+        assert result["success"] is True
+        mock_client.start_all_recorders.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_start_all_recorders_error(self):
+        """Test error handling for start_all_recorders."""
+        from epiphan_mcp.client import PearlAPIError
+
+        mock_client = AsyncMock()
+        mock_client.start_all_recorders = AsyncMock(
+            side_effect=PearlAPIError("Device busy")
+        )
+
+        with patch(
+            "epiphan_mcp.tools.recording.get_client",
+            return_value=AsyncMock(__aenter__=AsyncMock(return_value=mock_client)),
+        ):
+            result = await start_all_recorders(device_id="default")
+
+        assert result["success"] is False
+        assert "Device busy" in result["error"]
+
+
+class TestStopAllRecorders:
+    """Tests for stop_all_recorders tool."""
+
+    @pytest.mark.asyncio
+    async def test_stop_all_recorders_success(self):
+        """Test stopping all recorders simultaneously."""
+        from unittest.mock import MagicMock
+
+        mock_result = MagicMock()
+        mock_result.model_dump.return_value = {
+            "success": True,
+            "message": "Recording stopped on all recorder(s)",
+            "device": "192.168.1.100",
+            "details": {"recorders": "all"},
+        }
+        mock_client = AsyncMock()
+        mock_client.stop_all_recorders = AsyncMock(return_value=mock_result)
+
+        with patch(
+            "epiphan_mcp.tools.recording.get_client",
+            return_value=AsyncMock(__aenter__=AsyncMock(return_value=mock_client)),
+        ):
+            result = await stop_all_recorders(device_id="default")
+
+        assert result["success"] is True
+        mock_client.stop_all_recorders.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_stop_all_recorders_error(self):
+        """Test error handling for stop_all_recorders."""
+        from epiphan_mcp.client import PearlAPIError
+
+        mock_client = AsyncMock()
+        mock_client.stop_all_recorders = AsyncMock(
+            side_effect=PearlAPIError("Not recording")
+        )
+
+        with patch(
+            "epiphan_mcp.tools.recording.get_client",
+            return_value=AsyncMock(__aenter__=AsyncMock(return_value=mock_client)),
+        ):
+            result = await stop_all_recorders(device_id="default")
+
+        assert result["success"] is False
+        assert "Not recording" in result["error"]

@@ -432,14 +432,14 @@ class TestMCPToolRegistration:
     """Tests for MCP tool registration."""
 
     def test_all_tools_registered(self):
-        """Test that all 115 MCP tools are registered.
+        """Test that all 118 MCP tools are registered.
 
-        55 Pearl core + 2 Discovery + 9 Panopto + 9 Kaltura + 9 Opencast + 5 Q-SYS + 4 YouTube + 10 EC20 + 12 Cloud = 115
+        58 Pearl core + 2 Discovery + 9 Panopto + 9 Kaltura + 9 Opencast + 5 Q-SYS + 4 YouTube + 10 EC20 + 12 Cloud = 118
         """
         from epiphan_mcp.server import mcp
 
         tools = list(mcp._tool_manager._tools.keys())
-        assert len(tools) == 115, f"Expected 115 tools, got {len(tools)}: {tools}"
+        assert len(tools) == 118, f"Expected 118 tools, got {len(tools)}: {tools}"
 
     def test_expected_tools_registered(self):
         """Test that all expected tools are registered with MCP."""
@@ -589,9 +589,9 @@ class TestMCPToolRegistration:
             assert expected in tools, f"Missing tool: {expected}"
 
     def test_tool_count_unchanged(self):
-        """Test that the tool count is exactly 115.
+        """Test that the tool count is exactly 118.
 
-        55 Pearl core + 2 Discovery + 9 Panopto + 9 Kaltura + 9 Opencast + 5 Q-SYS + 4 YouTube + 10 EC20 + 12 Cloud = 115
+        58 Pearl core + 2 Discovery + 9 Panopto + 9 Kaltura + 9 Opencast + 5 Q-SYS + 4 YouTube + 10 EC20 + 12 Cloud = 118
         """
         from epiphan_mcp.server import mcp
 
@@ -601,6 +601,9 @@ class TestMCPToolRegistration:
             "list_inputs",
             "get_input_preview",
             "get_storage_report",
+            "get_all_recorder_status",
+            "start_all_recorders",
+            "stop_all_recorders",
             "start_recording",
             "stop_recording",
             "get_recording_status",
@@ -725,7 +728,7 @@ class TestMCPToolRegistration:
         ]
 
         tools = list(mcp._tool_manager._tools.keys())
-        # Total: 55 Pearl + 2 Discovery + 9 Panopto + 9 Kaltura + 9 Opencast + 5 Q-SYS + 4 YouTube + 10 EC20 + 12 Cloud = 115
+        # Total: 58 Pearl + 2 Discovery + 9 Panopto + 9 Kaltura + 9 Opencast + 5 Q-SYS + 4 YouTube + 10 EC20 + 12 Cloud = 118
         assert len(tools) == len(expected_tools), (
             f"Tool count mismatch: expected {len(expected_tools)}, got {len(tools)}"
         )

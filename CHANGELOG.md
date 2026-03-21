@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2026-03-21
+
+### Changed
+
+- **server.py decomposed** — 3,001 → 69 lines (97.7% reduction). Each of 19 tool modules now has a `register(server: FastMCP)` function using `server.tool()(fn)` direct registration. No more import-and-wrap boilerplate.
+- **Dynamic recorder/channel discovery** — 39 tools changed from hardcoded `int=1` defaults to `int|None=None`. When omitted, recorders and channels are auto-detected via Pearl REST API with 5-minute session-scoped cache. Eliminates silent failures on multi-recorder deployments.
+- Tool count: 113 → 115 (added `pearl_discover_device`, `pearl_clear_discovery_cache`)
+- Test count: 762 → 777 (15 new discovery tests)
+
+### Fixed
+
+- All 96 pre-existing mypy errors resolved (typed dataclasses for config dicts, annotated `response.json()` intermediates, parameterized generic types)
+- All 11 pre-existing ruff errors resolved (contextlib.suppress, exception chaining, import sorting, ambiguous variable names)
+- 5 hardcoded `"recorder-1"` string literals replaced with dynamic discovery in `device.py`, `maintenance.py`, `fleet.py`
+
+### Added
+
+- `tools/discovery.py` — device resource discovery with TTL cache
+- `pearl_discover_device` MCP tool — explicit device introspection
+- `pearl_clear_discovery_cache` MCP tool — cache management for config changes
+- `tests/test_discovery.py` — 15 tests covering cache, fallback, TTL expiry
+- `tests/fixtures/tool_snapshot.json` — pre-refactor regression baseline
+
 ## [1.0.0] - 2026-02-06
 
 ### Changed

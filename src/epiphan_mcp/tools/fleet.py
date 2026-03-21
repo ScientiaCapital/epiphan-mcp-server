@@ -788,8 +788,7 @@ def _parse_maintenance_suggestion(
     for line in lines:
         line_lower = line.lower()
         # Look for time-related suggestions
-        if any(word in line_lower for word in ["tonight", "tomorrow", "weekend", "am", "pm", "now"]):
-            if suggested_window == "Review fleet status manually":
+        if any(word in line_lower for word in ["tonight", "tomorrow", "weekend", "am", "pm", "now"]) and suggested_window == "Review fleet status manually":
                 # Clean up the line
                 suggested_window = line.strip().lstrip("1234567890.-*) ")
                 if len(suggested_window) < 5:
@@ -802,7 +801,7 @@ def _parse_maintenance_suggestion(
             confidence = "low"
 
     # Build reasoning from remaining content
-    reasoning_lines = [l.strip() for l in lines if len(l.strip()) > 20 and ":" not in l[:15]]
+    reasoning_lines = [line.strip() for line in lines if len(line.strip()) > 20 and ":" not in line[:15]]
     if reasoning_lines:
         reasoning = " ".join(reasoning_lines[:2])
 

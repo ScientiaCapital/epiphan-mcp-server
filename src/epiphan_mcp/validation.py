@@ -61,7 +61,7 @@ def _resolves_to_private(hostname: str) -> bool:
     """
     try:
         results = socket.getaddrinfo(hostname, None, socket.AF_UNSPEC, socket.SOCK_STREAM)
-        for family, _type, _proto, _canonname, sockaddr in results:
+        for _family, _type, _proto, _canonname, sockaddr in results:
             ip_str = sockaddr[0]
             ip = ipaddress.ip_address(ip_str)
             if ip.is_private or ip.is_reserved or ip.is_loopback or ip.is_link_local:
@@ -95,8 +95,8 @@ def validate_streaming_url(url: str) -> str:
 
     try:
         parsed = urlparse(url)
-    except Exception:
-        raise ValidationError(f"Invalid URL format: {url}")
+    except Exception as e:
+        raise ValidationError(f"Invalid URL format: {url}") from e
 
     # Check scheme
     scheme = parsed.scheme.lower()
@@ -118,18 +118,18 @@ def validate_streaming_url(url: str) -> str:
     # Check for private/internal IPs
     try:
         ip = ipaddress.ip_address(hostname)
-    except ValueError:
+    except ValueError as e:
         # Not a standard IP — check for encoded IP bypass vectors
         if _is_suspicious_ip_encoding(hostname):
             # Numeric-ish hostname that isn't a standard IP: likely octal/hex/decimal encoding
             if _resolves_to_private(hostname):
                 raise ValidationError(
                     f"URLs targeting private/internal IPs are not allowed: {hostname}"
-                )
+                ) from e
             # Even if resolution fails/returns public, reject suspicious encodings
             raise ValidationError(
                 f"Suspicious IP encoding in hostname not allowed: {hostname}"
-            )
+            ) from e
     else:
         if ip.is_private or ip.is_reserved or ip.is_loopback or ip.is_link_local:
             raise ValidationError(

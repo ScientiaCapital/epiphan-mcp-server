@@ -35,7 +35,7 @@ from typing import Any
 from fastmcp import FastMCP
 
 from epiphan_mcp.config import get_settings
-from epiphan_mcp.integrations.ec20 import EC20Client, EC20APIError, EC20ConnectionError
+from epiphan_mcp.integrations.ec20 import EC20APIError, EC20Client, EC20ConnectionError
 
 logger = logging.getLogger(__name__)
 

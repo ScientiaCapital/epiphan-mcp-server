@@ -529,6 +529,43 @@ class DeviceListResult(BaseModel):
 
 
 # ============================================================
+# System Tool Response Models
+# ============================================================
+
+
+class SystemControlResult(BaseModel):
+    """Return type of ``reboot_device`` / ``shutdown_device``."""
+
+    success: bool = Field(description="Whether the control action was initiated")
+    device: str = Field(
+        default="", description="Device host, or the requested device_id on error"
+    )
+    message: str | None = Field(
+        default=None, description="Human-readable confirmation message"
+    )
+    error: str | None = Field(
+        default=None,
+        description="Error message, including the confirm=True safety-gate message.",
+    )
+
+
+class SystemInfoResult(BaseModel):
+    """Return type of ``get_system_info``."""
+
+    success: bool = Field(description="Whether the system info was retrieved")
+    device: str = Field(
+        default="", description="Device host, or the requested device_id on error"
+    )
+    system: dict[str, Any] | None = Field(
+        default=None,
+        description="Full system status: device_name, model, serial_number, "
+        "firmware_version, uptime_seconds, storage_total_gb/free_gb/used_percent, "
+        "cpu_usage, memory_usage, temperature. Null on error.",
+    )
+    error: str | None = Field(default=None, description="Error message on failure.")
+
+
+# ============================================================
 # Fleet Tool Response Models (LLM-legible tool output schemas)
 # ============================================================
 #

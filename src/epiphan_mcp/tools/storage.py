@@ -1,17 +1,18 @@
 """Storage and input tools for Epiphan Pearl devices."""
 
 import logging
-from typing import Any
 
 from fastmcp import FastMCP
 
 from ..client import PearlAPIError
+from ..models import AFUStatusResult, InputListResult, StorageReportResult
 from .device import get_client
+from .params import DeviceId
 
 logger = logging.getLogger(__name__)
 
 
-async def list_inputs(device_id: str = "default") -> dict[str, Any]:
+async def list_inputs(device_id: DeviceId = "default") -> InputListResult:
     """
     List available input sources on an Epiphan Pearl device.
 
@@ -31,27 +32,27 @@ async def list_inputs(device_id: str = "default") -> dict[str, Any]:
     try:
         async with get_client(device_id) as client:
             inputs = await client.get_inputs()
-            return {
-                "success": True,
-                "device": client.host,
-                "total_inputs": len(inputs),
-                "inputs": [inp.model_dump() for inp in inputs],
-            }
+            return InputListResult(
+                success=True,
+                device=client.host,
+                total_inputs=len(inputs),
+                inputs=[inp.model_dump() for inp in inputs],
+            )
     except PearlAPIError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "device": device_id,
-        }
+        return InputListResult(
+            success=False,
+            error=str(e),
+            device=device_id,
+        )
     except ValueError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "device": device_id,
-        }
+        return InputListResult(
+            success=False,
+            error=str(e),
+            device=device_id,
+        )
 
 
-async def get_storage_report(device_id: str = "default") -> dict[str, Any]:
+async def get_storage_report(device_id: DeviceId = "default") -> StorageReportResult:
     """
     Get detailed storage information from an Epiphan Pearl device.
 
@@ -84,12 +85,12 @@ async def get_storage_report(device_id: str = "default") -> dict[str, Any]:
             used_bytes = total_bytes - free_bytes
             used_percent = (used_bytes / total_bytes * 100) if total_bytes > 0 else 0
 
-            return {
-                "success": True,
-                "device": client.host,
-                "total_storages": len(storages),
-                "storages": storage_list,
-                "summary": {
+            return StorageReportResult(
+                success=True,
+                device=client.host,
+                total_storages=len(storages),
+                storages=storage_list,
+                summary={
                     "total_bytes": total_bytes,
                     "total_gb": round(total_bytes / (1024**3), 2),
                     "free_bytes": free_bytes,
@@ -98,22 +99,22 @@ async def get_storage_report(device_id: str = "default") -> dict[str, Any]:
                     "used_gb": round(used_bytes / (1024**3), 2),
                     "used_percent": round(used_percent, 1),
                 },
-            }
+            )
     except PearlAPIError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "device": device_id,
-        }
+        return StorageReportResult(
+            success=False,
+            error=str(e),
+            device=device_id,
+        )
     except ValueError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "device": device_id,
-        }
+        return StorageReportResult(
+            success=False,
+            error=str(e),
+            device=device_id,
+        )
 
 
-async def get_afu_status(device_id: str = "default") -> dict[str, Any]:
+async def get_afu_status(device_id: DeviceId = "default") -> AFUStatusResult:
     """
     Get status of Automatic File Upload (AFU) destinations on an Epiphan Pearl device.
 
@@ -140,29 +141,29 @@ async def get_afu_status(device_id: str = "default") -> dict[str, Any]:
             uploading_count = sum(1 for item in afu_status if item.get("state") == "uploading")
             error_count = sum(1 for item in afu_status if item.get("state") == "error")
 
-            return {
-                "success": True,
-                "device": client.host,
-                "total_destinations": len(afu_status),
-                "destinations": afu_status,
-                "summary": {
+            return AFUStatusResult(
+                success=True,
+                device=client.host,
+                total_destinations=len(afu_status),
+                destinations=afu_status,
+                summary={
                     "total_queued_files": total_queued,
                     "uploading_count": uploading_count,
                     "error_count": error_count,
                 },
-            }
+            )
     except PearlAPIError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "device": device_id,
-        }
+        return AFUStatusResult(
+            success=False,
+            error=str(e),
+            device=device_id,
+        )
     except ValueError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "device": device_id,
-        }
+        return AFUStatusResult(
+            success=False,
+            error=str(e),
+            device=device_id,
+        )
 
 
 def register(server: FastMCP) -> None:

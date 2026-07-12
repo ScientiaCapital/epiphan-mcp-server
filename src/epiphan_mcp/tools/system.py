@@ -5,21 +5,32 @@ device reboot, shutdown, and system status information.
 """
 
 import logging
-from typing import Any
+from typing import Annotated
 
 from fastmcp import FastMCP
+from pydantic import Field
 
 from ..audit import log_operation
 from ..client import PearlAPIError
+from ..models import SystemControlResult, SystemInfoResult
 from .device import get_client
+from .params import DeviceId
 
 logger = logging.getLogger(__name__)
 
+_Confirm = Annotated[
+    bool,
+    Field(
+        description="Safety gate: must be explicitly True to proceed. Guards against "
+        "accidental reboot/shutdown, which interrupts active recordings and streams."
+    ),
+]
+
 
 async def reboot_device(
-    device_id: str = "default",
-    confirm: bool = False,
-) -> dict[str, Any]:
+    device_id: DeviceId = "default",
+    confirm: _Confirm = False,
+) -> SystemControlResult:
     """
     Reboot an Epiphan Pearl device.
 
@@ -34,41 +45,41 @@ async def reboot_device(
         Confirmation of reboot initiation.
     """
     if not confirm:
-        return {
-            "success": False,
-            "error": "Safety check: set confirm=True to reboot. "
+        return SystemControlResult(
+            success=False,
+            error="Safety check: set confirm=True to reboot. "
             "This will interrupt all active recordings and streams.",
-        }
+        )
 
     try:
         async with get_client(device_id) as client:
             result = await client.reboot()
             log_operation("reboot", client.host, details={"device_id": device_id})
-            return {
-                "success": result.success,
-                "device": client.host,
-                "message": result.message or "Device is rebooting",
-            }
+            return SystemControlResult(
+                success=result.success,
+                device=client.host,
+                message=result.message or "Device is rebooting",
+            )
     except PearlAPIError as e:
         log_operation("reboot", device_id, success=False, details={"error": str(e)})
-        return {
-            "success": False,
-            "error": str(e),
-            "device": device_id,
-        }
+        return SystemControlResult(
+            success=False,
+            error=str(e),
+            device=device_id,
+        )
     except ValueError as e:
         log_operation("reboot", device_id, success=False, details={"error": str(e)})
-        return {
-            "success": False,
-            "error": str(e),
-            "device": device_id,
-        }
+        return SystemControlResult(
+            success=False,
+            error=str(e),
+            device=device_id,
+        )
 
 
 async def shutdown_device(
-    device_id: str = "default",
-    confirm: bool = False,
-) -> dict[str, Any]:
+    device_id: DeviceId = "default",
+    confirm: _Confirm = False,
+) -> SystemControlResult:
     """
     Shut down an Epiphan Pearl device.
 
@@ -84,38 +95,38 @@ async def shutdown_device(
         Confirmation of shutdown initiation.
     """
     if not confirm:
-        return {
-            "success": False,
-            "error": "Safety check: set confirm=True to shutdown. "
+        return SystemControlResult(
+            success=False,
+            error="Safety check: set confirm=True to shutdown. "
             "This will power off the device. Physical access is required to restart.",
-        }
+        )
 
     try:
         async with get_client(device_id) as client:
             result = await client.shutdown()
             log_operation("shutdown", client.host, details={"device_id": device_id})
-            return {
-                "success": result.success,
-                "device": client.host,
-                "message": result.message or "Device is shutting down",
-            }
+            return SystemControlResult(
+                success=result.success,
+                device=client.host,
+                message=result.message or "Device is shutting down",
+            )
     except PearlAPIError as e:
         log_operation("shutdown", device_id, success=False, details={"error": str(e)})
-        return {
-            "success": False,
-            "error": str(e),
-            "device": device_id,
-        }
+        return SystemControlResult(
+            success=False,
+            error=str(e),
+            device=device_id,
+        )
     except ValueError as e:
         log_operation("shutdown", device_id, success=False, details={"error": str(e)})
-        return {
-            "success": False,
-            "error": str(e),
-            "device": device_id,
-        }
+        return SystemControlResult(
+            success=False,
+            error=str(e),
+            device=device_id,
+        )
 
 
-async def get_system_info(device_id: str = "default") -> dict[str, Any]:
+async def get_system_info(device_id: DeviceId = "default") -> SystemInfoResult:
     """
     Get detailed system information for an Epiphan Pearl device.
 
@@ -135,23 +146,23 @@ async def get_system_info(device_id: str = "default") -> dict[str, Any]:
     try:
         async with get_client(device_id) as client:
             status = await client.get_system_status()
-            return {
-                "success": True,
-                "device": client.host,
-                "system": status.model_dump(),
-            }
+            return SystemInfoResult(
+                success=True,
+                device=client.host,
+                system=status.model_dump(),
+            )
     except PearlAPIError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "device": device_id,
-        }
+        return SystemInfoResult(
+            success=False,
+            error=str(e),
+            device=device_id,
+        )
     except ValueError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "device": device_id,
-        }
+        return SystemInfoResult(
+            success=False,
+            error=str(e),
+            device=device_id,
+        )
 
 
 def register(server: FastMCP) -> None:

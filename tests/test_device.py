@@ -47,13 +47,13 @@ class TestGetDeviceStatus:
         with patch_settings(test_settings):
             result = await get_device_status("default")
 
-        assert result["success"] is True
-        assert result["device"] == "192.168.1.100"
-        assert "status" in result
-        assert result["status"]["model"] == "Pearl-2"
-        assert result["status"]["firmware"] == "4.14.2"
-        assert result["status"]["recording"] == "stopped"
-        assert result["status"]["storage"]["free_gb"] > 0
+        assert result.success is True
+        assert result.device == "192.168.1.100"
+        assert hasattr(result, "status")
+        assert result.status["model"] == "Pearl-2"
+        assert result.status["firmware"] == "4.14.2"
+        assert result.status["recording"] == "stopped"
+        assert result.status["storage"]["free_gb"] > 0
 
     async def test_get_device_status_while_recording(
         self,
@@ -75,8 +75,8 @@ class TestGetDeviceStatus:
         with patch_settings(test_settings):
             result = await get_device_status("default")
 
-        assert result["success"] is True
-        assert result["status"]["recording"] == "recording"
+        assert result.success is True
+        assert result.status["recording"] == "recording"
 
     async def test_get_device_status_auth_error(
         self,
@@ -99,10 +99,10 @@ class TestGetDeviceStatus:
         with patch_settings(test_settings):
             result = await get_device_status("default")
 
-        assert result["success"] is False
-        assert "error" in result
+        assert result.success is False
+        assert hasattr(result, "error")
         # The error should mention auth/401
-        assert "401" in result["error"] or "Unauthorized" in result["error"]
+        assert "401" in result.error or "Unauthorized" in result.error
 
     async def test_get_device_status_connection_error(
         self,
@@ -125,9 +125,9 @@ class TestGetDeviceStatus:
         with patch_settings(test_settings):
             result = await get_device_status("default")
 
-        assert result["success"] is False
-        assert "error" in result
-        assert "Connection refused" in result["error"]
+        assert result.success is False
+        assert hasattr(result, "error")
+        assert "Connection refused" in result.error
 
     async def test_get_device_status_timeout(
         self,
@@ -150,8 +150,8 @@ class TestGetDeviceStatus:
         with patch_settings(test_settings):
             result = await get_device_status("default")
 
-        assert result["success"] is False
-        assert "error" in result
+        assert result.success is False
+        assert hasattr(result, "error")
 
     async def test_get_device_status_invalid_device(
         self,
@@ -163,9 +163,9 @@ class TestGetDeviceStatus:
         with patch_settings(empty_settings):
             result = await get_device_status("default")
 
-        assert result["success"] is False
-        assert "error" in result
-        assert "No default device configured" in result["error"]
+        assert result.success is False
+        assert hasattr(result, "error")
+        assert "No default device configured" in result.error
 
     async def test_get_device_status_by_index(
         self,
@@ -187,8 +187,8 @@ class TestGetDeviceStatus:
         with patch_settings(test_settings):
             result = await get_device_status("0")  # First device by index
 
-        assert result["success"] is True
-        assert result["device"] == "192.168.1.100"
+        assert result.success is True
+        assert result.device == "192.168.1.100"
 
 
 # ============================================================
@@ -204,27 +204,27 @@ class TestListDevices:
         with patch_settings(test_settings):
             result = await list_devices()
 
-        assert result["success"] is True
-        assert result["device_count"] == 2
-        assert result["fleet_name"] == "test-fleet"
-        assert len(result["devices"]) == 2
-        assert result["devices"][0]["host"] == "192.168.1.100"
-        assert result["devices"][1]["host"] == "192.168.1.101"
+        assert result.success is True
+        assert result.device_count == 2
+        assert result.fleet_name == "test-fleet"
+        assert len(result.devices) == 2
+        assert result.devices[0]["host"] == "192.168.1.100"
+        assert result.devices[1]["host"] == "192.168.1.101"
 
     async def test_list_devices_single(self, single_device_settings: Settings):
         """Test listing single configured device."""
         with patch_settings(single_device_settings):
             result = await list_devices()
 
-        assert result["success"] is True
-        assert result["device_count"] == 1
-        assert result["fleet_name"] == "single-device"
+        assert result.success is True
+        assert result.device_count == 1
+        assert result.fleet_name == "single-device"
 
     async def test_list_devices_empty(self, empty_settings: Settings):
         """Test listing when no devices configured."""
         with patch_settings(empty_settings):
             result = await list_devices()
 
-        assert result["success"] is True
-        assert result["device_count"] == 0
-        assert result["devices"] == []
+        assert result.success is True
+        assert result.device_count == 0
+        assert result.devices == []

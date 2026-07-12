@@ -493,3 +493,393 @@ class EventCreateRequest(BaseModel):
     end_time: datetime | None = Field(default=None, description="End time (ISO format)")
     recorders: list[str] | None = Field(default=None, description="Recorder IDs to use")
     publishers: list[str] | None = Field(default=None, description="Publisher IDs to use")
+
+
+# ============================================================
+# Device Tool Response Models
+# ============================================================
+
+
+class DeviceStatusResult(BaseModel):
+    """Return type of ``get_device_status``."""
+
+    success: bool = Field(description="Whether the status was retrieved")
+    device: str = Field(
+        default="", description="Device host, or the requested device_id on error"
+    )
+    status: dict[str, Any] | None = Field(
+        default=None,
+        description="Device status detail: uptime_hours, storage "
+        "(total_gb/free_gb/used_percent), firmware, model, and recording state. "
+        "Null on error.",
+    )
+    error: str | None = Field(default=None, description="Error message on failure.")
+
+
+class DeviceListResult(BaseModel):
+    """Return type of ``list_devices``."""
+
+    success: bool = Field(default=True, description="Whether the list was produced")
+    fleet_name: str = Field(default="", description="Fleet identifier")
+    device_count: int = Field(default=0, description="Number of configured devices")
+    devices: list[dict[str, Any]] = Field(
+        default_factory=list,
+        description="Configured devices, each with a numeric index and host.",
+    )
+
+
+# ============================================================
+# System Tool Response Models
+# ============================================================
+
+
+class SystemControlResult(BaseModel):
+    """Return type of ``reboot_device`` / ``shutdown_device``."""
+
+    success: bool = Field(description="Whether the control action was initiated")
+    device: str = Field(
+        default="", description="Device host, or the requested device_id on error"
+    )
+    message: str | None = Field(
+        default=None, description="Human-readable confirmation message"
+    )
+    error: str | None = Field(
+        default=None,
+        description="Error message, including the confirm=True safety-gate message.",
+    )
+
+
+class SystemInfoResult(BaseModel):
+    """Return type of ``get_system_info``."""
+
+    success: bool = Field(description="Whether the system info was retrieved")
+    device: str = Field(
+        default="", description="Device host, or the requested device_id on error"
+    )
+    system: dict[str, Any] | None = Field(
+        default=None,
+        description="Full system status: device_name, model, serial_number, "
+        "firmware_version, uptime_seconds, storage_total_gb/free_gb/used_percent, "
+        "cpu_usage, memory_usage, temperature. Null on error.",
+    )
+    error: str | None = Field(default=None, description="Error message on failure.")
+
+
+# ============================================================
+# Recording Tool Response Models
+# ============================================================
+
+
+class RecordingControlResult(BaseModel):
+    """Return type of start/stop recording tools (single and all-recorder)."""
+
+    model_config = ConfigDict(extra="allow")
+
+    success: bool = Field(description="Whether the control action succeeded")
+    message: str | None = Field(
+        default=None, description="Human-readable confirmation message"
+    )
+    device: str = Field(
+        default="", description="Device host, or the requested device_id on error"
+    )
+    details: dict[str, Any] | None = Field(
+        default=None, description="Operation details (e.g. affected recorder id(s))"
+    )
+    recorder: int | str | None = Field(
+        default=None, description="Recorder the action targeted (on error paths)"
+    )
+    error: str | None = Field(default=None, description="Error message on failure.")
+
+
+class RecordingStatusResult(BaseModel):
+    """Return type of ``get_recording_status``."""
+
+    success: bool = Field(description="Whether the status was retrieved")
+    device: str = Field(
+        default="", description="Device host, or the requested device_id on error"
+    )
+    recorder: int | str | None = Field(default=None, description="Recorder queried")
+    state: str | None = Field(
+        default=None, description="Recording state: recording, stopped, paused, error"
+    )
+    duration_seconds: int | None = Field(
+        default=None, description="Current recording duration in seconds"
+    )
+    file_size_bytes: int | None = Field(
+        default=None, description="Current recording file size in bytes"
+    )
+    filename: str | None = Field(default=None, description="Current recording filename")
+    error: str | None = Field(default=None, description="Error message on failure.")
+
+
+class RecorderListResult(BaseModel):
+    """Return type of ``list_recorders`` and ``get_all_recorder_status``."""
+
+    success: bool = Field(description="Whether the recorders were retrieved")
+    device: str = Field(
+        default="", description="Device host, or the requested device_id on error"
+    )
+    total_recorders: int = Field(default=0, description="Number of recorders returned")
+    recorders: list[dict[str, Any]] = Field(
+        default_factory=list,
+        description="Recorders: for list_recorders each has id/name/type/channel; "
+        "for get_all_recorder_status each has id/state/duration_seconds/"
+        "file_size_bytes/filename.",
+    )
+    error: str | None = Field(default=None, description="Error message on failure.")
+
+
+class ArchiveFilesResult(BaseModel):
+    """Return type of ``list_archive_files``."""
+
+    success: bool = Field(description="Whether the archive listing was retrieved")
+    device: str = Field(
+        default="", description="Device host, or the requested device_id on error"
+    )
+    recorder: int | str | None = Field(
+        default=None, description="Recorder whose archive was listed"
+    )
+    total_files: int = Field(default=0, description="Number of files returned")
+    files: list[dict[str, Any]] = Field(
+        default_factory=list,
+        description="Archive files with filename, size, duration, and creation time.",
+    )
+    error: str | None = Field(default=None, description="Error message on failure.")
+
+
+# ============================================================
+# Storage Tool Response Models
+# ============================================================
+
+
+class InputListResult(BaseModel):
+    """Return type of ``list_inputs``."""
+
+    success: bool = Field(description="Whether the inputs were retrieved")
+    device: str = Field(
+        default="", description="Device host, or the requested device_id on error"
+    )
+    total_inputs: int = Field(default=0, description="Number of input sources returned")
+    inputs: list[dict[str, Any]] = Field(
+        default_factory=list,
+        description="Input sources, each with id, name, type, connection status, "
+        "resolution, and signal info.",
+    )
+    error: str | None = Field(default=None, description="Error message on failure.")
+
+
+class StorageReportResult(BaseModel):
+    """Return type of ``get_storage_report``."""
+
+    success: bool = Field(description="Whether the storage report was retrieved")
+    device: str = Field(
+        default="", description="Device host, or the requested device_id on error"
+    )
+    total_storages: int = Field(default=0, description="Number of storage volumes")
+    storages: list[dict[str, Any]] = Field(
+        default_factory=list,
+        description="Per-volume storage info (id, type, total/free bytes, percent).",
+    )
+    summary: dict[str, Any] | None = Field(
+        default=None,
+        description="Fleet-of-volumes totals: total/free/used bytes and GB, and "
+        "used_percent across all volumes.",
+    )
+    error: str | None = Field(default=None, description="Error message on failure.")
+
+
+class AFUStatusResult(BaseModel):
+    """Return type of ``get_afu_status`` (Automatic File Upload)."""
+
+    success: bool = Field(description="Whether the AFU status was retrieved")
+    device: str = Field(
+        default="", description="Device host, or the requested device_id on error"
+    )
+    total_destinations: int = Field(
+        default=0, description="Number of AFU destinations"
+    )
+    destinations: list[dict[str, Any]] = Field(
+        default_factory=list,
+        description="AFU destinations, each with id, name, protocol, state, "
+        "queue_count, and destination URL.",
+    )
+    summary: dict[str, Any] | None = Field(
+        default=None,
+        description="Totals: total_queued_files, uploading_count, error_count.",
+    )
+    error: str | None = Field(default=None, description="Error message on failure.")
+
+
+# ============================================================
+# Fleet Tool Response Models (LLM-legible tool output schemas)
+# ============================================================
+#
+# These models are the *return types* of the fleet MCP tools. FastMCP derives
+# each tool's output JSON schema from its return annotation, so returning a
+# described model (instead of ``dict[str, Any]``) is what surfaces field
+# descriptions to the calling LLM.
+#
+# Each model is the union of every key a given tool can return, including its
+# empty-fleet and error branches, so construction never raises regardless of
+# which branch is taken. Fields that only appear on some branches default to a
+# neutral value (``None`` / ``0`` / ``[]``); on branches where they don't apply
+# they serialise as explicit ``null`` — an additive wire change, not a removal.
+# The ``{"success": False, "error": ...}`` convention is folded in via the
+# ``success`` and ``error`` fields rather than raising ToolError.
+
+
+class FleetStatusResult(BaseModel):
+    """Return type of ``get_fleet_status`` — a one-call fleet-wide rollup."""
+
+    success: bool = Field(default=True, description="Whether the rollup was produced")
+    fleet_name: str = Field(default="", description="Fleet identifier")
+    total_devices: int = Field(default=0, description="Total devices configured")
+    online_devices: int = Field(default=0, description="Devices that responded")
+    recording_devices: int = Field(default=0, description="Devices currently recording")
+    average_health: float = Field(
+        default=0.0, description="Mean health score (0-100) across online devices"
+    )
+    unhealthy_devices: int = Field(
+        default=0, description="Online devices with a health score below 60"
+    )
+    alerts_count: int = Field(default=0, description="Number of active alerts")
+    devices: list[dict[str, Any]] = Field(
+        default_factory=list,
+        description="Per-device status (host, online, recording, storage_percent, "
+        "health_score, health_issues; offline devices include an error).",
+    )
+    alerts: list[dict[str, Any]] = Field(
+        default_factory=list,
+        description="Active alerts, each with device, severity, and message.",
+    )
+    message: str | None = Field(
+        default=None,
+        description="Informational message (e.g. when no devices are configured).",
+    )
+
+
+class BatchRecordingResult(BaseModel):
+    """Return type of ``batch_start_recording`` / ``batch_stop_recording``."""
+
+    success: bool = Field(
+        description="True only if the operation succeeded on every targeted device"
+    )
+    total_devices: int = Field(default=0, description="Number of devices targeted")
+    successful: int = Field(default=0, description="Devices where the operation succeeded")
+    failed: int = Field(default=0, description="Devices where the operation failed")
+    results: list[dict[str, Any]] = Field(
+        default_factory=list,
+        description="Per-device result (device/host, success, and error on failure).",
+    )
+    error: str | None = Field(
+        default=None, description="Error message when the batch could not be started."
+    )
+
+
+class FleetHealthReportResult(BaseModel):
+    """Return type of ``fleet_health_report`` (AI-summarised)."""
+
+    success: bool = Field(default=True, description="Whether the report was produced")
+    fleet_name: str = Field(default="", description="Fleet identifier")
+    generated_at: str | None = Field(
+        default=None, description="ISO-8601 timestamp when the report was generated"
+    )
+    summary: str = Field(default="", description="Natural-language fleet health summary")
+    health_score: int = Field(
+        default=0, description="Rounded average fleet health score (0-100)"
+    )
+    devices_online: int | None = Field(
+        default=None, description="Number of devices online (omitted for empty fleets)"
+    )
+    devices_recording: int | None = Field(
+        default=None, description="Number of devices recording (omitted for empty fleets)"
+    )
+    attention_required: list[dict[str, str]] = Field(
+        default_factory=list,
+        description="Devices needing attention, each with device, issue, and action.",
+    )
+    recommendations: list[str] = Field(
+        default_factory=list, description="Prioritised recommended actions."
+    )
+    error: str | None = Field(default=None, description="Error message on failure.")
+
+
+class MaintenanceWindowResult(BaseModel):
+    """Return type of ``suggest_maintenance_window``."""
+
+    success: bool = Field(default=True, description="Whether a suggestion was produced")
+    fleet_name: str | None = Field(default=None, description="Fleet identifier")
+    suggested_window: str = Field(
+        default="", description="Recommended maintenance time window"
+    )
+    confidence: str = Field(
+        default="", description="Confidence in the recommendation: high, medium, or low"
+    )
+    reasoning: str = Field(default="", description="Explanation for the suggestion")
+    devices_affected: int = Field(
+        default=0, description="Number of devices that would be impacted"
+    )
+    current_activity: str = Field(
+        default="", description="Summary of current fleet activity"
+    )
+    generated_at: str | None = Field(
+        default=None, description="ISO-8601 timestamp when generated"
+    )
+    error: str | None = Field(default=None, description="Error message on failure.")
+
+
+class FleetIssuePredictionResult(BaseModel):
+    """Return type of ``predict_fleet_issues``."""
+
+    success: bool = Field(default=True, description="Whether predictions were produced")
+    fleet_name: str = Field(default="", description="Fleet identifier")
+    hours_ahead: int | None = Field(
+        default=None, description="Prediction horizon in hours"
+    )
+    predictions: list[dict[str, Any]] = Field(
+        default_factory=list,
+        description="Predicted issues, each with device, issue, timeframe, severity, "
+        "and action.",
+    )
+    risk_level: str = Field(
+        default="low", description="Overall risk: low, medium, high, or critical"
+    )
+    devices_at_risk: int = Field(
+        default=0, description="Count of devices with a predicted issue"
+    )
+    total_devices: int | None = Field(
+        default=None, description="Total devices analysed"
+    )
+    summary: str = Field(default="", description="AI-generated summary of predictions")
+    generated_at: str | None = Field(
+        default=None, description="ISO-8601 timestamp when generated"
+    )
+    error: str | None = Field(default=None, description="Error message on failure.")
+
+
+class ShiftHandoffResult(BaseModel):
+    """Return type of ``generate_shift_handoff``."""
+
+    success: bool = Field(default=True, description="Whether the handoff was produced")
+    fleet_name: str = Field(default="", description="Fleet identifier")
+    shift_period: str | None = Field(
+        default=None, description="Human-readable shift time range"
+    )
+    summary: str = Field(default="", description="AI-generated shift handoff summary")
+    activity_summary: dict[str, Any] = Field(
+        default_factory=dict, description="Recording/streaming activity statistics."
+    )
+    issues_resolved: list[Any] = Field(
+        default_factory=list, description="Issues addressed during the shift."
+    )
+    attention_required: list[dict[str, str]] = Field(
+        default_factory=list,
+        description="Items for the next shift, each with device, issue, and priority.",
+    )
+    fleet_status: dict[str, Any] = Field(
+        default_factory=dict, description="Current fleet health snapshot."
+    )
+    generated_at: str | None = Field(
+        default=None, description="ISO-8601 timestamp when generated"
+    )
+    error: str | None = Field(default=None, description="Error message on failure.")

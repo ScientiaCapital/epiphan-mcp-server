@@ -26,8 +26,8 @@ class TestRebootDevice:
 
         result = await reboot_device(device_id="default")
 
-        assert result["success"] is False
-        assert "confirm" in result["error"].lower()
+        assert result.success is False
+        assert "confirm" in result.error.lower()
 
     @pytest.mark.asyncio
     async def test_reboot_with_confirm_false_rejected(self):
@@ -36,8 +36,8 @@ class TestRebootDevice:
 
         result = await reboot_device(device_id="default", confirm=False)
 
-        assert result["success"] is False
-        assert "confirm" in result["error"].lower()
+        assert result.success is False
+        assert "confirm" in result.error.lower()
 
     @pytest.mark.asyncio
     async def test_reboot_with_confirm_success(self):
@@ -60,8 +60,8 @@ class TestRebootDevice:
         ):
             result = await reboot_device(device_id="default", confirm=True)
 
-        assert result["success"] is True
-        assert result["device"] == "192.168.1.100"
+        assert result.success is True
+        assert result.device == "192.168.1.100"
         mock_client.reboot.assert_called_once()
 
     @pytest.mark.asyncio
@@ -77,8 +77,8 @@ class TestRebootDevice:
         ):
             result = await reboot_device(device_id="default", confirm=True)
 
-        assert result["success"] is False
-        assert "error" in result
+        assert result.success is False
+        assert hasattr(result, "error")
 
     @pytest.mark.asyncio
     async def test_reboot_invalid_device(self):
@@ -91,8 +91,8 @@ class TestRebootDevice:
         ):
             result = await reboot_device(device_id="default", confirm=True)
 
-        assert result["success"] is False
-        assert "No default device configured" in result["error"]
+        assert result.success is False
+        assert "No default device configured" in result.error
 
     @pytest.mark.asyncio
     async def test_reboot_audit_logged_on_success(self):
@@ -159,8 +159,8 @@ class TestShutdownDevice:
 
         result = await shutdown_device(device_id="default")
 
-        assert result["success"] is False
-        assert "confirm" in result["error"].lower()
+        assert result.success is False
+        assert "confirm" in result.error.lower()
 
     @pytest.mark.asyncio
     async def test_shutdown_with_confirm_success(self):
@@ -183,8 +183,8 @@ class TestShutdownDevice:
         ):
             result = await shutdown_device(device_id="default", confirm=True)
 
-        assert result["success"] is True
-        assert result["device"] == "192.168.1.100"
+        assert result.success is True
+        assert result.device == "192.168.1.100"
         mock_client.shutdown.assert_called_once()
 
     @pytest.mark.asyncio
@@ -200,8 +200,8 @@ class TestShutdownDevice:
         ):
             result = await shutdown_device(device_id="default", confirm=True)
 
-        assert result["success"] is False
-        assert "error" in result
+        assert result.success is False
+        assert hasattr(result, "error")
 
 
 # ============================================================
@@ -240,13 +240,13 @@ class TestGetSystemInfo:
         ):
             result = await get_system_info(device_id="default")
 
-        assert result["success"] is True
-        assert result["device"] == "192.168.1.100"
-        assert result["system"]["device_name"] == "Pearl Mini"
-        assert result["system"]["firmware_version"] == "4.14.2"
-        assert result["system"]["uptime_seconds"] == 86400
-        assert result["system"]["storage_used_percent"] == 50.0
-        assert result["system"]["cpu_usage"] == 25.0
+        assert result.success is True
+        assert result.device == "192.168.1.100"
+        assert result.system["device_name"] == "Pearl Mini"
+        assert result.system["firmware_version"] == "4.14.2"
+        assert result.system["uptime_seconds"] == 86400
+        assert result.system["storage_used_percent"] == 50.0
+        assert result.system["cpu_usage"] == 25.0
 
     @pytest.mark.asyncio
     async def test_get_system_info_connection_error(self):
@@ -261,8 +261,8 @@ class TestGetSystemInfo:
         ):
             result = await get_system_info(device_id="default")
 
-        assert result["success"] is False
-        assert "error" in result
+        assert result.success is False
+        assert hasattr(result, "error")
 
     @pytest.mark.asyncio
     async def test_get_system_info_invalid_device(self):
@@ -275,5 +275,5 @@ class TestGetSystemInfo:
         ):
             result = await get_system_info(device_id="default")
 
-        assert result["success"] is False
-        assert "No default device configured" in result["error"]
+        assert result.success is False
+        assert "No default device configured" in result.error

@@ -391,6 +391,7 @@ Pearl Copilot works with any MCP-compatible AI tool:
 | **Claude Desktop** | Ready | Native MCP |
 | **Cursor** | Ready | MCP server |
 | **Windsurf** | Ready | MCP server |
+| **[SilkRoute](https://github.com/ScientiaCapital/silkroute)** (self-hosted demo) | Ready | Native MCP via `mcp_bridge` — see SilkRoute's ["Try the AV demo"](https://github.com/ScientiaCapital/silkroute#try-the-av-demo) |
 
 ## Development
 

@@ -832,3 +832,42 @@ class ShiftHandoffResult(BaseModel):
     )
     generated_at: str | None = Field(default=None, description="ISO-8601 timestamp when generated")
     error: str | None = Field(default=None, description="Error message on failure.")
+
+
+# ============================================================
+# Discovery Tool Response Models
+# ============================================================
+
+
+class DeviceDiscoveryResult(BaseModel):
+    """Return type of ``discover_device``."""
+
+    model_config = ConfigDict(extra="allow")
+
+    success: bool = Field(description="Whether discovery succeeded")
+    device: str = Field(default="", description="Device host, or the requested device_id on error")
+    cached: bool = Field(
+        default=False, description="Whether the result was served from the 5-minute cache"
+    )
+    recorders: list[dict[str, Any]] = Field(
+        default_factory=list,
+        description="Recorders, each with id, name, type, and channel_id.",
+    )
+    channels: list[dict[str, Any]] = Field(
+        default_factory=list, description="Channels, each with id and name."
+    )
+    inputs: list[dict[str, Any]] = Field(
+        default_factory=list,
+        description="Input sources, each with id, name, type, and connection status.",
+    )
+    error: str | None = Field(default=None, description="Error message on failure.")
+
+
+class CacheClearResult(BaseModel):
+    """Return type of ``clear_discovery_cache``."""
+
+    success: bool = Field(description="Whether the cache was cleared")
+    cleared: str = Field(
+        default="", description="The device_id cleared, or 'all' when clearing every device"
+    )
+    entries_removed: int = Field(default=0, description="Number of cache entries removed")

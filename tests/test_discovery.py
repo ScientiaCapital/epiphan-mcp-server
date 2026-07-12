@@ -74,12 +74,12 @@ class TestDiscoverDevice:
         with patch("epiphan_mcp.tools.discovery.get_client", return_value=mock_client):
             result = await discover_device("192.168.1.100")
 
-        assert result["success"] is True
-        assert len(result["recorders"]) == 2
-        assert len(result["channels"]) == 2
-        assert len(result["inputs"]) == 1
-        assert result["recorders"][0]["id"] == "recorder-1"
-        assert result["cached"] is False
+        assert result.success is True
+        assert len(result.recorders) == 2
+        assert len(result.channels) == 2
+        assert len(result.inputs) == 1
+        assert result.recorders[0]["id"] == "recorder-1"
+        assert result.cached is False
 
     @pytest.mark.asyncio
     async def test_discover_uses_cache_on_second_call(self):
@@ -104,8 +104,8 @@ class TestDiscoverDevice:
             result1 = await discover_device("192.168.1.100")
             result2 = await discover_device("192.168.1.100")
 
-        assert result1["cached"] is False
-        assert result2["cached"] is True
+        assert result1.cached is False
+        assert result2.cached is True
         # API should only be called once
         assert mock_client.get_recorders.call_count == 1
 
@@ -121,8 +121,8 @@ class TestDiscoverDevice:
         with patch("epiphan_mcp.tools.discovery.get_client", return_value=mock_client):
             result = await discover_device("192.168.1.100")
 
-        assert result["success"] is False
-        assert "Connection refused" in result["error"]
+        assert result.success is False
+        assert "Connection refused" in result.error
 
     @pytest.mark.asyncio
     async def test_discover_cache_expires(self):
@@ -151,7 +151,7 @@ class TestDiscoverDevice:
             # Second call should hit API again
             result = await discover_device("192.168.1.100")
 
-        assert result["cached"] is False
+        assert result.cached is False
         assert mock_client.get_recorders.call_count == 2
 
 
@@ -234,8 +234,8 @@ class TestClearDiscoveryCache:
 
         result = await clear_discovery_cache()
 
-        assert result["success"] is True
-        assert result["entries_removed"] == 2
+        assert result.success is True
+        assert result.entries_removed == 2
         assert len(_device_cache) == 0
 
     @pytest.mark.asyncio
@@ -254,7 +254,7 @@ class TestClearDiscoveryCache:
         with patch("epiphan_mcp.tools.discovery.get_client", return_value=mock_client):
             result = await clear_discovery_cache("192.168.1.100")
 
-        assert result["success"] is True
-        assert result["entries_removed"] == 1
+        assert result.success is True
+        assert result.entries_removed == 1
         assert "192.168.1.100" not in _device_cache
         assert "192.168.1.101" in _device_cache

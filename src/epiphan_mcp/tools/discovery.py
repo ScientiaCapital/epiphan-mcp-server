@@ -3,14 +3,27 @@
 import logging
 import re
 import time
-from typing import Any
+from typing import Annotated, Any
 
 from fastmcp import FastMCP
+from pydantic import Field
 
 from ..client import PearlAPIError
+from ..models import CacheClearResult, DeviceDiscoveryResult
 from .device import get_client
+from .params import DeviceId
 
 logger = logging.getLogger(__name__)
+
+_ClearDeviceId = Annotated[
+    str | None,
+    Field(
+        description=(
+            "Device to clear the discovery cache for (IP address, hostname, or "
+            "index). If omitted, clears the cache for all devices."
+        )
+    ),
+]
 
 # Cache TTL in seconds (5 minutes)
 _CACHE_TTL = 300.0
@@ -33,7 +46,7 @@ def _is_cache_valid(host: str) -> bool:
     return (time.monotonic() - _cache_timestamps[host]) < _CACHE_TTL
 
 
-async def discover_device(device_id: str = "default") -> dict[str, Any]:
+async def discover_device(device_id: DeviceId = "default") -> DeviceDiscoveryResult:
     """
     Discover available recorders, channels, and inputs on a Pearl device.
 
@@ -53,13 +66,15 @@ async def discover_device(device_id: str = "default") -> dict[str, Any]:
             host = client.host
 
             if _is_cache_valid(host):
-                return {"success": True, "device": host, "cached": True, **_device_cache[host]}
+                return DeviceDiscoveryResult(
+                    success=True, device=host, cached=True, **_device_cache[host]
+                )
 
             recorders = await client.get_recorders()
             channels = await client.get_channels()
             inputs = await client.get_inputs()
 
-            data = {
+            data: dict[str, Any] = {
                 "recorders": [
                     {"id": r.id, "name": r.name, "type": r.type, "channel_id": r.channel_id}
                     for r in recorders
@@ -74,30 +89,30 @@ async def discover_device(device_id: str = "default") -> dict[str, Any]:
             _device_cache[host] = data
             _cache_timestamps[host] = time.monotonic()
 
-            return {"success": True, "device": host, "cached": False, **data}
+            return DeviceDiscoveryResult(success=True, device=host, cached=False, **data)
 
     except Exception as e:
         logger.debug("Discovery failed for %s: %s", device_id, e)
-        return {"success": False, "error": str(e), "device": device_id}
+        return DeviceDiscoveryResult(success=False, error=str(e), device=device_id)
 
 
 async def get_default_recorder(device_id: str = "default") -> int:
     """Get first available recorder number (1-based), fallback to 1."""
     result = await discover_device(device_id)
-    if result.get("success") and result.get("recorders"):
-        return _parse_resource_number(result["recorders"][0]["id"])
+    if result.success and result.recorders:
+        return _parse_resource_number(result.recorders[0]["id"])
     return 1
 
 
 async def get_default_channel(device_id: str = "default") -> int:
     """Get first available channel number (1-based), fallback to 1."""
     result = await discover_device(device_id)
-    if result.get("success") and result.get("channels"):
-        return _parse_resource_number(result["channels"][0]["id"])
+    if result.success and result.channels:
+        return _parse_resource_number(result.channels[0]["id"])
     return 1
 
 
-async def clear_discovery_cache(device_id: str | None = None) -> dict[str, Any]:
+async def clear_discovery_cache(device_id: _ClearDeviceId = None) -> CacheClearResult:
     """
     Clear the device discovery cache.
 
@@ -122,20 +137,20 @@ async def clear_discovery_cache(device_id: str | None = None) -> dict[str, Any]:
             del _device_cache[host]
             del _cache_timestamps[host]
             removed = 1
-        return {
-            "success": True,
-            "cleared": device_id,
-            "entries_removed": removed,
-        }
+        return CacheClearResult(
+            success=True,
+            cleared=device_id,
+            entries_removed=removed,
+        )
     else:
         count = len(_device_cache)
         _device_cache.clear()
         _cache_timestamps.clear()
-        return {
-            "success": True,
-            "cleared": "all",
-            "entries_removed": count,
-        }
+        return CacheClearResult(
+            success=True,
+            cleared="all",
+            entries_removed=count,
+        )
 
 
 def register(server: FastMCP) -> None:

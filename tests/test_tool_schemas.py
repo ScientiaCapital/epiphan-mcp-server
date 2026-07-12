@@ -40,7 +40,6 @@ from .fixtures.responses import (
 NOT_YET_CONVERTED = {
     "ai_tools",
     "cloud",
-    "discovery",
     "ec20",
     "inputs",
     "kaltura",

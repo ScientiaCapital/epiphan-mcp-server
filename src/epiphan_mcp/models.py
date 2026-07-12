@@ -566,6 +566,88 @@ class SystemInfoResult(BaseModel):
 
 
 # ============================================================
+# Recording Tool Response Models
+# ============================================================
+
+
+class RecordingControlResult(BaseModel):
+    """Return type of start/stop recording tools (single and all-recorder)."""
+
+    model_config = ConfigDict(extra="allow")
+
+    success: bool = Field(description="Whether the control action succeeded")
+    message: str | None = Field(
+        default=None, description="Human-readable confirmation message"
+    )
+    device: str = Field(
+        default="", description="Device host, or the requested device_id on error"
+    )
+    details: dict[str, Any] | None = Field(
+        default=None, description="Operation details (e.g. affected recorder id(s))"
+    )
+    recorder: int | str | None = Field(
+        default=None, description="Recorder the action targeted (on error paths)"
+    )
+    error: str | None = Field(default=None, description="Error message on failure.")
+
+
+class RecordingStatusResult(BaseModel):
+    """Return type of ``get_recording_status``."""
+
+    success: bool = Field(description="Whether the status was retrieved")
+    device: str = Field(
+        default="", description="Device host, or the requested device_id on error"
+    )
+    recorder: int | str | None = Field(default=None, description="Recorder queried")
+    state: str | None = Field(
+        default=None, description="Recording state: recording, stopped, paused, error"
+    )
+    duration_seconds: int | None = Field(
+        default=None, description="Current recording duration in seconds"
+    )
+    file_size_bytes: int | None = Field(
+        default=None, description="Current recording file size in bytes"
+    )
+    filename: str | None = Field(default=None, description="Current recording filename")
+    error: str | None = Field(default=None, description="Error message on failure.")
+
+
+class RecorderListResult(BaseModel):
+    """Return type of ``list_recorders`` and ``get_all_recorder_status``."""
+
+    success: bool = Field(description="Whether the recorders were retrieved")
+    device: str = Field(
+        default="", description="Device host, or the requested device_id on error"
+    )
+    total_recorders: int = Field(default=0, description="Number of recorders returned")
+    recorders: list[dict[str, Any]] = Field(
+        default_factory=list,
+        description="Recorders: for list_recorders each has id/name/type/channel; "
+        "for get_all_recorder_status each has id/state/duration_seconds/"
+        "file_size_bytes/filename.",
+    )
+    error: str | None = Field(default=None, description="Error message on failure.")
+
+
+class ArchiveFilesResult(BaseModel):
+    """Return type of ``list_archive_files``."""
+
+    success: bool = Field(description="Whether the archive listing was retrieved")
+    device: str = Field(
+        default="", description="Device host, or the requested device_id on error"
+    )
+    recorder: int | str | None = Field(
+        default=None, description="Recorder whose archive was listed"
+    )
+    total_files: int = Field(default=0, description="Number of files returned")
+    files: list[dict[str, Any]] = Field(
+        default_factory=list,
+        description="Archive files with filename, size, duration, and creation time.",
+    )
+    error: str | None = Field(default=None, description="Error message on failure.")
+
+
+# ============================================================
 # Fleet Tool Response Models (LLM-legible tool output schemas)
 # ============================================================
 #

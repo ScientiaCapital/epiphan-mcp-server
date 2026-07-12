@@ -50,7 +50,6 @@ NOT_YET_CONVERTED = {
     "panopto",
     "publishers",
     "qsys",
-    "recording",
     "schedule",
     "storage",
     "streaming",

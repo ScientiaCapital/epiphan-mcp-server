@@ -52,9 +52,9 @@ class TestStartRecording:
         with patch_settings(test_settings):
             result = await start_recording("default", recorder=1)
 
-        assert result["success"] is True
-        assert result["device"] == "192.168.1.100"
-        assert "started" in result["message"].lower()
+        assert result.success is True
+        assert result.device == "192.168.1.100"
+        assert "started" in result.message.lower()
 
     async def test_start_recording_already_recording(
         self,
@@ -71,7 +71,7 @@ class TestStartRecording:
             result = await start_recording("default", recorder=1)
 
         # Should still return successfully or handle gracefully
-        assert "error" in result or result.get("success") is False
+        assert hasattr(result, "error") or result.get("success") is False
 
     async def test_start_recording_auth_error(
         self,
@@ -87,8 +87,8 @@ class TestStartRecording:
         with patch_settings(test_settings):
             result = await start_recording("default", recorder=1)
 
-        assert result["success"] is False
-        assert "error" in result
+        assert result.success is False
+        assert hasattr(result, "error")
 
     async def test_start_recording_connection_error(
         self,
@@ -104,9 +104,9 @@ class TestStartRecording:
         with patch_settings(test_settings):
             result = await start_recording("default", recorder=1)
 
-        assert result["success"] is False
-        assert "error" in result
-        assert "Connection refused" in result["error"]
+        assert result.success is False
+        assert hasattr(result, "error")
+        assert "Connection refused" in result.error
 
     async def test_start_recording_timeout(
         self,
@@ -122,8 +122,8 @@ class TestStartRecording:
         with patch_settings(test_settings):
             result = await start_recording("default", recorder=1)
 
-        assert result["success"] is False
-        assert "error" in result
+        assert result.success is False
+        assert hasattr(result, "error")
 
     async def test_start_recording_recorder_2(
         self,
@@ -139,7 +139,7 @@ class TestStartRecording:
         with patch_settings(test_settings):
             result = await start_recording("default", recorder=2)
 
-        assert result["success"] is True
+        assert result.success is True
 
     async def test_start_recording_invalid_device(
         self,
@@ -151,9 +151,9 @@ class TestStartRecording:
         with patch_settings(empty_settings):
             result = await start_recording("default", recorder=1)
 
-        assert result["success"] is False
-        assert "error" in result
-        assert "No default device configured" in result["error"]
+        assert result.success is False
+        assert hasattr(result, "error")
+        assert "No default device configured" in result.error
 
 
 # ============================================================
@@ -178,9 +178,9 @@ class TestStopRecording:
         with patch_settings(test_settings):
             result = await stop_recording("default", recorder=1)
 
-        assert result["success"] is True
-        assert result["device"] == "192.168.1.100"
-        assert "stopped" in result["message"].lower()
+        assert result.success is True
+        assert result.device == "192.168.1.100"
+        assert "stopped" in result.message.lower()
 
     async def test_stop_recording_not_recording(
         self,
@@ -197,7 +197,7 @@ class TestStopRecording:
             result = await stop_recording("default", recorder=1)
 
         # Should succeed even if not recording
-        assert result["success"] is True
+        assert result.success is True
 
     async def test_stop_recording_connection_error(
         self,
@@ -213,8 +213,8 @@ class TestStopRecording:
         with patch_settings(test_settings):
             result = await stop_recording("default", recorder=1)
 
-        assert result["success"] is False
-        assert "error" in result
+        assert result.success is False
+        assert hasattr(result, "error")
 
     async def test_stop_recording_auth_error(
         self,
@@ -230,8 +230,8 @@ class TestStopRecording:
         with patch_settings(test_settings):
             result = await stop_recording("default", recorder=1)
 
-        assert result["success"] is False
-        assert "error" in result
+        assert result.success is False
+        assert hasattr(result, "error")
 
 
 # ============================================================
@@ -256,12 +256,12 @@ class TestGetRecordingStatus:
         with patch_settings(test_settings):
             result = await get_recording_status("default", recorder=1)
 
-        assert result["success"] is True
-        assert result["device"] == "192.168.1.100"
-        assert result["recorder"] == 1
-        assert result["state"] == "stopped"
-        assert result["duration_seconds"] == 0
-        assert result["file_size_bytes"] == 0
+        assert result.success is True
+        assert result.device == "192.168.1.100"
+        assert result.recorder == 1
+        assert result.state == "stopped"
+        assert result.duration_seconds == 0
+        assert result.file_size_bytes == 0
 
     async def test_get_recording_status_recording(
         self,
@@ -277,11 +277,11 @@ class TestGetRecordingStatus:
         with patch_settings(test_settings):
             result = await get_recording_status("default", recorder=1)
 
-        assert result["success"] is True
-        assert result["state"] == "recording"
-        assert result["duration_seconds"] == 3600  # 1 hour
-        assert result["file_size_bytes"] == 1073741824  # 1GB
-        assert "recording_2025-01-22" in result["filename"]
+        assert result.success is True
+        assert result.state == "recording"
+        assert result.duration_seconds == 3600  # 1 hour
+        assert result.file_size_bytes == 1073741824  # 1GB
+        assert "recording_2025-01-22" in result.filename
 
     async def test_get_recording_status_connection_error(
         self,
@@ -297,8 +297,8 @@ class TestGetRecordingStatus:
         with patch_settings(test_settings):
             result = await get_recording_status("default", recorder=1)
 
-        assert result["success"] is False
-        assert "error" in result
+        assert result.success is False
+        assert hasattr(result, "error")
 
     async def test_get_recording_status_auth_error(
         self,
@@ -314,8 +314,8 @@ class TestGetRecordingStatus:
         with patch_settings(test_settings):
             result = await get_recording_status("default", recorder=1)
 
-        assert result["success"] is False
-        assert "error" in result
+        assert result.success is False
+        assert hasattr(result, "error")
 
     async def test_get_recording_status_recorder_2(
         self,
@@ -331,8 +331,8 @@ class TestGetRecordingStatus:
         with patch_settings(test_settings):
             result = await get_recording_status("default", recorder=2)
 
-        assert result["success"] is True
-        assert result["recorder"] == 2
+        assert result.success is True
+        assert result.recorder == 2
 
     async def test_get_recording_status_invalid_device(
         self,
@@ -344,9 +344,9 @@ class TestGetRecordingStatus:
         with patch_settings(empty_settings):
             result = await get_recording_status("default", recorder=1)
 
-        assert result["success"] is False
-        assert "error" in result
-        assert "No default device configured" in result["error"]
+        assert result.success is False
+        assert hasattr(result, "error")
+        assert "No default device configured" in result.error
 
 
 # ============================================================
@@ -378,16 +378,16 @@ class TestRecordingEdgeCases:
         with patch_settings(test_settings):
             # Check initial status
             status1 = await get_recording_status("default", recorder=1)
-            assert status1["success"] is True
-            assert status1["state"] == "stopped"
+            assert status1.success is True
+            assert status1.state == "stopped"
 
             # Start recording
             start_result = await start_recording("default", recorder=1)
-            assert start_result["success"] is True
+            assert start_result.success is True
 
             # Stop recording
             stop_result = await stop_recording("default", recorder=1)
-            assert stop_result["success"] is True
+            assert stop_result.success is True
 
     async def test_recording_on_secondary_device(
         self,
@@ -405,8 +405,8 @@ class TestRecordingEdgeCases:
         with patch_settings(test_settings):
             result = await start_recording("1", recorder=1)  # Device index 1
 
-        assert result["success"] is True
-        assert result["device"] == mock_pearl_host_secondary
+        assert result.success is True
+        assert result.device == mock_pearl_host_secondary
 
 
 # ============================================================
@@ -445,11 +445,11 @@ class TestListRecorders:
         ):
             result = await list_recorders(device_id="default")
 
-        assert result["success"] is True
-        assert result["device"] == "192.168.1.100"
-        assert result["total_recorders"] == 2
-        assert len(result["recorders"]) == 2
-        assert result["recorders"][0]["id"] == "recorder-1"
+        assert result.success is True
+        assert result.device == "192.168.1.100"
+        assert result.total_recorders == 2
+        assert len(result.recorders) == 2
+        assert result.recorders[0]["id"] == "recorder-1"
 
     @pytest.mark.asyncio
     async def test_list_recorders_empty(self):
@@ -464,9 +464,9 @@ class TestListRecorders:
         ):
             result = await list_recorders(device_id="default")
 
-        assert result["success"] is True
-        assert result["total_recorders"] == 0
-        assert result["recorders"] == []
+        assert result.success is True
+        assert result.total_recorders == 0
+        assert result.recorders == []
 
     @pytest.mark.asyncio
     async def test_list_recorders_connection_error(self):
@@ -481,8 +481,8 @@ class TestListRecorders:
         ):
             result = await list_recorders(device_id="default")
 
-        assert result["success"] is False
-        assert "error" in result
+        assert result.success is False
+        assert hasattr(result, "error")
 
     @pytest.mark.asyncio
     async def test_list_recorders_invalid_device(self):
@@ -493,8 +493,8 @@ class TestListRecorders:
         ):
             result = await list_recorders(device_id="default")
 
-        assert result["success"] is False
-        assert "No default device configured" in result["error"]
+        assert result.success is False
+        assert "No default device configured" in result.error
 
 
 # ============================================================
@@ -519,11 +519,11 @@ class TestListArchiveFiles:
         ):
             result = await list_archive_files(device_id="default", recorder=1)
 
-        assert result["success"] is True
-        assert result["device"] == "192.168.1.100"
-        assert result["recorder"] == "recorder-1"
-        assert result["total_files"] == len(mock_files)
-        assert len(result["files"]) == len(mock_files)
+        assert result.success is True
+        assert result.device == "192.168.1.100"
+        assert result.recorder == "recorder-1"
+        assert result.total_files == len(mock_files)
+        assert len(result.files) == len(mock_files)
         mock_client.get_archive_files.assert_called_once_with(
             "recorder-1", from_index=0, limit=100
         )
@@ -543,7 +543,7 @@ class TestListArchiveFiles:
                 device_id="default", recorder=1, from_index=10, limit=25
             )
 
-        assert result["success"] is True
+        assert result.success is True
         mock_client.get_archive_files.assert_called_once_with(
             "recorder-1", from_index=10, limit=25
         )
@@ -561,9 +561,9 @@ class TestListArchiveFiles:
         ):
             result = await list_archive_files(device_id="default", recorder=1)
 
-        assert result["success"] is True
-        assert result["total_files"] == 0
-        assert result["files"] == []
+        assert result.success is True
+        assert result.total_files == 0
+        assert result.files == []
 
     @pytest.mark.asyncio
     async def test_list_archive_files_connection_error(self):
@@ -578,8 +578,8 @@ class TestListArchiveFiles:
         ):
             result = await list_archive_files(device_id="default", recorder=1)
 
-        assert result["success"] is False
-        assert "error" in result
+        assert result.success is False
+        assert hasattr(result, "error")
 
     @pytest.mark.asyncio
     async def test_list_archive_files_recorder_2(self):
@@ -594,8 +594,8 @@ class TestListArchiveFiles:
         ):
             result = await list_archive_files(device_id="default", recorder=2)
 
-        assert result["success"] is True
-        assert result["recorder"] == "recorder-2"
+        assert result.success is True
+        assert result.recorder == "recorder-2"
         mock_client.get_archive_files.assert_called_once_with(
             "recorder-2", from_index=0, limit=100
         )
@@ -633,13 +633,13 @@ class TestGetAllRecorderStatus:
         ):
             result = await get_all_recorder_status(device_id="default")
 
-        assert result["success"] is True
-        assert result["device"] == "192.168.1.100"
-        assert result["total_recorders"] == 2
-        assert result["recorders"][0]["id"] == "recorder-1"
-        assert result["recorders"][0]["state"] == "recording"
-        assert result["recorders"][1]["id"] == "recorder-2"
-        assert result["recorders"][1]["state"] == "stopped"
+        assert result.success is True
+        assert result.device == "192.168.1.100"
+        assert result.total_recorders == 2
+        assert result.recorders[0]["id"] == "recorder-1"
+        assert result.recorders[0]["state"] == "recording"
+        assert result.recorders[1]["id"] == "recorder-2"
+        assert result.recorders[1]["state"] == "stopped"
 
     @pytest.mark.asyncio
     async def test_get_all_recorder_status_error(self):
@@ -657,8 +657,8 @@ class TestGetAllRecorderStatus:
         ):
             result = await get_all_recorder_status(device_id="default")
 
-        assert result["success"] is False
-        assert "Connection refused" in result["error"]
+        assert result.success is False
+        assert "Connection refused" in result.error
 
 
 class TestStartAllRecorders:
@@ -685,7 +685,7 @@ class TestStartAllRecorders:
         ):
             result = await start_all_recorders(device_id="default")
 
-        assert result["success"] is True
+        assert result.success is True
         mock_client.start_all_recorders.assert_called_once()
 
     @pytest.mark.asyncio
@@ -704,8 +704,8 @@ class TestStartAllRecorders:
         ):
             result = await start_all_recorders(device_id="default")
 
-        assert result["success"] is False
-        assert "Device busy" in result["error"]
+        assert result.success is False
+        assert "Device busy" in result.error
 
 
 class TestStopAllRecorders:
@@ -732,7 +732,7 @@ class TestStopAllRecorders:
         ):
             result = await stop_all_recorders(device_id="default")
 
-        assert result["success"] is True
+        assert result.success is True
         mock_client.stop_all_recorders.assert_called_once()
 
     @pytest.mark.asyncio
@@ -751,5 +751,5 @@ class TestStopAllRecorders:
         ):
             result = await stop_all_recorders(device_id="default")
 
-        assert result["success"] is False
-        assert "Not recording" in result["error"]
+        assert result.success is False
+        assert "Not recording" in result.error

@@ -473,8 +473,9 @@ class TestBoundaryValues:
                     device_id="192.168.1.100", recorder="recorder-999"
                 )
 
-        # Should handle the error from the API
-        assert isinstance(result, dict)
+        # Should handle the error from the API gracefully (typed error result)
+        assert result.success is False
+        assert result.error is not None
 
     async def test_device_id_numeric_index(self):
         """Numeric device index should resolve to the correct device."""

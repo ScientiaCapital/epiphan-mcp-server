@@ -221,8 +221,8 @@ class TestStartRecording:
 
                 result = await start_recording.fn(device_id="default", recorder=1)
 
-        assert result["success"] is True
-        assert "started" in result["message"].lower()
+        assert result.success is True
+        assert "started" in result.message.lower()
 
     async def test_start_recording_api_error(self, mock_pearl_host: str):
         """Test recording start with API error."""
@@ -240,8 +240,8 @@ class TestStartRecording:
 
                 result = await start_recording.fn(device_id="default", recorder=1)
 
-        assert result["success"] is False
-        assert "error" in result
+        assert result.success is False
+        assert hasattr(result, "error")
 
 
 class TestStopRecording:
@@ -263,8 +263,8 @@ class TestStopRecording:
 
                 result = await stop_recording.fn(device_id="default", recorder=1)
 
-        assert result["success"] is True
-        assert "stopped" in result["message"].lower()
+        assert result.success is True
+        assert "stopped" in result.message.lower()
 
 
 class TestGetRecordingStatus:
@@ -286,9 +286,9 @@ class TestGetRecordingStatus:
 
                 result = await get_recording_status.fn(device_id="default", recorder=1)
 
-        assert result["success"] is True
-        assert result["state"] == "stopped"
-        assert result["duration_seconds"] == 0
+        assert result.success is True
+        assert result.state == "stopped"
+        assert result.duration_seconds == 0
 
     async def test_get_recording_status_recording(self, mock_pearl_host: str):
         """Test getting recording status while recording."""
@@ -306,9 +306,9 @@ class TestGetRecordingStatus:
 
                 result = await get_recording_status.fn(device_id="default", recorder=1)
 
-        assert result["success"] is True
-        assert result["state"] == "recording"
-        assert result["duration_seconds"] == 3600
+        assert result.success is True
+        assert result.state == "recording"
+        assert result.duration_seconds == 3600
 
 
 # ============================================================
@@ -1172,8 +1172,8 @@ class TestServerErrorBranches:
 
                 result = await stop_recording.fn(device_id="default", recorder=1)
 
-        assert result["success"] is False
-        assert "Not recording" in result["error"]
+        assert result.success is False
+        assert "Not recording" in result.error
 
     async def test_stop_recording_value_error(self):
         """Test stop_recording handles ValueError (no devices configured)."""
@@ -1183,8 +1183,8 @@ class TestServerErrorBranches:
             mock_settings.return_value = create_test_settings(devices="")
             result = await stop_recording.fn(device_id="default", recorder=1)
 
-        assert result["success"] is False
-        assert "No default device" in result["error"]
+        assert result.success is False
+        assert "No default device" in result.error
 
     async def test_get_recording_status_api_error(self, mock_pearl_host: str):
         """Test get_recording_status handles PearlAPIError."""
@@ -1202,8 +1202,8 @@ class TestServerErrorBranches:
 
                 result = await get_recording_status.fn(device_id="default", recorder=1)
 
-        assert result["success"] is False
-        assert "Recorder not found" in result["error"]
+        assert result.success is False
+        assert "Recorder not found" in result.error
 
     async def test_get_recording_status_value_error(self):
         """Test get_recording_status handles ValueError."""
@@ -1213,8 +1213,8 @@ class TestServerErrorBranches:
             mock_settings.return_value = create_test_settings(devices="")
             result = await get_recording_status.fn(device_id="default", recorder=1)
 
-        assert result["success"] is False
-        assert "No default device" in result["error"]
+        assert result.success is False
+        assert "No default device" in result.error
 
     async def test_start_stream_api_error(self, mock_pearl_host: str):
         """Test start_stream handles PearlAPIError."""
@@ -1354,8 +1354,8 @@ class TestServerErrorBranches:
             mock_settings.return_value = create_test_settings(devices="")
             result = await start_recording.fn(device_id="default", recorder=1)
 
-        assert result["success"] is False
-        assert "No default device" in result["error"]
+        assert result.success is False
+        assert "No default device" in result.error
 
     async def test_batch_stop_recording_specific_devices(self):
         """Test batch_stop_recording with specific device IDs (not 'all')."""

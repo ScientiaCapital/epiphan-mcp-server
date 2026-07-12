@@ -138,7 +138,7 @@ class TestRealRecordingControl:
 
         # Start recording
         start_result = await start_recording.fn(device_id="default", recorder=1)
-        assert start_result["success"] is True
+        assert start_result.success is True
 
         # Check status
         status = await get_recording_status.fn(device_id="default", recorder=1)
@@ -146,7 +146,7 @@ class TestRealRecordingControl:
 
         # Stop recording
         stop_result = await stop_recording.fn(device_id="default", recorder=1)
-        assert stop_result["success"] is True
+        assert stop_result.success is True
 
 
 # ============================================================

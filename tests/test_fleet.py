@@ -9,7 +9,6 @@ import time
 from unittest.mock import AsyncMock, patch
 
 import pytest
-
 import respx
 from httpx import ConnectError, Response
 
@@ -100,8 +99,8 @@ class TestFleetStatusParallel:
                 result = await get_fleet_status.fn()
                 elapsed = time.monotonic() - start_time
 
-        assert result["success"] is True
-        assert result["total_devices"] == 4
+        assert result.success is True
+        assert result.total_devices == 4
 
         # If parallel: ~0.1s (all run simultaneously)
         # If sequential: ~0.4s (0.1s * 4 devices)
@@ -153,14 +152,14 @@ class TestFleetStatusParallel:
 
                 result = await get_fleet_status.fn()
 
-        assert result["success"] is True
-        assert result["total_devices"] == 3
-        assert result["online_devices"] == 2
-        assert result["recording_devices"] == 1
+        assert result.success is True
+        assert result.total_devices == 3
+        assert result.online_devices == 2
+        assert result.recording_devices == 1
 
         # Verify the failed device is recorded
         failed_device = next(
-            d for d in result["devices"] if d["host"] == "192.168.1.101"
+            d for d in result.devices if d["host"] == "192.168.1.101"
         )
         assert failed_device["online"] is False
         assert "error" in failed_device
@@ -204,11 +203,11 @@ class TestFleetStatusParallel:
 
         # The operation should complete in reasonable time, not wait for timeout
         # Note: The actual timeout handling depends on implementation
-        assert result["success"] is True
-        assert result["total_devices"] == 2
+        assert result.success is True
+        assert result.total_devices == 2
 
         # At least one device should succeed
-        online_devices = [d for d in result["devices"] if d.get("online", False)]
+        online_devices = [d for d in result.devices if d.get("online", False)]
         assert len(online_devices) >= 1
 
 
@@ -249,9 +248,9 @@ class TestBatchStartParallel:
                 result = await batch_start_recording.fn(device_ids="all")
                 elapsed = time.monotonic() - start_time
 
-        assert result["success"] is True
-        assert result["total_devices"] == 4
-        assert result["successful"] == 4
+        assert result.success is True
+        assert result.total_devices == 4
+        assert result.successful == 4
         assert call_count == 4
 
         # Parallel should complete in ~0.1s, sequential would be ~0.4s
@@ -282,10 +281,10 @@ class TestBatchStartParallel:
 
                 result = await batch_start_recording.fn(device_ids="all")
 
-        assert result["success"] is False  # Not all succeeded
-        assert result["total_devices"] == 3
-        assert result["successful"] == 2
-        assert result["failed"] == 1
+        assert result.success is False  # Not all succeeded
+        assert result.total_devices == 3
+        assert result.successful == 2
+        assert result.failed == 1
 
 
 # ============================================================
@@ -321,9 +320,9 @@ class TestBatchStopParallel:
                 result = await batch_stop_recording.fn(device_ids="all")
                 elapsed = time.monotonic() - start_time
 
-        assert result["success"] is True
-        assert result["total_devices"] == 4
-        assert result["successful"] == 4
+        assert result.success is True
+        assert result.total_devices == 4
+        assert result.successful == 4
 
         # Parallel should complete in ~0.1s, sequential would be ~0.4s
         assert elapsed < 0.3, f"Batch stop took {elapsed:.2f}s - likely running sequentially"
@@ -349,10 +348,10 @@ class TestBatchStopParallel:
 
                 result = await batch_stop_recording.fn(device_ids="all")
 
-        assert result["success"] is False  # Not all succeeded
-        assert result["total_devices"] == 2
-        assert result["successful"] == 1
-        assert result["failed"] == 1
+        assert result.success is False  # Not all succeeded
+        assert result.total_devices == 2
+        assert result.successful == 1
+        assert result.failed == 1
 
 
 # ============================================================
@@ -407,9 +406,9 @@ class TestParallelTiming:
                 result = await get_fleet_status.fn()
                 elapsed = time.monotonic() - start_time
 
-        assert result["success"] is True
-        assert result["total_devices"] == num_devices
-        assert result["online_devices"] == num_devices
+        assert result.success is True
+        assert result.total_devices == num_devices
+        assert result.online_devices == num_devices
 
         # Sequential time would be: delay * 3 calls * 4 devices = 1.2s
         # Parallel time should be: delay * 3 calls (within each device) = 0.3s
@@ -455,13 +454,13 @@ class TestFleetErrorHandling:
 
                 result = await get_fleet_status.fn()
 
-        assert result["success"] is True  # Operation itself succeeded
-        assert result["total_devices"] == 2
-        assert result["online_devices"] == 0
-        assert result["alerts_count"] == 2
+        assert result.success is True  # Operation itself succeeded
+        assert result.total_devices == 2
+        assert result.online_devices == 0
+        assert result.alerts_count == 2
 
         # All devices should be marked offline
-        for device in result["devices"]:
+        for device in result.devices:
             assert device["online"] is False
             assert "error" in device
 
@@ -474,18 +473,18 @@ class TestFleetErrorHandling:
 
             # Fleet status should handle empty list
             result = await get_fleet_status.fn()
-            assert result["success"] is True
-            assert result["total_devices"] == 0
-            assert "No devices configured" in result["message"]
+            assert result.success is True
+            assert result.total_devices == 0
+            assert "No devices configured" in result.message
 
             # Batch operations should fail gracefully
             start_result = await batch_start_recording.fn(device_ids="all")
-            assert start_result["success"] is False
-            assert "No devices" in start_result["error"]
+            assert start_result.success is False
+            assert "No devices" in start_result.error
 
             stop_result = await batch_stop_recording.fn(device_ids="all")
-            assert stop_result["success"] is False
-            assert "No devices" in stop_result["error"]
+            assert stop_result.success is False
+            assert "No devices" in stop_result.error
 
     async def test_single_device_fleet(self):
         """Test fleet operations with a single device."""
@@ -508,9 +507,9 @@ class TestFleetErrorHandling:
 
                 result = await get_fleet_status.fn()
 
-        assert result["success"] is True
-        assert result["total_devices"] == 1
-        assert result["online_devices"] == 1
+        assert result.success is True
+        assert result.total_devices == 1
+        assert result.online_devices == 1
 
 
 # ============================================================
@@ -546,18 +545,18 @@ class TestFleetHealthScores:
 
                 result = await get_fleet_status.fn()
 
-        assert result["success"] is True
-        assert result["total_devices"] == 2
-        assert result["online_devices"] == 2
+        assert result.success is True
+        assert result.total_devices == 2
+        assert result.online_devices == 2
 
         # Verify fleet-level health metrics
-        assert "average_health" in result
-        assert "unhealthy_devices" in result
-        assert result["average_health"] == 100.0  # Both healthy
-        assert result["unhealthy_devices"] == 0
+        assert hasattr(result, "average_health")
+        assert hasattr(result, "unhealthy_devices")
+        assert result.average_health == 100.0  # Both healthy
+        assert result.unhealthy_devices == 0
 
         # Verify per-device health scores
-        for device in result["devices"]:
+        for device in result.devices:
             assert "health_score" in device
             assert "health_issues" in device
             assert device["health_score"] == 100  # Full marks
@@ -601,8 +600,8 @@ class TestFleetHealthScores:
 
                 result = await get_fleet_status.fn()
 
-        assert result["success"] is True
-        device = result["devices"][0]
+        assert result.success is True
+        device = result.devices[0]
 
         # Health should be reduced due to storage (90% used triggers critical)
         assert device["health_score"] < 100
@@ -626,16 +625,16 @@ class TestFleetHealthScores:
 
                 result = await get_fleet_status.fn()
 
-        assert result["success"] is True
-        device = result["devices"][0]
+        assert result.success is True
+        device = result.devices[0]
 
         # Device is offline
         assert device["online"] is False
         assert "error" in device
 
         # Fleet-level health should be 0 since no devices are online
-        assert result["average_health"] == 0.0
-        assert result["online_devices"] == 0
+        assert result.average_health == 0.0
+        assert result.online_devices == 0
 
 
 class TestFleetHealthReport:
@@ -674,14 +673,14 @@ class TestFleetHealthReport:
 
                     result = await fleet_health_report.fn()
 
-        assert result["success"] is True
-        assert "fleet_name" in result
-        assert "generated_at" in result
-        assert "summary" in result
-        assert "health_score" in result
-        assert "attention_required" in result
-        assert "recommendations" in result
-        assert isinstance(result["recommendations"], list)
+        assert result.success is True
+        assert hasattr(result, "fleet_name")
+        assert hasattr(result, "generated_at")
+        assert hasattr(result, "summary")
+        assert hasattr(result, "health_score")
+        assert hasattr(result, "attention_required")
+        assert hasattr(result, "recommendations")
+        assert isinstance(result.recommendations, list)
 
     async def test_fleet_health_report_with_unhealthy_device(self):
         """Verify report identifies unhealthy devices needing attention."""
@@ -745,12 +744,12 @@ class TestFleetHealthReport:
 
                     result = await fleet_health_report.fn()
 
-        assert result["success"] is True
-        assert len(result["attention_required"]) >= 1
+        assert result.success is True
+        assert len(result.attention_required) >= 1
 
         # Find the unhealthy device in attention list
         unhealthy_device = next(
-            (d for d in result["attention_required"] if "192.168.1.101" in d["device"]),
+            (d for d in result.attention_required if "192.168.1.101" in d["device"]),
             None,
         )
         assert unhealthy_device is not None
@@ -765,9 +764,9 @@ class TestFleetHealthReport:
 
             result = await fleet_health_report.fn()
 
-        assert result["success"] is True
-        assert "No devices configured" in result["summary"]
-        assert result["health_score"] == 0
+        assert result.success is True
+        assert "No devices configured" in result.summary
+        assert result.health_score == 0
 
     async def test_fleet_health_report_llm_fallback(self):
         """Verify report falls back gracefully when LLM fails."""
@@ -798,10 +797,10 @@ class TestFleetHealthReport:
                     result = await fleet_health_report.fn()
 
         # Should still succeed with fallback summary
-        assert result["success"] is True
-        assert "summary" in result
-        assert len(result["summary"]) > 0
-        assert "recommendations" in result
+        assert result.success is True
+        assert hasattr(result, "summary")
+        assert len(result.summary) > 0
+        assert hasattr(result, "recommendations")
 
 
 # ============================================================
@@ -848,12 +847,14 @@ class TestFleetTimeoutPerDevice:
             captured["timeout_per_device"] = kwargs["timeout_per_device"]
             return []
 
-        with patch("epiphan_mcp.tools.fleet.get_settings", return_value=settings):
-            with patch(
+        with (
+            patch("epiphan_mcp.tools.fleet.get_settings", return_value=settings),
+            patch(
                 "epiphan_mcp.tools.fleet._execute_on_fleet",
                 side_effect=fake_execute,
-            ):
-                await tool.fn()
+            ),
+        ):
+            await tool.fn()
 
         assert captured["timeout_per_device"] == settings.fleet_timeout_per_device
         # Guard against the old behaviour of reusing the 30s request timeout.
@@ -901,12 +902,12 @@ class TestSuggestMaintenanceWindow:
 
                     result = await suggest_maintenance_window.fn(min_duration_hours=2.0)
 
-        assert result["success"] is True
-        assert "suggested_window" in result
-        assert "confidence" in result
-        assert "reasoning" in result
-        assert "devices_affected" in result
-        assert "current_activity" in result
+        assert result.success is True
+        assert hasattr(result, "suggested_window")
+        assert hasattr(result, "confidence")
+        assert hasattr(result, "reasoning")
+        assert hasattr(result, "devices_affected")
+        assert hasattr(result, "current_activity")
 
     async def test_suggest_maintenance_empty_fleet(self):
         """Verify handling of empty fleet."""
@@ -917,9 +918,9 @@ class TestSuggestMaintenanceWindow:
 
             result = await suggest_maintenance_window.fn(min_duration_hours=2.0)
 
-        assert result["success"] is True
-        assert result["devices_affected"] == 0
-        assert "no devices" in result["suggested_window"].lower()
+        assert result.success is True
+        assert result.devices_affected == 0
+        assert "no devices" in result.suggested_window.lower()
 
 
 class TestPredictFleetIssues:
@@ -958,13 +959,13 @@ class TestPredictFleetIssues:
 
                     result = await predict_fleet_issues.fn(hours_ahead=24)
 
-        assert result["success"] is True
-        assert "predictions" in result
-        assert isinstance(result["predictions"], list)
-        assert "risk_level" in result
-        assert result["risk_level"] in ["low", "medium", "high", "critical"]
-        assert "devices_at_risk" in result
-        assert "summary" in result
+        assert result.success is True
+        assert hasattr(result, "predictions")
+        assert isinstance(result.predictions, list)
+        assert hasattr(result, "risk_level")
+        assert result.risk_level in ["low", "medium", "high", "critical"]
+        assert hasattr(result, "devices_at_risk")
+        assert hasattr(result, "summary")
 
     async def test_predict_fleet_issues_with_offline_device(self):
         """Verify offline devices are predicted as critical."""
@@ -1008,9 +1009,9 @@ class TestPredictFleetIssues:
 
                     result = await predict_fleet_issues.fn(hours_ahead=24)
 
-        assert result["success"] is True
-        assert result["devices_at_risk"] >= 1
-        assert any(p["severity"] == "critical" for p in result["predictions"])
+        assert result.success is True
+        assert result.devices_at_risk >= 1
+        assert any(p["severity"] == "critical" for p in result.predictions)
 
     async def test_predict_fleet_issues_empty_fleet(self):
         """Verify handling of empty fleet."""
@@ -1021,9 +1022,9 @@ class TestPredictFleetIssues:
 
             result = await predict_fleet_issues.fn(hours_ahead=24)
 
-        assert result["success"] is True
-        assert result["predictions"] == []
-        assert result["risk_level"] == "low"
+        assert result.success is True
+        assert result.predictions == []
+        assert result.risk_level == "low"
 
 
 class TestGenerateShiftHandoff:
@@ -1062,12 +1063,12 @@ class TestGenerateShiftHandoff:
 
                     result = await generate_shift_handoff.fn(shift_hours=8)
 
-        assert result["success"] is True
-        assert "summary" in result
-        assert "activity_summary" in result
-        assert "attention_required" in result
-        assert "fleet_status" in result
-        assert "shift_period" in result
+        assert result.success is True
+        assert hasattr(result, "summary")
+        assert hasattr(result, "activity_summary")
+        assert hasattr(result, "attention_required")
+        assert hasattr(result, "fleet_status")
+        assert hasattr(result, "shift_period")
 
     async def test_generate_shift_handoff_with_issues(self):
         """Verify handoff includes attention items for unhealthy devices."""
@@ -1116,8 +1117,8 @@ class TestGenerateShiftHandoff:
 
                     result = await generate_shift_handoff.fn(shift_hours=8)
 
-        assert result["success"] is True
-        assert len(result["attention_required"]) >= 1
+        assert result.success is True
+        assert len(result.attention_required) >= 1
 
     async def test_generate_shift_handoff_empty_fleet(self):
         """Verify handling of empty fleet."""
@@ -1128,8 +1129,8 @@ class TestGenerateShiftHandoff:
 
             result = await generate_shift_handoff.fn(shift_hours=8)
 
-        assert result["success"] is True
-        assert "No devices configured" in result["summary"]
+        assert result.success is True
+        assert "No devices configured" in result.summary
 
     async def test_generate_shift_handoff_llm_fallback(self):
         """Verify fallback when LLM fails."""
@@ -1160,6 +1161,6 @@ class TestGenerateShiftHandoff:
                     result = await generate_shift_handoff.fn(shift_hours=8)
 
         # Should still succeed with fallback summary
-        assert result["success"] is True
-        assert "summary" in result
-        assert len(result["summary"]) > 0
+        assert result.success is True
+        assert hasattr(result, "summary")
+        assert len(result.summary) > 0

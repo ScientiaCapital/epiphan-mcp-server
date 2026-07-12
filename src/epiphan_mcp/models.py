@@ -493,3 +493,178 @@ class EventCreateRequest(BaseModel):
     end_time: datetime | None = Field(default=None, description="End time (ISO format)")
     recorders: list[str] | None = Field(default=None, description="Recorder IDs to use")
     publishers: list[str] | None = Field(default=None, description="Publisher IDs to use")
+
+
+# ============================================================
+# Fleet Tool Response Models (LLM-legible tool output schemas)
+# ============================================================
+#
+# These models are the *return types* of the fleet MCP tools. FastMCP derives
+# each tool's output JSON schema from its return annotation, so returning a
+# described model (instead of ``dict[str, Any]``) is what surfaces field
+# descriptions to the calling LLM.
+#
+# Each model is the union of every key a given tool can return, including its
+# empty-fleet and error branches, so construction never raises regardless of
+# which branch is taken. Fields that only appear on some branches default to a
+# neutral value (``None`` / ``0`` / ``[]``); on branches where they don't apply
+# they serialise as explicit ``null`` — an additive wire change, not a removal.
+# The ``{"success": False, "error": ...}`` convention is folded in via the
+# ``success`` and ``error`` fields rather than raising ToolError.
+
+
+class FleetStatusResult(BaseModel):
+    """Return type of ``get_fleet_status`` — a one-call fleet-wide rollup."""
+
+    success: bool = Field(default=True, description="Whether the rollup was produced")
+    fleet_name: str = Field(default="", description="Fleet identifier")
+    total_devices: int = Field(default=0, description="Total devices configured")
+    online_devices: int = Field(default=0, description="Devices that responded")
+    recording_devices: int = Field(default=0, description="Devices currently recording")
+    average_health: float = Field(
+        default=0.0, description="Mean health score (0-100) across online devices"
+    )
+    unhealthy_devices: int = Field(
+        default=0, description="Online devices with a health score below 60"
+    )
+    alerts_count: int = Field(default=0, description="Number of active alerts")
+    devices: list[dict[str, Any]] = Field(
+        default_factory=list,
+        description="Per-device status (host, online, recording, storage_percent, "
+        "health_score, health_issues; offline devices include an error).",
+    )
+    alerts: list[dict[str, Any]] = Field(
+        default_factory=list,
+        description="Active alerts, each with device, severity, and message.",
+    )
+    message: str | None = Field(
+        default=None,
+        description="Informational message (e.g. when no devices are configured).",
+    )
+
+
+class BatchRecordingResult(BaseModel):
+    """Return type of ``batch_start_recording`` / ``batch_stop_recording``."""
+
+    success: bool = Field(
+        description="True only if the operation succeeded on every targeted device"
+    )
+    total_devices: int = Field(default=0, description="Number of devices targeted")
+    successful: int = Field(default=0, description="Devices where the operation succeeded")
+    failed: int = Field(default=0, description="Devices where the operation failed")
+    results: list[dict[str, Any]] = Field(
+        default_factory=list,
+        description="Per-device result (device/host, success, and error on failure).",
+    )
+    error: str | None = Field(
+        default=None, description="Error message when the batch could not be started."
+    )
+
+
+class FleetHealthReportResult(BaseModel):
+    """Return type of ``fleet_health_report`` (AI-summarised)."""
+
+    success: bool = Field(default=True, description="Whether the report was produced")
+    fleet_name: str = Field(default="", description="Fleet identifier")
+    generated_at: str | None = Field(
+        default=None, description="ISO-8601 timestamp when the report was generated"
+    )
+    summary: str = Field(default="", description="Natural-language fleet health summary")
+    health_score: int = Field(
+        default=0, description="Rounded average fleet health score (0-100)"
+    )
+    devices_online: int | None = Field(
+        default=None, description="Number of devices online (omitted for empty fleets)"
+    )
+    devices_recording: int | None = Field(
+        default=None, description="Number of devices recording (omitted for empty fleets)"
+    )
+    attention_required: list[dict[str, str]] = Field(
+        default_factory=list,
+        description="Devices needing attention, each with device, issue, and action.",
+    )
+    recommendations: list[str] = Field(
+        default_factory=list, description="Prioritised recommended actions."
+    )
+    error: str | None = Field(default=None, description="Error message on failure.")
+
+
+class MaintenanceWindowResult(BaseModel):
+    """Return type of ``suggest_maintenance_window``."""
+
+    success: bool = Field(default=True, description="Whether a suggestion was produced")
+    fleet_name: str | None = Field(default=None, description="Fleet identifier")
+    suggested_window: str = Field(
+        default="", description="Recommended maintenance time window"
+    )
+    confidence: str = Field(
+        default="", description="Confidence in the recommendation: high, medium, or low"
+    )
+    reasoning: str = Field(default="", description="Explanation for the suggestion")
+    devices_affected: int = Field(
+        default=0, description="Number of devices that would be impacted"
+    )
+    current_activity: str = Field(
+        default="", description="Summary of current fleet activity"
+    )
+    generated_at: str | None = Field(
+        default=None, description="ISO-8601 timestamp when generated"
+    )
+    error: str | None = Field(default=None, description="Error message on failure.")
+
+
+class FleetIssuePredictionResult(BaseModel):
+    """Return type of ``predict_fleet_issues``."""
+
+    success: bool = Field(default=True, description="Whether predictions were produced")
+    fleet_name: str = Field(default="", description="Fleet identifier")
+    hours_ahead: int | None = Field(
+        default=None, description="Prediction horizon in hours"
+    )
+    predictions: list[dict[str, Any]] = Field(
+        default_factory=list,
+        description="Predicted issues, each with device, issue, timeframe, severity, "
+        "and action.",
+    )
+    risk_level: str = Field(
+        default="low", description="Overall risk: low, medium, high, or critical"
+    )
+    devices_at_risk: int = Field(
+        default=0, description="Count of devices with a predicted issue"
+    )
+    total_devices: int | None = Field(
+        default=None, description="Total devices analysed"
+    )
+    summary: str = Field(default="", description="AI-generated summary of predictions")
+    generated_at: str | None = Field(
+        default=None, description="ISO-8601 timestamp when generated"
+    )
+    error: str | None = Field(default=None, description="Error message on failure.")
+
+
+class ShiftHandoffResult(BaseModel):
+    """Return type of ``generate_shift_handoff``."""
+
+    success: bool = Field(default=True, description="Whether the handoff was produced")
+    fleet_name: str = Field(default="", description="Fleet identifier")
+    shift_period: str | None = Field(
+        default=None, description="Human-readable shift time range"
+    )
+    summary: str = Field(default="", description="AI-generated shift handoff summary")
+    activity_summary: dict[str, Any] = Field(
+        default_factory=dict, description="Recording/streaming activity statistics."
+    )
+    issues_resolved: list[Any] = Field(
+        default_factory=list, description="Issues addressed during the shift."
+    )
+    attention_required: list[dict[str, str]] = Field(
+        default_factory=list,
+        description="Items for the next shift, each with device, issue, and priority.",
+    )
+    fleet_status: dict[str, Any] = Field(
+        default_factory=dict, description="Current fleet health snapshot."
+    )
+    generated_at: str | None = Field(
+        default=None, description="ISO-8601 timestamp when generated"
+    )
+    error: str | None = Field(default=None, description="Error message on failure.")

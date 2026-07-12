@@ -7,14 +7,24 @@ import asyncio
 import logging
 from collections.abc import Awaitable, Callable
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Annotated, Any
 
 from fastmcp import FastMCP
+from pydantic import Field
 
 from ..client import PearlClient
 from ..config import Settings, get_settings
 from ..llm.providers import LLMError, get_provider
+from ..models import (
+    BatchRecordingResult,
+    FleetHealthReportResult,
+    FleetIssuePredictionResult,
+    FleetStatusResult,
+    MaintenanceWindowResult,
+    ShiftHandoffResult,
+)
 from .discovery import get_default_recorder
+from .params import DeviceIds
 
 logger = logging.getLogger(__name__)
 
@@ -184,7 +194,7 @@ async def _execute_on_fleet(
 # ============================================================
 
 
-async def get_fleet_status() -> dict[str, Any]:
+async def get_fleet_status() -> FleetStatusResult:
     """
     Get status of ALL configured Epiphan Pearl devices in one parallel call.
 
@@ -205,12 +215,12 @@ async def get_fleet_status() -> dict[str, Any]:
     devices = settings.get_device_list()
 
     if not devices:
-        return {
-            "success": True,
-            "fleet_name": settings.fleet_name,
-            "total_devices": 0,
-            "message": "No devices configured. Set PEARL_DEVICES environment variable.",
-        }
+        return FleetStatusResult(
+            success=True,
+            fleet_name=settings.fleet_name,
+            total_devices=0,
+            message="No devices configured. Set PEARL_DEVICES environment variable.",
+        )
 
     async def _get_device_status(client: PearlClient) -> dict[str, Any]:
         """Get status for a single device including health score."""
@@ -301,18 +311,18 @@ async def get_fleet_status() -> dict[str, Any]:
     )
     unhealthy_count = len([s for s in health_scores if s < 60])
 
-    return {
-        "success": True,
-        "fleet_name": settings.fleet_name,
-        "total_devices": len(devices),
-        "online_devices": online_count,
-        "recording_devices": recording_count,
-        "average_health": round(average_health, 1),
-        "unhealthy_devices": unhealthy_count,
-        "alerts_count": len(alerts),
-        "devices": results,
-        "alerts": alerts,
-    }
+    return FleetStatusResult(
+        success=True,
+        fleet_name=settings.fleet_name,
+        total_devices=len(devices),
+        online_devices=online_count,
+        recording_devices=recording_count,
+        average_health=round(average_health, 1),
+        unhealthy_devices=unhealthy_count,
+        alerts_count=len(alerts),
+        devices=results,
+        alerts=alerts,
+    )
 
 
 # ============================================================
@@ -320,7 +330,7 @@ async def get_fleet_status() -> dict[str, Any]:
 # ============================================================
 
 
-async def batch_start_recording(device_ids: str = "all") -> dict[str, Any]:
+async def batch_start_recording(device_ids: DeviceIds = "all") -> BatchRecordingResult:
     """
     Start recording on ALL (or several) Epiphan Pearl devices in one parallel call.
 
@@ -342,10 +352,10 @@ async def batch_start_recording(device_ids: str = "all") -> dict[str, Any]:
         hosts = [d.strip() for d in device_ids.split(",")]
 
     if not hosts:
-        return {
-            "success": False,
-            "error": "No devices specified",
-        }
+        return BatchRecordingResult(
+            success=False,
+            error="No devices specified",
+        )
 
     async def _start_recording(client: PearlClient) -> dict[str, Any]:
         """Start recording on a single device."""
@@ -368,16 +378,16 @@ async def batch_start_recording(device_ids: str = "all") -> dict[str, Any]:
     # Count successes
     success_count = sum(1 for r in results if r.get("success", False))
 
-    return {
-        "success": success_count == len(hosts),
-        "total_devices": len(hosts),
-        "successful": success_count,
-        "failed": len(hosts) - success_count,
-        "results": results,
-    }
+    return BatchRecordingResult(
+        success=success_count == len(hosts),
+        total_devices=len(hosts),
+        successful=success_count,
+        failed=len(hosts) - success_count,
+        results=results,
+    )
 
 
-async def batch_stop_recording(device_ids: str = "all") -> dict[str, Any]:
+async def batch_stop_recording(device_ids: DeviceIds = "all") -> BatchRecordingResult:
     """
     Stop recording on ALL (or several) Epiphan Pearl devices in one parallel call.
 
@@ -399,10 +409,10 @@ async def batch_stop_recording(device_ids: str = "all") -> dict[str, Any]:
         hosts = [d.strip() for d in device_ids.split(",")]
 
     if not hosts:
-        return {
-            "success": False,
-            "error": "No devices specified",
-        }
+        return BatchRecordingResult(
+            success=False,
+            error="No devices specified",
+        )
 
     async def _stop_recording(client: PearlClient) -> dict[str, Any]:
         """Stop recording on a single device."""
@@ -425,13 +435,13 @@ async def batch_stop_recording(device_ids: str = "all") -> dict[str, Any]:
     # Count successes
     success_count = sum(1 for r in results if r.get("success", False))
 
-    return {
-        "success": success_count == len(hosts),
-        "total_devices": len(hosts),
-        "successful": success_count,
-        "failed": len(hosts) - success_count,
-        "results": results,
-    }
+    return BatchRecordingResult(
+        success=success_count == len(hosts),
+        total_devices=len(hosts),
+        successful=success_count,
+        failed=len(hosts) - success_count,
+        results=results,
+    )
 
 
 # ============================================================
@@ -439,7 +449,7 @@ async def batch_stop_recording(device_ids: str = "all") -> dict[str, Any]:
 # ============================================================
 
 
-async def fleet_health_report() -> dict[str, Any]:
+async def fleet_health_report() -> FleetHealthReportResult:
     """
     Generate AI-summarized fleet health report.
 
@@ -456,28 +466,28 @@ async def fleet_health_report() -> dict[str, Any]:
     # Get fleet status with health scores
     fleet_status = await get_fleet_status()
 
-    if not fleet_status.get("success"):
-        return {
-            "success": False,
-            "error": "Failed to get fleet status",
-        }
+    if not fleet_status.success:
+        return FleetHealthReportResult(
+            success=False,
+            error="Failed to get fleet status",
+        )
 
-    total_devices = fleet_status.get("total_devices", 0)
+    total_devices = fleet_status.total_devices
 
     if total_devices == 0:
-        return {
-            "success": True,
-            "fleet_name": settings.fleet_name,
-            "generated_at": datetime.now().isoformat(),
-            "summary": "No devices configured in fleet.",
-            "health_score": 0,
-            "attention_required": [],
-            "recommendations": ["Configure devices in PEARL_DEVICES environment variable."],
-        }
+        return FleetHealthReportResult(
+            success=True,
+            fleet_name=settings.fleet_name,
+            generated_at=datetime.now().isoformat(),
+            summary="No devices configured in fleet.",
+            health_score=0,
+            attention_required=[],
+            recommendations=["Configure devices in PEARL_DEVICES environment variable."],
+        )
 
     # Extract devices needing attention
     attention_required: list[dict[str, str]] = []
-    for device in fleet_status.get("devices", []):
+    for device in fleet_status.devices:
         host = device.get("host", "unknown")
 
         if not device.get("online", False):
@@ -502,9 +512,9 @@ async def fleet_health_report() -> dict[str, Any]:
             })
 
     # Build prompt for AI summary
-    online = fleet_status.get("online_devices", 0)
-    recording = fleet_status.get("recording_devices", 0)
-    avg_health = fleet_status.get("average_health", 0)
+    online = fleet_status.online_devices
+    recording = fleet_status.recording_devices
+    avg_health = fleet_status.average_health
 
     prompt = f"""Generate a brief fleet health summary for an IT administrator.
 
@@ -539,17 +549,17 @@ Keep the response concise and actionable. Use plain language."""
         summary = _generate_fallback_summary(fleet_status)
         recommendations = _generate_fallback_recommendations(attention_required)
 
-    return {
-        "success": True,
-        "fleet_name": settings.fleet_name,
-        "generated_at": datetime.now().isoformat(),
-        "summary": summary,
-        "health_score": round(avg_health),
-        "devices_online": online,
-        "devices_recording": recording,
-        "attention_required": attention_required,
-        "recommendations": recommendations,
-    }
+    return FleetHealthReportResult(
+        success=True,
+        fleet_name=settings.fleet_name,
+        generated_at=datetime.now().isoformat(),
+        summary=summary,
+        health_score=round(avg_health),
+        devices_online=online,
+        devices_recording=recording,
+        attention_required=attention_required,
+        recommendations=recommendations,
+    )
 
 
 def _get_action_for_issue(issue: str) -> str:
@@ -615,12 +625,12 @@ def _parse_ai_response(
     return summary, recommendations[:3]
 
 
-def _generate_fallback_summary(fleet_status: dict[str, Any]) -> str:
+def _generate_fallback_summary(fleet_status: FleetStatusResult) -> str:
     """Generate basic summary without AI."""
-    online = fleet_status.get("online_devices", 0)
-    total = fleet_status.get("total_devices", 0)
-    recording = fleet_status.get("recording_devices", 0)
-    avg_health = fleet_status.get("average_health", 0)
+    online = fleet_status.online_devices
+    total = fleet_status.total_devices
+    recording = fleet_status.recording_devices
+    avg_health = fleet_status.average_health
 
     if online == 0:
         return "All devices are offline. Check network connectivity."
@@ -658,8 +668,11 @@ def _generate_fallback_recommendations(
 
 
 async def suggest_maintenance_window(
-    min_duration_hours: float = 2.0,
-) -> dict[str, Any]:
+    min_duration_hours: Annotated[
+        float,
+        Field(description="Minimum maintenance window duration needed, in hours."),
+    ] = 2.0,
+) -> MaintenanceWindowResult:
     """
     Suggest optimal maintenance window based on fleet usage patterns.
 
@@ -683,25 +696,25 @@ async def suggest_maintenance_window(
     # Get current fleet status
     fleet_status = await get_fleet_status()
 
-    if not fleet_status.get("success"):
-        return {
-            "success": False,
-            "error": "Failed to get fleet status",
-        }
+    if not fleet_status.success:
+        return MaintenanceWindowResult(
+            success=False,
+            error="Failed to get fleet status",
+        )
 
-    total_devices = fleet_status.get("total_devices", 0)
-    online_devices = fleet_status.get("online_devices", 0)
-    recording_devices = fleet_status.get("recording_devices", 0)
+    total_devices = fleet_status.total_devices
+    online_devices = fleet_status.online_devices
+    recording_devices = fleet_status.recording_devices
 
     if total_devices == 0:
-        return {
-            "success": True,
-            "suggested_window": "Any time - no devices configured",
-            "confidence": "high",
-            "reasoning": "No devices in fleet to maintain.",
-            "devices_affected": 0,
-            "current_activity": "No activity",
-        }
+        return MaintenanceWindowResult(
+            success=True,
+            suggested_window="Any time - no devices configured",
+            confidence="high",
+            reasoning="No devices in fleet to maintain.",
+            devices_affected=0,
+            current_activity="No activity",
+        )
 
     # Build context for AI analysis
     current_time = datetime.now()
@@ -769,16 +782,16 @@ Keep response concise and actionable."""
             confidence = "medium"
             reasoning = "Daytime hours often have higher activity; evening maintenance minimizes disruption."
 
-    return {
-        "success": True,
-        "fleet_name": settings.fleet_name,
-        "suggested_window": suggested_window,
-        "confidence": confidence,
-        "reasoning": reasoning,
-        "devices_affected": online_devices,
-        "current_activity": current_activity,
-        "generated_at": datetime.now().isoformat(),
-    }
+    return MaintenanceWindowResult(
+        success=True,
+        fleet_name=settings.fleet_name,
+        suggested_window=suggested_window,
+        confidence=confidence,
+        reasoning=reasoning,
+        devices_affected=online_devices,
+        current_activity=current_activity,
+        generated_at=datetime.now().isoformat(),
+    )
 
 
 def _parse_maintenance_suggestion(
@@ -815,8 +828,11 @@ def _parse_maintenance_suggestion(
 
 
 async def predict_fleet_issues(
-    hours_ahead: int = 24,
-) -> dict[str, Any]:
+    hours_ahead: Annotated[
+        int,
+        Field(description="How many hours ahead to predict (e.g. 24, 48, or 72)."),
+    ] = 24,
+) -> FleetIssuePredictionResult:
     """
     Predict fleet issues for the next 24/48/72 hours.
 
@@ -838,29 +854,29 @@ async def predict_fleet_issues(
     devices = settings.get_device_list()
 
     if not devices:
-        return {
-            "success": True,
-            "fleet_name": settings.fleet_name,
-            "predictions": [],
-            "risk_level": "low",
-            "devices_at_risk": 0,
-            "summary": "No devices configured in fleet.",
-        }
+        return FleetIssuePredictionResult(
+            success=True,
+            fleet_name=settings.fleet_name,
+            predictions=[],
+            risk_level="low",
+            devices_at_risk=0,
+            summary="No devices configured in fleet.",
+        )
 
     # Get detailed status for each device
     fleet_status = await get_fleet_status()
 
-    if not fleet_status.get("success"):
-        return {
-            "success": False,
-            "error": "Failed to get fleet status",
-        }
+    if not fleet_status.success:
+        return FleetIssuePredictionResult(
+            success=False,
+            error="Failed to get fleet status",
+        )
 
     predictions: list[dict[str, Any]] = []
     devices_at_risk = 0
 
     # Analyze each device for potential issues
-    for device in fleet_status.get("devices", []):
+    for device in fleet_status.devices:
         host = device.get("host", "unknown")
 
         if not device.get("online", False):
@@ -964,17 +980,17 @@ Keep it actionable and concise."""
         else:
             summary = f"No issues predicted for the next {hours_ahead} hours."
 
-    return {
-        "success": True,
-        "fleet_name": settings.fleet_name,
-        "hours_ahead": hours_ahead,
-        "predictions": predictions,
-        "risk_level": risk_level,
-        "devices_at_risk": devices_at_risk,
-        "total_devices": len(devices),
-        "summary": summary,
-        "generated_at": datetime.now().isoformat(),
-    }
+    return FleetIssuePredictionResult(
+        success=True,
+        fleet_name=settings.fleet_name,
+        hours_ahead=hours_ahead,
+        predictions=predictions,
+        risk_level=risk_level,
+        devices_at_risk=devices_at_risk,
+        total_devices=len(devices),
+        summary=summary,
+        generated_at=datetime.now().isoformat(),
+    )
 
 
 def _format_predictions(predictions: list[dict[str, Any]]) -> str:
@@ -988,8 +1004,11 @@ def _format_predictions(predictions: list[dict[str, Any]]) -> str:
 
 
 async def generate_shift_handoff(
-    shift_hours: int = 8,
-) -> dict[str, Any]:
+    shift_hours: Annotated[
+        int,
+        Field(description="Length of the shift to summarize, in hours."),
+    ] = 8,
+) -> ShiftHandoffResult:
     """
     Generate end-of-shift handoff summary for AV operations teams.
 
@@ -1013,28 +1032,28 @@ async def generate_shift_handoff(
     # Get current fleet status
     fleet_status = await get_fleet_status()
 
-    if not fleet_status.get("success"):
-        return {
-            "success": False,
-            "error": "Failed to get fleet status",
-        }
+    if not fleet_status.success:
+        return ShiftHandoffResult(
+            success=False,
+            error="Failed to get fleet status",
+        )
 
-    total_devices = fleet_status.get("total_devices", 0)
-    online_devices = fleet_status.get("online_devices", 0)
-    recording_devices = fleet_status.get("recording_devices", 0)
-    avg_health = fleet_status.get("average_health", 0)
-    alerts = fleet_status.get("alerts", [])
+    total_devices = fleet_status.total_devices
+    online_devices = fleet_status.online_devices
+    recording_devices = fleet_status.recording_devices
+    avg_health = fleet_status.average_health
+    alerts = fleet_status.alerts
 
     if total_devices == 0:
-        return {
-            "success": True,
-            "fleet_name": settings.fleet_name,
-            "summary": "No devices configured in fleet.",
-            "activity_summary": {},
-            "issues_resolved": [],
-            "attention_required": [],
-            "fleet_status": fleet_status,
-        }
+        return ShiftHandoffResult(
+            success=True,
+            fleet_name=settings.fleet_name,
+            summary="No devices configured in fleet.",
+            activity_summary={},
+            issues_resolved=[],
+            attention_required=[],
+            fleet_status=fleet_status.model_dump(),
+        )
 
     # Build activity summary
     activity_summary = {
@@ -1046,7 +1065,7 @@ async def generate_shift_handoff(
 
     # Identify items needing attention
     attention_required: list[dict[str, str]] = []
-    for device in fleet_status.get("devices", []):
+    for device in fleet_status.devices:
         host = device.get("host", "unknown")
 
         if not device.get("online", False):
@@ -1123,22 +1142,22 @@ Keep it concise (4-5 sentences) and professional."""
                 "All systems operating normally. No issues to hand off."
             )
 
-    return {
-        "success": True,
-        "fleet_name": settings.fleet_name,
-        "shift_period": f"{shift_start.strftime('%H:%M')} - {current_time.strftime('%H:%M')}",
-        "summary": summary,
-        "activity_summary": activity_summary,
-        "issues_resolved": [],  # Would track in persistent state
-        "attention_required": attention_required,
-        "fleet_status": {
+    return ShiftHandoffResult(
+        success=True,
+        fleet_name=settings.fleet_name,
+        shift_period=f"{shift_start.strftime('%H:%M')} - {current_time.strftime('%H:%M')}",
+        summary=summary,
+        activity_summary=activity_summary,
+        issues_resolved=[],  # Would track in persistent state
+        attention_required=attention_required,
+        fleet_status={
             "online": online_devices,
             "total": total_devices,
             "recording": recording_devices,
             "health": round(avg_health),
         },
-        "generated_at": datetime.now().isoformat(),
-    }
+        generated_at=datetime.now().isoformat(),
+    )
 
 
 def _format_attention_items(items: list[dict[str, str]]) -> str:

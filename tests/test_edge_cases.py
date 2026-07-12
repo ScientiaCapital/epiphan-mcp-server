@@ -144,8 +144,8 @@ class TestConcurrentOperations:
                 )
 
         for result in results:
-            assert result["success"] is True
-            assert result["total_devices"] == 1
+            assert result.success is True
+            assert result.total_devices == 1
 
     async def test_fleet_slow_device_doesnt_block_others(self):
         """One slow device should not block other device results."""
@@ -181,9 +181,9 @@ class TestConcurrentOperations:
 
                 result = await get_fleet_status()
 
-        assert result["success"] is True
-        assert result["total_devices"] == 2
-        assert result["online_devices"] == 2
+        assert result.success is True
+        assert result.total_devices == 2
+        assert result.online_devices == 2
 
     async def test_execute_on_fleet_empty_hosts(self):
         """_execute_on_fleet with empty host list should return empty results."""
@@ -224,10 +224,10 @@ class TestTimeoutHandling:
 
                 result = await get_fleet_status()
 
-        assert result["success"] is True
-        assert result["online_devices"] == 0
+        assert result.success is True
+        assert result.online_devices == 0
         # The device should be reported as offline/timed out
-        assert result["devices"][0]["online"] is False
+        assert result.devices[0]["online"] is False
 
     async def test_fleet_all_devices_timeout(self):
         """All devices timing out should return graceful error for each."""
@@ -252,10 +252,10 @@ class TestTimeoutHandling:
 
                 result = await get_fleet_status()
 
-        assert result["success"] is True
-        assert result["total_devices"] == 2
-        assert result["online_devices"] == 0
-        for device in result["devices"]:
+        assert result.success is True
+        assert result.total_devices == 2
+        assert result.online_devices == 0
+        for device in result.devices:
             assert device["online"] is False
 
     async def test_connection_refused_returns_clear_error(self):
@@ -274,10 +274,10 @@ class TestTimeoutHandling:
 
                 result = await get_fleet_status()
 
-        assert result["success"] is True
-        assert result["online_devices"] == 0
-        assert result["devices"][0]["online"] is False
-        assert "error" in result["devices"][0]
+        assert result.success is True
+        assert result.online_devices == 0
+        assert result.devices[0]["online"] is False
+        assert "error" in result.devices[0]
 
 
 # ============================================================
@@ -313,8 +313,8 @@ class TestMalformedApiResponses:
                 result = await get_fleet_status()
 
         # Fleet status should succeed even if device response is unexpected
-        assert result["success"] is True
-        assert result["total_devices"] == 1
+        assert result.success is True
+        assert result.total_devices == 1
 
     async def test_response_http_error_all_endpoints(self):
         """HTTP 500 on all endpoints should still report device with degraded status.
@@ -340,9 +340,9 @@ class TestMalformedApiResponses:
 
                 result = await get_fleet_status()
 
-        assert result["success"] is True
-        assert result["total_devices"] == 1
-        device = result["devices"][0]
+        assert result.success is True
+        assert result.total_devices == 1
+        device = result.devices[0]
         # Client falls back to default status — device shows as online
         # but with minimal data (no recorder access)
         assert device["host"] == "192.168.1.100"
@@ -366,8 +366,8 @@ class TestMalformedApiResponses:
 
                 result = await get_fleet_status()
 
-        assert result["success"] is True
-        assert result["total_devices"] == 1
+        assert result.success is True
+        assert result.total_devices == 1
 
     async def test_api_error_response(self):
         """API explicit error response should be handled gracefully."""
@@ -391,8 +391,8 @@ class TestMalformedApiResponses:
 
                 result = await get_fleet_status()
 
-        assert result["success"] is True
-        assert result["total_devices"] == 1
+        assert result.success is True
+        assert result.total_devices == 1
 
 
 # ============================================================
@@ -410,9 +410,9 @@ class TestBoundaryValues:
         with patch("epiphan_mcp.tools.fleet.get_settings", return_value=settings):
             result = await get_fleet_status()
 
-        assert result["success"] is True
-        assert result["total_devices"] == 0
-        assert "No devices configured" in result["message"]
+        assert result.success is True
+        assert result.total_devices == 0
+        assert "No devices configured" in result.message
 
     async def test_batch_start_with_empty_device_list(self):
         """Batch start with empty device list should fail gracefully."""
@@ -421,8 +421,8 @@ class TestBoundaryValues:
         with patch("epiphan_mcp.tools.fleet.get_settings", return_value=settings):
             result = await batch_start_recording(device_ids="all")
 
-        assert result["success"] is False
-        assert "No devices" in result["error"]
+        assert result.success is False
+        assert "No devices" in result.error
 
     async def test_batch_stop_with_empty_device_list(self):
         """Batch stop with empty device list should fail gracefully."""
@@ -431,8 +431,8 @@ class TestBoundaryValues:
         with patch("epiphan_mcp.tools.fleet.get_settings", return_value=settings):
             result = await batch_stop_recording(device_ids="all")
 
-        assert result["success"] is False
-        assert "No devices" in result["error"]
+        assert result.success is False
+        assert "No devices" in result.error
 
     async def test_very_long_device_name(self):
         """Device name at the 253-character hostname limit should be validated."""

@@ -657,12 +657,12 @@ class TestGetFleetStatus:
 
                 result = await get_fleet_status.fn()
 
-        assert result["success"] is True
-        assert result["total_devices"] == 1
-        assert result["online_devices"] == 1
-        assert result["recording_devices"] == 0
-        assert len(result["devices"]) == 1
-        assert result["devices"][0]["online"] is True
+        assert result.success is True
+        assert result.total_devices == 1
+        assert result.online_devices == 1
+        assert result.recording_devices == 0
+        assert len(result.devices) == 1
+        assert result.devices[0]["online"] is True
 
     async def test_get_fleet_status_with_recording(self, mock_pearl_host: str):
         """Test fleet status when device is recording."""
@@ -686,8 +686,8 @@ class TestGetFleetStatus:
 
                 result = await get_fleet_status.fn()
 
-        assert result["recording_devices"] == 1
-        assert result["devices"][0]["recording"] is True
+        assert result.recording_devices == 1
+        assert result.devices[0]["recording"] is True
 
     async def test_get_fleet_status_low_storage_alert(self, mock_pearl_host: str):
         """Test fleet status generates alert for low storage."""
@@ -711,8 +711,8 @@ class TestGetFleetStatus:
 
                 result = await get_fleet_status.fn()
 
-        assert result["alerts_count"] >= 1
-        assert any("storage" in alert["message"].lower() for alert in result["alerts"])
+        assert result.alerts_count >= 1
+        assert any("storage" in alert["message"].lower() for alert in result.alerts)
 
     async def test_get_fleet_status_no_devices(self):
         """Test fleet status with no devices configured."""
@@ -723,9 +723,9 @@ class TestGetFleetStatus:
 
             result = await get_fleet_status.fn()
 
-        assert result["success"] is True
-        assert result["total_devices"] == 0
-        assert "No devices configured" in result["message"]
+        assert result.success is True
+        assert result.total_devices == 0
+        assert "No devices configured" in result.message
 
     async def test_get_fleet_status_device_offline(self, mock_pearl_host: str):
         """Test fleet status with offline device."""
@@ -748,10 +748,10 @@ class TestGetFleetStatus:
 
                 result = await get_fleet_status.fn()
 
-        assert result["success"] is True
-        assert result["online_devices"] == 0
-        assert result["devices"][0]["online"] is False
-        assert result["alerts_count"] >= 1
+        assert result.success is True
+        assert result.online_devices == 0
+        assert result.devices[0]["online"] is False
+        assert result.alerts_count >= 1
 
 
 # ============================================================
@@ -967,10 +967,10 @@ class TestBatchStartRecording:
 
                 result = await batch_start_recording.fn(device_ids="all")
 
-        assert result["success"] is True
-        assert result["total_devices"] == 1
-        assert result["successful"] == 1
-        assert result["failed"] == 0
+        assert result.success is True
+        assert result.total_devices == 1
+        assert result.successful == 1
+        assert result.failed == 0
 
     async def test_batch_start_specific_devices(self):
         """Test batch start on specific devices."""
@@ -993,9 +993,9 @@ class TestBatchStartRecording:
 
                 result = await batch_start_recording.fn(device_ids=devices)
 
-        assert result["success"] is True
-        assert result["total_devices"] == 2
-        assert result["successful"] == 2
+        assert result.success is True
+        assert result.total_devices == 2
+        assert result.successful == 2
 
     async def test_batch_start_partial_failure(self):
         """Test batch start with some failures."""
@@ -1020,9 +1020,9 @@ class TestBatchStartRecording:
 
                 result = await batch_start_recording.fn(device_ids="all")
 
-        assert result["success"] is False  # Not all succeeded
-        assert result["successful"] == 1
-        assert result["failed"] == 1
+        assert result.success is False  # Not all succeeded
+        assert result.successful == 1
+        assert result.failed == 1
 
     async def test_batch_start_no_devices(self):
         """Test batch start with no devices."""
@@ -1033,8 +1033,8 @@ class TestBatchStartRecording:
 
             result = await batch_start_recording.fn(device_ids="all")
 
-        assert result["success"] is False
-        assert "No devices" in result["error"]
+        assert result.success is False
+        assert "No devices" in result.error
 
 
 class TestBatchStopRecording:
@@ -1056,9 +1056,9 @@ class TestBatchStopRecording:
 
                 result = await batch_stop_recording.fn(device_ids="all")
 
-        assert result["success"] is True
-        assert result["total_devices"] == 1
-        assert result["successful"] == 1
+        assert result.success is True
+        assert result.total_devices == 1
+        assert result.successful == 1
 
 
 # ============================================================
@@ -1331,9 +1331,9 @@ class TestServerErrorBranches:
 
                 result = await batch_stop_recording.fn(device_ids="all")
 
-        assert result["success"] is False
-        assert result["successful"] == 1
-        assert result["failed"] == 1
+        assert result.success is False
+        assert result.successful == 1
+        assert result.failed == 1
 
     async def test_batch_stop_recording_no_devices(self):
         """Test batch_stop_recording with no devices."""
@@ -1343,8 +1343,8 @@ class TestServerErrorBranches:
             mock_settings.return_value = create_test_settings(devices="")
             result = await batch_stop_recording.fn(device_ids="all")
 
-        assert result["success"] is False
-        assert "No devices specified" in result["error"]
+        assert result.success is False
+        assert "No devices specified" in result.error
 
     async def test_start_recording_value_error(self):
         """Test start_recording handles ValueError."""
@@ -1379,9 +1379,9 @@ class TestServerErrorBranches:
                 # Pass specific device IDs, not "all"
                 result = await batch_stop_recording.fn(device_ids=specific_devices)
 
-        assert result["success"] is True
-        assert result["total_devices"] == 2
-        assert result["successful"] == 2
+        assert result.success is True
+        assert result.total_devices == 2
+        assert result.successful == 2
 
 
 # ============================================================

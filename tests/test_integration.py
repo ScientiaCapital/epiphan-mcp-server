@@ -86,13 +86,13 @@ class TestRealFleetHealth:
 
         result = await get_fleet_status.fn()
 
-        assert result["success"] is True
-        assert result["total_devices"] >= 1
-        assert "average_health" in result
-        assert "unhealthy_devices" in result
+        assert result.success is True
+        assert result.total_devices >= 1
+        assert hasattr(result, "average_health")
+        assert hasattr(result, "unhealthy_devices")
 
         # Check per-device health
-        for device in result["devices"]:
+        for device in result.devices:
             if device.get("online"):
                 assert "health_score" in device
                 assert 0 <= device["health_score"] <= 100

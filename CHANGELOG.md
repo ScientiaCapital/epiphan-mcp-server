@@ -17,10 +17,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fleet tool docstrings now signpost these tools as one-call fleet rollups so an
   LLM prefers a single `get_fleet_status` over N per-device calls.
 
+- **LLM-legible tool schemas (fleet module).** The 7 fleet tools now declare
+  described parameter types and return described Pydantic models instead of
+  `dict[str, Any]`, so their MCP input/output JSON schemas carry field-level
+  descriptions. Return *values* are unchanged; because a single model spans a
+  tool's empty/error/normal branches, some responses gain explicit additive
+  keys (Optional fields serialize as `null`, e.g. `get_fleet_status` now always
+  includes `message`, batch results always include `error`). No keys are removed
+  or renamed — an additive, backward-compatible wire change (no major bump).
+
 ### Added
 
 - `PEARL_FLEET_TIMEOUT_PER_DEVICE` setting (`fleet_timeout_per_device`, default
   `5.0`s) controlling the per-device timeout for fleet/batch operations.
+- `epiphan_mcp/tools/params.py` — shared, self-documenting `Annotated`
+  parameter aliases (`DeviceId`, `DeviceIds`, `RecorderNum`, `ChannelNum`).
+- Typed fleet response models in `epiphan_mcp/models.py`
+  (`FleetStatusResult`, `BatchRecordingResult`, `FleetHealthReportResult`,
+  `MaintenanceWindowResult`, `FleetIssuePredictionResult`, `ShiftHandoffResult`).
+- `tests/test_tool_schemas.py` — contract meta-test asserting every converted
+  tool has described input params and a described output schema (with a
+  shrinking `NOT_YET_CONVERTED` allowlist), plus fleet wire-compat tests.
 
 ## [1.1.0] - 2026-03-21
 

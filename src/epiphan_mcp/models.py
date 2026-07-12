@@ -1061,7 +1061,7 @@ class ChannelPreviewResult(BaseModel):
     )
     size_bytes: int | None = Field(default=None, description="Decoded image size in bytes")
     resolution: str | None = Field(
-        default=None, description="Requested resolution (present only when explicitly specified)"
+        default=None, description="Requested resolution, or null when using the device default."
     )
     error: str | None = Field(default=None, description="Error message on failure.")
 
@@ -1147,6 +1147,6 @@ class InputPreviewResult(BaseModel):
     )
     size_bytes: int | None = Field(default=None, description="Decoded image size in bytes")
     resolution: str | None = Field(
-        default=None, description="Requested resolution (present only when explicitly specified)"
+        default=None, description="Requested resolution, or null when using the device default."
     )
     error: str | None = Field(default=None, description="Error message on failure.")

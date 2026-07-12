@@ -25,6 +25,7 @@ import pytest
 import respx
 from httpx import Response
 
+from epiphan_mcp import models
 from epiphan_mcp.config import Settings
 from epiphan_mcp.server import mcp
 
@@ -224,3 +225,108 @@ async def test_wire_compat_batch_start_no_devices(monkeypatch):
     _assert_wire_compatible("batch_start_recording", "no_devices", sc)
     assert sc["success"] is False
     assert sc["error"] == "No devices specified"
+
+
+# ============================================================
+# Model-level wire-compatibility guard (Phase-2 converted modules)
+# ============================================================
+#
+# The runtime wire-compat tests above (fleet) drive a tool through respx and
+# inspect its ``structured_content``. For the modules converted in later
+# batches (discovery, layout, maintenance, streaming, inputs) we assert the
+# same key-preservation property one layer down: every top-level key the
+# original dict-returning tool emitted must still be a FIELD on its typed
+# return model.
+#
+# This is equivalent to the runtime check because these result models declare
+# no serialization aliases (verified by ``test_result_models_have_no_aliases``
+# below) and every field has a default — so FastMCP always serialises the full
+# field set into ``structured_content``, making "field present on the model"
+# and "key present on the wire" the same statement. It is far lighter than a
+# per-tool respx fixture, so it scales to every converted tool.
+#
+# Keys were read off the ORIGINAL dict-returning code at the pre-conversion
+# commit (top-level return-dict keys only; nested list/dict item keys excluded).
+# Adding a new field is always fine; dropping or renaming one of these keys is
+# the regression this guard catches.
+
+_MODEL_MUST_KEEP_FIELDS = {
+    # discovery
+    "DeviceDiscoveryResult": {
+        "success", "device", "cached", "recorders", "channels", "inputs", "error",
+    },
+    "CacheClearResult": {"success", "cleared", "entries_removed"},
+    # layout
+    "LayoutListResult": {
+        "success", "device", "channel", "total_layouts", "layouts", "active_layout", "error",
+    },
+    "LayoutSwitchResult": {"success", "message", "device", "details", "channel", "error"},
+    "BookmarkResult": {"success", "device", "channel", "text", "message", "error"},
+    # maintenance
+    "StoragePredictionResult": {
+        "success", "device", "hours_until_full", "storage_free_gb", "storage_total_gb",
+        "storage_used_percent", "is_recording", "bitrate_mbps", "warning",
+        "recommendation", "error",
+    },
+    "DeviceHealthResult": {
+        "success", "device", "score", "categories", "issues", "is_recording",
+        "recommendation", "error",
+    },
+    # streaming
+    "StreamControlResult": {"success", "message", "device", "details", "channel", "error"},
+    "StreamStatusResult": {
+        "success", "device", "channel", "publisher", "state", "duration_seconds",
+        "bitrate_bps", "bytes_sent", "destination", "error",
+    },
+    "ChannelListResult": {"success", "device", "total_channels", "channels", "error"},
+    "PublisherListResult": {
+        "success", "device", "channel", "total_publishers", "publishers", "error",
+    },
+    "ChannelPreviewResult": {
+        "success", "device", "channel", "format", "preview_base64", "size_bytes", "error",
+    },
+    # inputs
+    "InputCreateResult": {"success", "device", "input", "message", "error"},
+    "InputSettingsResult": {"success", "device", "input_id", "settings", "error"},
+    "InputUpdateResult": {"success", "message", "device", "details", "input_id", "error"},
+    "OutputListResult": {"success", "device", "total_outputs", "outputs", "error"},
+    "OutputSourceResult": {"success", "message", "device", "details", "output_id", "error"},
+    "InputPreviewResult": {
+        "success", "device", "input_id", "format", "preview_base64", "size_bytes", "error",
+    },
+}
+
+
+@pytest.mark.parametrize(
+    "model_name,must_keep",
+    sorted(_MODEL_MUST_KEEP_FIELDS.items()),
+    ids=sorted(_MODEL_MUST_KEEP_FIELDS),
+)
+def test_result_model_preserves_pre_conversion_keys(model_name, must_keep):
+    """Every pre-conversion top-level key is still a field on the typed model."""
+    model = getattr(models, model_name)
+    fields = set(model.model_fields)
+    missing = must_keep - fields
+    assert not missing, (
+        f"{model_name} dropped/renamed pre-conversion keys: {missing} "
+        f"(a wire-compat break for existing MCP clients)"
+    )
+
+
+@pytest.mark.parametrize(
+    "model_name",
+    sorted(_MODEL_MUST_KEEP_FIELDS),
+    ids=sorted(_MODEL_MUST_KEEP_FIELDS),
+)
+def test_result_models_have_no_aliases(model_name):
+    """The field==wire-key equivalence this guard relies on holds only without aliases."""
+    model = getattr(models, model_name)
+    aliased = {
+        name: f.alias
+        for name, f in model.model_fields.items()
+        if f.alias and f.alias != name
+    }
+    assert not aliased, (
+        f"{model_name} declares serialization aliases {aliased}; the model-field "
+        f"wire-compat guard assumes none. Add a runtime structured_content check instead."
+    )

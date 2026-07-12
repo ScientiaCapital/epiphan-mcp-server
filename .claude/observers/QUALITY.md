@@ -1,5 +1,33 @@
 # Observer: Code Quality Report
 
+**Date:** 2026-07-12 (morning /begin audit + end-of-sprint addendum)
+**Project:** epiphan-mcp-server
+**Observer:** Inline read-only audit (plan-mode /begin) — Claude Fable 5
+
+**Session scope (morning):** `git diff HEAD~5..HEAD` — CMS/AV typed-schema
+batch (qsys, youtube, opencast, panopto, kaltura) + backlog sync. Findings:
+0 CRITICAL, 0 new TODO/FIXME/HACK/XXX markers, 0 silent exception handlers.
+Prior DA verification (1042 passed) accepted; heavy re-audit skipped.
+
+**Sprint addendum (same day):** typed-schema conversion completed 21/21
+(schedule, publishers, ai_tools, cloud, ec20) + YuJa integration shipped.
+- `NOT_YET_CONVERTED` now empty — schema contract enforced server-wide.
+- All new/converted result models registered in `_MODEL_MUST_KEEP_FIELDS`.
+- `[INFO]` Drive-by fix: stale dict-access assertions in hardware-gated
+  integration tests (`fleet_health_report`, `get_recording_status`) left
+  from earlier conversions — would have raised TypeError on next
+  `pytest -m integration` run. Fixed in the ai_tools commit.
+- `[INFO]` Latent pattern found via YuJa tests: passing a sync file object
+  as `content=` to `httpx.AsyncClient.put` raises at request time. YuJa
+  uses an async chunk generator; `panopto.py:upload_file_to_s3` has the
+  same sync-file pattern and its tests mock above the transport — worth a
+  follow-up check against a live Panopto instance. Logged to backlog.
+- Final: 1246 passed / 7 skipped, mypy strict clean, ruff clean.
+
+---
+
+# Observer: Code Quality Report
+
 **Date:** 2026-07-12
 **Project:** epiphan-mcp-server
 **Observer Model:** Claude Sonnet 5 (Observer Full)

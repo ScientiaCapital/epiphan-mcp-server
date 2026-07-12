@@ -1064,3 +1064,89 @@ class ChannelPreviewResult(BaseModel):
         default=None, description="Requested resolution (present only when explicitly specified)"
     )
     error: str | None = Field(default=None, description="Error message on failure.")
+
+
+# ============================================================
+# Input/Output Tool Response Models
+# ============================================================
+
+
+class InputCreateResult(BaseModel):
+    """Return type of ``create_network_input``."""
+
+    success: bool = Field(description="Whether the input was created")
+    device: str = Field(default="", description="Device host, or the requested device_id on error")
+    input: dict[str, Any] | None = Field(
+        default=None, description="Created input info, including the assigned ID."
+    )
+    message: str | None = Field(default=None, description="Human-readable confirmation message")
+    error: str | None = Field(default=None, description="Error message on failure.")
+
+
+class InputSettingsResult(BaseModel):
+    """Return type of ``get_input_settings``."""
+
+    success: bool = Field(description="Whether the input settings were retrieved")
+    device: str = Field(default="", description="Device host, or the requested device_id on error")
+    input_id: str | None = Field(default=None, description="Input source ID queried")
+    settings: dict[str, Any] | None = Field(
+        default=None,
+        description="Input settings (URL, passphrase, latency, etc.), protocol-dependent.",
+    )
+    error: str | None = Field(default=None, description="Error message on failure.")
+
+
+class InputUpdateResult(BaseModel):
+    """Return type of ``update_input_settings``."""
+
+    model_config = ConfigDict(extra="allow")
+
+    success: bool = Field(description="Whether the input settings were updated")
+    message: str | None = Field(default=None, description="Human-readable confirmation message")
+    device: str = Field(default="", description="Device host, or the requested device_id on error")
+    details: dict[str, Any] | None = Field(default=None, description="Operation details")
+    input_id: str | None = Field(default=None, description="Input source ID (on error paths)")
+    error: str | None = Field(default=None, description="Error message on failure.")
+
+
+class OutputListResult(BaseModel):
+    """Return type of ``list_outputs``."""
+
+    success: bool = Field(description="Whether the outputs were retrieved")
+    device: str = Field(default="", description="Device host, or the requested device_id on error")
+    total_outputs: int = Field(default=0, description="Number of output ports returned")
+    outputs: list[dict[str, Any]] = Field(
+        default_factory=list,
+        description="Output ports, each with id, name, type, current source, and resolution.",
+    )
+    error: str | None = Field(default=None, description="Error message on failure.")
+
+
+class OutputSourceResult(BaseModel):
+    """Return type of ``set_output_source``."""
+
+    model_config = ConfigDict(extra="allow")
+
+    success: bool = Field(description="Whether the output source was set")
+    message: str | None = Field(default=None, description="Human-readable confirmation message")
+    device: str = Field(default="", description="Device host, or the requested device_id on error")
+    details: dict[str, Any] | None = Field(default=None, description="Operation details")
+    output_id: str | None = Field(default=None, description="Output ID (on error paths)")
+    error: str | None = Field(default=None, description="Error message on failure.")
+
+
+class InputPreviewResult(BaseModel):
+    """Return type of ``get_input_preview``."""
+
+    success: bool = Field(description="Whether the preview was captured")
+    device: str = Field(default="", description="Device host, or the requested device_id on error")
+    input_id: str | None = Field(default=None, description="Input source ID previewed")
+    format: str | None = Field(default=None, description="Image format: 'jpg' or 'png'")
+    preview_base64: str | None = Field(
+        default=None, description="Preview image bytes, base64-encoded (ASCII)."
+    )
+    size_bytes: int | None = Field(default=None, description="Decoded image size in bytes")
+    resolution: str | None = Field(
+        default=None, description="Requested resolution (present only when explicitly specified)"
+    )
+    error: str | None = Field(default=None, description="Error message on failure.")

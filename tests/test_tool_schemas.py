@@ -41,7 +41,6 @@ NOT_YET_CONVERTED = {
     "ai_tools",
     "cloud",
     "ec20",
-    "inputs",
     "kaltura",
     "opencast",
     "panopto",

@@ -6,25 +6,57 @@ and hardware outputs (HDMI, SDI) on Pearl devices.
 
 import base64
 import logging
-from typing import Any
+from typing import Annotated, Any
 
 from fastmcp import FastMCP
+from pydantic import Field
 
 from ..client import PearlAPIError
+from ..models import (
+    InputCreateResult,
+    InputPreviewResult,
+    InputSettingsResult,
+    InputUpdateResult,
+    OutputListResult,
+    OutputSourceResult,
+)
 from ..validation import ValidationError, validate_streaming_url
 from .device import get_client
+from .params import DeviceId, ImageFormat, PreviewResolution
 
 logger = logging.getLogger(__name__)
 
+_InputName = Annotated[str, Field(description="Display name for the input.")]
+_InputType = Annotated[str, Field(description="Input type: 'srt', 'rtsp', or 'ndi'.")]
+_InputUrl = Annotated[
+    str | None,
+    Field(description="Source URL (for SRT/RTSP inputs), validated against SSRF."),
+]
+_Passphrase = Annotated[
+    str | None, Field(description="Encryption passphrase (for SRT inputs).")
+]
+_Latency = Annotated[int | None, Field(description="Buffer latency in milliseconds.")]
+_InputId = Annotated[str, Field(description="Input source ID (e.g. 'srt-1', 'hdmi-1').")]
+_OutputId = Annotated[str, Field(description="Output ID (e.g. 'hdmi-1', 'sdi-1').")]
+_SourceChannel = Annotated[
+    int | None,
+    Field(
+        description=(
+            "Channel number (1-based) to display on the output, or None to disable "
+            "the output."
+        )
+    ),
+]
+
 
 async def create_network_input(
-    device_id: str = "default",
-    name: str = "",
-    input_type: str = "srt",
-    url: str | None = None,
-    passphrase: str | None = None,
-    latency: int | None = None,
-) -> dict[str, Any]:
+    device_id: DeviceId = "default",
+    name: _InputName = "",
+    input_type: _InputType = "srt",
+    url: _InputUrl = None,
+    passphrase: _Passphrase = None,
+    latency: _Latency = None,
+) -> InputCreateResult:
     """
     Create a new network input source (SRT, RTSP, or NDI).
 
@@ -43,21 +75,21 @@ async def create_network_input(
         Created input info including the assigned ID.
     """
     if not name:
-        return {
-            "success": False,
-            "error": "Input name is required",
-            "device": device_id,
-        }
+        return InputCreateResult(
+            success=False,
+            error="Input name is required",
+            device=device_id,
+        )
 
     if url:
         try:
             validate_streaming_url(url)
         except ValidationError as e:
-            return {
-                "success": False,
-                "error": f"Invalid URL: {e}",
-                "device": device_id,
-            }
+            return InputCreateResult(
+                success=False,
+                error=f"Invalid URL: {e}",
+                device=device_id,
+            )
 
     try:
         async with get_client(device_id) as client:
@@ -78,30 +110,30 @@ async def create_network_input(
                 input_type=input_type,
                 settings=settings if settings else None,
             )
-            return {
-                "success": True,
-                "device": client.host,
-                "input": result,
-                "message": f"Network input '{name}' created successfully",
-            }
+            return InputCreateResult(
+                success=True,
+                device=client.host,
+                input=result,
+                message=f"Network input '{name}' created successfully",
+            )
     except PearlAPIError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "device": device_id,
-        }
+        return InputCreateResult(
+            success=False,
+            error=str(e),
+            device=device_id,
+        )
     except ValueError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "device": device_id,
-        }
+        return InputCreateResult(
+            success=False,
+            error=str(e),
+            device=device_id,
+        )
 
 
 async def get_input_settings(
-    device_id: str = "default",
-    input_id: str = "",
-) -> dict[str, Any]:
+    device_id: DeviceId = "default",
+    input_id: _InputId = "",
+) -> InputSettingsResult:
     """
     Get configuration settings for an input source.
 
@@ -113,43 +145,43 @@ async def get_input_settings(
         Input settings including URL, passphrase, latency, etc.
     """
     if not input_id:
-        return {
-            "success": False,
-            "error": "Input ID is required",
-            "device": device_id,
-        }
+        return InputSettingsResult(
+            success=False,
+            error="Input ID is required",
+            device=device_id,
+        )
 
     try:
         async with get_client(device_id) as client:
             settings = await client.get_input_settings(input_id)
-            return {
-                "success": True,
-                "device": client.host,
-                "input_id": input_id,
-                "settings": settings,
-            }
+            return InputSettingsResult(
+                success=True,
+                device=client.host,
+                input_id=input_id,
+                settings=settings,
+            )
     except PearlAPIError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "device": device_id,
-            "input_id": input_id,
-        }
+        return InputSettingsResult(
+            success=False,
+            error=str(e),
+            device=device_id,
+            input_id=input_id,
+        )
     except ValueError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "device": device_id,
-        }
+        return InputSettingsResult(
+            success=False,
+            error=str(e),
+            device=device_id,
+        )
 
 
 async def update_input_settings(
-    device_id: str = "default",
-    input_id: str = "",
-    url: str | None = None,
-    passphrase: str | None = None,
-    latency: int | None = None,
-) -> dict[str, Any]:
+    device_id: DeviceId = "default",
+    input_id: _InputId = "",
+    url: _InputUrl = None,
+    passphrase: _Passphrase = None,
+    latency: _Latency = None,
+) -> InputUpdateResult:
     """
     Update settings for an input source (partial update).
 
@@ -166,22 +198,22 @@ async def update_input_settings(
         Confirmation of settings update.
     """
     if not input_id:
-        return {
-            "success": False,
-            "error": "Input ID is required",
-            "device": device_id,
-        }
+        return InputUpdateResult(
+            success=False,
+            error="Input ID is required",
+            device=device_id,
+        )
 
     # Validate URL if provided (SSRF prevention)
     if url is not None:
         try:
             validate_streaming_url(url)
         except ValidationError as e:
-            return {
-                "success": False,
-                "error": f"Invalid URL: {e}",
-                "device": device_id,
-            }
+            return InputUpdateResult(
+                success=False,
+                error=f"Invalid URL: {e}",
+                device=device_id,
+            )
 
     # Build settings dict with only provided values
     settings: dict[str, Any] = {}
@@ -193,34 +225,34 @@ async def update_input_settings(
         settings["latency"] = latency
 
     if not settings:
-        return {
-            "success": False,
-            "error": "No settings provided to update",
-            "device": device_id,
-        }
+        return InputUpdateResult(
+            success=False,
+            error="No settings provided to update",
+            device=device_id,
+        )
 
     try:
         async with get_client(device_id) as client:
             result = await client.update_input_settings(input_id, settings)
-            return result.model_dump()
+            return InputUpdateResult(**result.model_dump())
     except PearlAPIError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "device": device_id,
-            "input_id": input_id,
-        }
+        return InputUpdateResult(
+            success=False,
+            error=str(e),
+            device=device_id,
+            input_id=input_id,
+        )
     except ValueError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "device": device_id,
-        }
+        return InputUpdateResult(
+            success=False,
+            error=str(e),
+            device=device_id,
+        )
 
 
 async def list_outputs(
-    device_id: str = "default",
-) -> dict[str, Any]:
+    device_id: DeviceId = "default",
+) -> OutputListResult:
     """
     List available output ports on a Pearl device.
 
@@ -240,31 +272,31 @@ async def list_outputs(
     try:
         async with get_client(device_id) as client:
             outputs = await client.get_outputs()
-            return {
-                "success": True,
-                "device": client.host,
-                "total_outputs": len(outputs),
-                "outputs": outputs,
-            }
+            return OutputListResult(
+                success=True,
+                device=client.host,
+                total_outputs=len(outputs),
+                outputs=outputs,
+            )
     except PearlAPIError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "device": device_id,
-        }
+        return OutputListResult(
+            success=False,
+            error=str(e),
+            device=device_id,
+        )
     except ValueError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "device": device_id,
-        }
+        return OutputListResult(
+            success=False,
+            error=str(e),
+            device=device_id,
+        )
 
 
 async def set_output_source(
-    device_id: str = "default",
-    output_id: str = "",
-    source_channel: int | None = None,
-) -> dict[str, Any]:
+    device_id: DeviceId = "default",
+    output_id: _OutputId = "",
+    source_channel: _SourceChannel = None,
+) -> OutputSourceResult:
     """
     Set the source channel for an output port.
 
@@ -279,38 +311,38 @@ async def set_output_source(
         Confirmation of output configuration.
     """
     if not output_id:
-        return {
-            "success": False,
-            "error": "Output ID is required",
-            "device": device_id,
-        }
+        return OutputSourceResult(
+            success=False,
+            error="Output ID is required",
+            device=device_id,
+        )
 
     try:
         async with get_client(device_id) as client:
             channel_id = f"channel-{source_channel}" if source_channel is not None else None
             result = await client.set_output_source(output_id, channel_id)
-            return result.model_dump()
+            return OutputSourceResult(**result.model_dump())
     except PearlAPIError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "device": device_id,
-            "output_id": output_id,
-        }
+        return OutputSourceResult(
+            success=False,
+            error=str(e),
+            device=device_id,
+            output_id=output_id,
+        )
     except ValueError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "device": device_id,
-        }
+        return OutputSourceResult(
+            success=False,
+            error=str(e),
+            device=device_id,
+        )
 
 
 async def get_input_preview(
-    device_id: str = "default",
-    input_id: str = "",
-    resolution: str | None = None,
-    format: str = "jpg",
-) -> dict[str, Any]:
+    device_id: DeviceId = "default",
+    input_id: _InputId = "",
+    resolution: PreviewResolution = None,
+    format: ImageFormat = "jpg",
+) -> InputPreviewResult:
     """
     Get a live preview image from an input source.
 
@@ -327,11 +359,11 @@ async def get_input_preview(
         Preview image as base64-encoded string with format and resolution metadata.
     """
     if not input_id:
-        return {
-            "success": False,
-            "error": "Input ID is required",
-            "device": device_id,
-        }
+        return InputPreviewResult(
+            success=False,
+            error="Input ID is required",
+            device=device_id,
+        )
 
     try:
         async with get_client(device_id) as client:
@@ -341,30 +373,28 @@ async def get_input_preview(
                 format=format,
             )
             preview_b64 = base64.b64encode(image_bytes).decode("ascii")
-            result: dict[str, Any] = {
-                "success": True,
-                "device": client.host,
-                "input_id": input_id,
-                "format": format,
-                "preview_base64": preview_b64,
-                "size_bytes": len(image_bytes),
-            }
-            if resolution:
-                result["resolution"] = resolution
-            return result
+            return InputPreviewResult(
+                success=True,
+                device=client.host,
+                input_id=input_id,
+                format=format,
+                preview_base64=preview_b64,
+                size_bytes=len(image_bytes),
+                resolution=resolution,
+            )
     except PearlAPIError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "device": device_id,
-            "input_id": input_id,
-        }
+        return InputPreviewResult(
+            success=False,
+            error=str(e),
+            device=device_id,
+            input_id=input_id,
+        )
     except ValueError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "device": device_id,
-        }
+        return InputPreviewResult(
+            success=False,
+            error=str(e),
+            device=device_id,
+        )
 
 
 def register(server: FastMCP) -> None:

@@ -36,9 +36,9 @@ class TestCreateNetworkInput:
                 latency=200,
             )
 
-        assert result["success"] is True
-        assert result["device"] == "192.168.1.100"
-        assert "input" in result
+        assert result.success is True
+        assert result.device == "192.168.1.100"
+        assert result.input is not None
 
     @pytest.mark.asyncio
     async def test_create_rtsp_input_success(self):
@@ -62,7 +62,7 @@ class TestCreateNetworkInput:
                 url="rtsp://admin:pass@camera.local/stream1",
             )
 
-        assert result["success"] is True
+        assert result.success is True
 
     @pytest.mark.asyncio
     async def test_create_input_missing_name(self):
@@ -75,8 +75,8 @@ class TestCreateNetworkInput:
             input_type="srt",
         )
 
-        assert result["success"] is False
-        assert "name is required" in result["error"].lower()
+        assert result.success is False
+        assert "name is required" in result.error.lower()
 
 
 class TestGetInputSettings:
@@ -106,9 +106,9 @@ class TestGetInputSettings:
                 input_id="srt-1",
             )
 
-        assert result["success"] is True
-        assert "settings" in result
-        assert result["settings"]["latency"] == 200
+        assert result.success is True
+        assert result.settings is not None
+        assert result.settings["latency"] == 200
 
     @pytest.mark.asyncio
     async def test_get_input_settings_missing_id(self):
@@ -120,8 +120,8 @@ class TestGetInputSettings:
             input_id="",  # Empty ID
         )
 
-        assert result["success"] is False
-        assert "input id is required" in result["error"].lower()
+        assert result.success is False
+        assert "input id is required" in result.error.lower()
 
 
 class TestUpdateInputSettings:
@@ -152,7 +152,7 @@ class TestUpdateInputSettings:
                 latency=300,
             )
 
-        assert result["success"] is True
+        assert result.success is True
 
     @pytest.mark.asyncio
     async def test_update_input_settings_missing_id(self):
@@ -165,7 +165,7 @@ class TestUpdateInputSettings:
             latency=300,
         )
 
-        assert result["success"] is False
+        assert result.success is False
 
     @pytest.mark.asyncio
     async def test_update_input_settings_no_changes(self):
@@ -178,8 +178,8 @@ class TestUpdateInputSettings:
             # No settings provided
         )
 
-        assert result["success"] is False
-        assert "no settings" in result["error"].lower()
+        assert result.success is False
+        assert "no settings" in result.error.lower()
 
 
 class TestListOutputs:
@@ -205,9 +205,9 @@ class TestListOutputs:
         ):
             result = await list_outputs(device_id="default")
 
-        assert result["success"] is True
-        assert result["total_outputs"] == 2
-        assert len(result["outputs"]) == 2
+        assert result.success is True
+        assert result.total_outputs == 2
+        assert len(result.outputs) == 2
 
 
 class TestSetOutputSource:
@@ -238,7 +238,7 @@ class TestSetOutputSource:
                 source_channel=2,
             )
 
-        assert result["success"] is True
+        assert result.success is True
 
     @pytest.mark.asyncio
     async def test_set_output_source_disable(self):
@@ -265,7 +265,7 @@ class TestSetOutputSource:
                 source_channel=None,  # Disable
             )
 
-        assert result["success"] is True
+        assert result.success is True
 
     @pytest.mark.asyncio
     async def test_set_output_source_missing_id(self):
@@ -278,8 +278,8 @@ class TestSetOutputSource:
             source_channel=1,
         )
 
-        assert result["success"] is False
-        assert "output id is required" in result["error"].lower()
+        assert result.success is False
+        assert "output id is required" in result.error.lower()
 
 
 # ============================================================
@@ -306,13 +306,13 @@ class TestGetInputPreview:
         ):
             result = await get_input_preview(device_id="default", input_id="hdmi-1")
 
-        assert result["success"] is True
-        assert result["device"] == "192.168.1.100"
-        assert result["input_id"] == "hdmi-1"
-        assert result["format"] == "jpg"
+        assert result.success is True
+        assert result.device == "192.168.1.100"
+        assert result.input_id == "hdmi-1"
+        assert result.format == "jpg"
         # Verify base64 encoding
-        assert "preview_base64" in result
-        decoded = base64.b64decode(result["preview_base64"])
+        assert result.preview_base64 is not None
+        decoded = base64.b64decode(result.preview_base64)
         assert decoded == fake_jpg
 
     @pytest.mark.asyncio
@@ -331,8 +331,8 @@ class TestGetInputPreview:
         ):
             result = await get_input_preview(device_id="default", input_id="hdmi-1", format="png")
 
-        assert result["success"] is True
-        assert result["format"] == "png"
+        assert result.success is True
+        assert result.format == "png"
 
     @pytest.mark.asyncio
     async def test_get_input_preview_custom_resolution(self):
@@ -351,8 +351,8 @@ class TestGetInputPreview:
                 device_id="default", input_id="sdi-1", resolution="1920x1080"
             )
 
-        assert result["success"] is True
-        assert result["resolution"] == "1920x1080"
+        assert result.success is True
+        assert result.resolution == "1920x1080"
         mock_client.get_input_preview.assert_called_once_with(
             "sdi-1", resolution="1920x1080", format="jpg"
         )
@@ -364,8 +364,8 @@ class TestGetInputPreview:
 
         result = await get_input_preview(device_id="default", input_id="")
 
-        assert result["success"] is False
-        assert "input" in result["error"].lower()
+        assert result.success is False
+        assert "input" in result.error.lower()
 
     @pytest.mark.asyncio
     async def test_get_input_preview_connection_error(self):
@@ -380,5 +380,5 @@ class TestGetInputPreview:
         ):
             result = await get_input_preview(device_id="default", input_id="hdmi-1")
 
-        assert result["success"] is False
-        assert "error" in result
+        assert result.success is False
+        assert result.error is not None

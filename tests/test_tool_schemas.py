@@ -39,7 +39,6 @@ from .fixtures.responses import (
 # Tool modules not yet converted to typed params + typed returns.
 # Remove a module from this set in the same commit that converts it.
 NOT_YET_CONVERTED = {
-    "ai_tools",
     "cloud",
     "ec20",
 }
@@ -304,6 +303,28 @@ _MODEL_MUST_KEEP_FIELDS = {
         "success", "device", "channel", "publisher", "settings", "error",
     },
     "PublisherTypesResult": {"success", "device", "channel", "types", "error"},
+    # ai_tools (predates the `device` key convention: uses `device_id`)
+    "SceneAnalysisResult": {
+        "success", "analysis", "analysis_type", "model_used", "timestamp",
+        "image_hash", "device_id", "channel", "error",
+    },
+    "TextExtractionResult": {
+        "success", "text", "model_used", "timestamp", "image_hash",
+        "device_id", "channel", "error",
+    },
+    "ChangeDetectionResult": {
+        "success", "device_id", "channel", "changed", "change_type",
+        "previous_hash", "current_hash", "message", "error",
+    },
+    "QualityCheckResult": {
+        "success", "quality_report", "model_used", "timestamp", "image_hash",
+        "device_id", "channel", "error",
+    },
+    "ChangeCacheClearResult": {"success", "cleared", "message", "error"},
+    "RecordingIssuesResult": {
+        "success", "issues_detected", "issues", "quality_score", "recommendation",
+        "model_used", "timestamp", "device_id", "channel", "error",
+    },
     # qsys (integration convention: list/status tools carry no `success` key)
     "QSysComponentListResult": {"components", "count", "filter", "qsys_host", "error"},
     "QSysPearlStatusResult": {"status", "component", "qsys_host", "error"},

@@ -108,12 +108,11 @@ class TestRealFleetHealth:
 
         result = await fleet_health_report.fn()
 
-        assert result["success"] is True
-        assert "summary" in result
-        assert len(result["summary"]) > 0
-        assert "health_score" in result
-        assert "recommendations" in result
-        assert isinstance(result["recommendations"], list)
+        assert result.success is True
+        assert result.summary is not None
+        assert len(result.summary) > 0
+        assert result.health_score is not None
+        assert isinstance(result.recommendations, list)
 
 
 # ============================================================
@@ -142,7 +141,7 @@ class TestRealRecordingControl:
 
         # Check status
         status = await get_recording_status.fn(device_id="default", recorder=1)
-        assert status["state"] == "recording"
+        assert status.state == "recording"
 
         # Stop recording
         stop_result = await stop_recording.fn(device_id="default", recorder=1)
@@ -174,9 +173,9 @@ class TestRealAIAnalysis:
             analysis_type="scene_description",
         )
 
-        assert result["success"] is True
-        assert "analysis" in result
-        assert len(result["analysis"]) > 50  # Meaningful description
+        assert result.success is True
+        assert result.analysis is not None
+        assert len(result.analysis) > 50  # Meaningful description
 
     @pytest.mark.integration
     async def test_check_video_quality(self, real_settings, monkeypatch):
@@ -187,5 +186,5 @@ class TestRealAIAnalysis:
 
         result = await check_video_quality.fn(device_id="default", channel="1")
 
-        assert result["success"] is True
-        assert "quality_report" in result
+        assert result.success is True
+        assert result.quality_report is not None

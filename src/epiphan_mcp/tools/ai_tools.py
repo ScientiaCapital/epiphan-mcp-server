@@ -2,17 +2,64 @@
 
 import asyncio
 import logging
-from typing import Any, Literal
+from typing import Annotated, Any, Literal
 
 from fastmcp import FastMCP
+from pydantic import Field
 
 from epiphan_mcp.client import PearlClient
 from epiphan_mcp.config import get_settings
 from epiphan_mcp.llm.analyzer import VideoAnalyzer
 from epiphan_mcp.llm.config import AnalysisType
+from epiphan_mcp.models import (
+    ChangeCacheClearResult,
+    ChangeDetectionResult,
+    QualityCheckResult,
+    RecordingIssuesResult,
+    SceneAnalysisResult,
+    TextExtractionResult,
+)
 from epiphan_mcp.tools.discovery import get_default_channel
+from epiphan_mcp.tools.params import DeviceId
 
 logger = logging.getLogger(__name__)
+
+_ChannelId = Annotated[
+    str | None,
+    Field(
+        description="Channel ID to analyze (e.g. '1', '2'). If omitted, the device's "
+        "default channel is auto-detected via the Pearl API."
+    ),
+]
+_AnalysisType = Annotated[
+    Literal[
+        "scene_description",
+        "content_detection",
+        "quality_check",
+        "text_extraction",
+        "presenter_detection",
+    ],
+    Field(
+        description="Type of analysis: scene_description (general description), "
+        "content_detection (classify content), quality_check (technical assessment), "
+        "text_extraction (OCR), presenter_detection (detect presenters)."
+    ),
+]
+_Sensitivity = Annotated[
+    Literal["low", "medium", "high"],
+    Field(
+        description="Change detection sensitivity: low (major scene changes only), "
+        "medium (slide changes, presenter movement), high (any visible change)."
+    ),
+]
+_CacheDeviceId = Annotated[
+    str | None,
+    Field(description="Specific device to clear, or omit to clear all devices."),
+]
+_CacheChannelId = Annotated[
+    str | None,
+    Field(description="Specific channel to clear, or omit to clear all on the device."),
+]
 
 # Security: Maximum image size for LLM analysis (10MB)
 MAX_IMAGE_SIZE_BYTES = 10 * 1024 * 1024
@@ -86,16 +133,10 @@ async def _get_channel_preview(device_id: str, channel: str) -> bytes:
 
 
 async def analyze_channel_scene(
-    device_id: str = "default",
-    channel: str | None = None,
-    analysis_type: Literal[
-        "scene_description",
-        "content_detection",
-        "quality_check",
-        "text_extraction",
-        "presenter_detection",
-    ] = "scene_description",
-) -> dict[str, Any]:
+    device_id: DeviceId = "default",
+    channel: _ChannelId = None,
+    analysis_type: _AnalysisType = "scene_description",
+) -> SceneAnalysisResult:
     """
     Analyze the current scene on a Pearl channel using AI.
 
@@ -148,31 +189,31 @@ async def analyze_channel_scene(
             analysis_type=analysis_enum,
         )
 
-        return {
-            "success": True,
-            "analysis": result.content,
-            "analysis_type": result.analysis_type.value,
-            "model_used": result.model_used,
-            "timestamp": result.timestamp.isoformat(),
-            "image_hash": result.image_hash,
-            "device_id": device_id,
-            "channel": channel,
-        }
+        return SceneAnalysisResult(
+            success=True,
+            analysis=result.content,
+            analysis_type=result.analysis_type.value,
+            model_used=result.model_used,
+            timestamp=result.timestamp.isoformat(),
+            image_hash=result.image_hash,
+            device_id=device_id,
+            channel=channel,
+        )
 
     except Exception as e:
         logger.exception(f"Scene analysis failed: {e}")
-        return {
-            "success": False,
-            "error": str(e),
-            "device_id": device_id,
-            "channel": channel,
-        }
+        return SceneAnalysisResult(
+            success=False,
+            error=str(e),
+            device_id=device_id,
+            channel=channel,
+        )
 
 
 async def extract_text_from_preview(
-    device_id: str = "default",
-    channel: str | None = None,
-) -> dict[str, Any]:
+    device_id: DeviceId = "default",
+    channel: _ChannelId = None,
+) -> TextExtractionResult:
     """
     Extract visible text from a Pearl channel preview using OCR.
 
@@ -206,31 +247,31 @@ async def extract_text_from_preview(
         analyzer = await get_analyzer()
         result = await analyzer.extract_text(image_data)
 
-        return {
-            "success": True,
-            "text": result.content,
-            "model_used": result.model_used,
-            "timestamp": result.timestamp.isoformat(),
-            "image_hash": result.image_hash,
-            "device_id": device_id,
-            "channel": channel,
-        }
+        return TextExtractionResult(
+            success=True,
+            text=result.content,
+            model_used=result.model_used,
+            timestamp=result.timestamp.isoformat(),
+            image_hash=result.image_hash,
+            device_id=device_id,
+            channel=channel,
+        )
 
     except Exception as e:
         logger.exception(f"Text extraction failed: {e}")
-        return {
-            "success": False,
-            "error": str(e),
-            "device_id": device_id,
-            "channel": channel,
-        }
+        return TextExtractionResult(
+            success=False,
+            error=str(e),
+            device_id=device_id,
+            channel=channel,
+        )
 
 
 async def detect_layout_changes(
-    device_id: str = "default",
-    channel: str | None = None,
-    sensitivity: Literal["low", "medium", "high"] = "medium",
-) -> dict[str, Any]:
+    device_id: DeviceId = "default",
+    channel: _ChannelId = None,
+    sensitivity: _Sensitivity = "medium",
+) -> ChangeDetectionResult:
     """
     Detect if the channel content has changed since last check.
 
@@ -286,27 +327,29 @@ async def detect_layout_changes(
             sensitivity=sensitivity,
         )
 
-        return {
-            "success": True,
-            "device_id": device_id,
-            "channel": channel,
-            **result,
-        }
+        return ChangeDetectionResult.model_validate(
+            {
+                "success": True,
+                "device_id": device_id,
+                "channel": channel,
+                **result,
+            }
+        )
 
     except Exception as e:
         logger.exception(f"Change detection failed: {e}")
-        return {
-            "success": False,
-            "error": str(e),
-            "device_id": device_id,
-            "channel": channel,
-        }
+        return ChangeDetectionResult(
+            success=False,
+            error=str(e),
+            device_id=device_id,
+            channel=channel,
+        )
 
 
 async def check_video_quality(
-    device_id: str = "default",
-    channel: str | None = None,
-) -> dict[str, Any]:
+    device_id: DeviceId = "default",
+    channel: _ChannelId = None,
+) -> QualityCheckResult:
     """
     Check video quality on a Pearl channel.
 
@@ -344,30 +387,30 @@ async def check_video_quality(
         analyzer = await get_analyzer()
         result = await analyzer.check_quality(image_data)
 
-        return {
-            "success": True,
-            "quality_report": result.content,
-            "model_used": result.model_used,
-            "timestamp": result.timestamp.isoformat(),
-            "image_hash": result.image_hash,
-            "device_id": device_id,
-            "channel": channel,
-        }
+        return QualityCheckResult(
+            success=True,
+            quality_report=result.content,
+            model_used=result.model_used,
+            timestamp=result.timestamp.isoformat(),
+            image_hash=result.image_hash,
+            device_id=device_id,
+            channel=channel,
+        )
 
     except Exception as e:
         logger.exception(f"Quality check failed: {e}")
-        return {
-            "success": False,
-            "error": str(e),
-            "device_id": device_id,
-            "channel": channel,
-        }
+        return QualityCheckResult(
+            success=False,
+            error=str(e),
+            device_id=device_id,
+            channel=channel,
+        )
 
 
 async def clear_change_detection_cache(
-    device_id: str | None = None,
-    channel: str | None = None,
-) -> dict[str, Any]:
+    device_id: _CacheDeviceId = None,
+    channel: _CacheChannelId = None,
+) -> ChangeCacheClearResult:
     """
     Clear the change detection cache.
 
@@ -397,24 +440,24 @@ async def clear_change_detection_cache(
             analyzer.clear_cache()
             cleared = ["all"]
 
-        return {
-            "success": True,
-            "cleared": cleared,
-            "message": f"Change detection cache cleared for: {cleared}",
-        }
+        return ChangeCacheClearResult(
+            success=True,
+            cleared=cleared,
+            message=f"Change detection cache cleared for: {cleared}",
+        )
 
     except Exception as e:
         logger.exception(f"Cache clear failed: {e}")
-        return {
-            "success": False,
-            "error": str(e),
-        }
+        return ChangeCacheClearResult(
+            success=False,
+            error=str(e),
+        )
 
 
 async def detect_recording_issues(
-    device_id: str = "default",
-    channel: str | None = None,
-) -> dict[str, Any]:
+    device_id: DeviceId = "default",
+    channel: _ChannelId = None,
+) -> RecordingIssuesResult:
     """
     Detect video quality issues during an active recording.
 
@@ -478,26 +521,26 @@ async def detect_recording_issues(
         else:
             recommendation = "Significant issues detected - immediate attention required"
 
-        return {
-            "success": True,
-            "issues_detected": issues_detected,
-            "issues": issues,
-            "quality_score": quality_score,
-            "recommendation": recommendation,
-            "model_used": result.model_used,
-            "timestamp": result.timestamp.isoformat(),
-            "device_id": device_id,
-            "channel": channel,
-        }
+        return RecordingIssuesResult(
+            success=True,
+            issues_detected=issues_detected,
+            issues=issues,
+            quality_score=quality_score,
+            recommendation=recommendation,
+            model_used=result.model_used,
+            timestamp=result.timestamp.isoformat(),
+            device_id=device_id,
+            channel=channel,
+        )
 
     except Exception as e:
         logger.exception(f"Recording issue detection failed: {e}")
-        return {
-            "success": False,
-            "error": str(e),
-            "device_id": device_id,
-            "channel": channel,
-        }
+        return RecordingIssuesResult(
+            success=False,
+            error=str(e),
+            device_id=device_id,
+            channel=channel,
+        )
 
 
 def _parse_quality_issues(quality_report: str) -> list[dict[str, Any]]:

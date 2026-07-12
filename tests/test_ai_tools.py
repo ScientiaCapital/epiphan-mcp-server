@@ -11,6 +11,7 @@ import respx
 from httpx import Response
 
 from epiphan_mcp.llm.config import LLMSettings
+from epiphan_mcp.models import RecordingIssuesResult, SceneAnalysisResult
 from epiphan_mcp.tools.ai_tools import (
     analyze_channel_scene,
     check_video_quality,
@@ -88,15 +89,15 @@ class TestAnalyzeChannelScene:
     async def test_returns_success_dict(
         self, mock_pearl_settings, mock_pearl_client, mock_analyzer
     ):
-        """Should return dict with success=True on successful analysis."""
+        """Should return a typed result with success=True on successful analysis."""
         result = await analyze_channel_scene(
             device_id="default",
             channel="1",
             analysis_type="scene_description",
         )
 
-        assert isinstance(result, dict)
-        assert result["success"] is True
+        assert isinstance(result, SceneAnalysisResult)
+        assert result.success is True
 
     @pytest.mark.asyncio
     async def test_includes_analysis_content(
@@ -109,9 +110,9 @@ class TestAnalyzeChannelScene:
             analysis_type="scene_description",
         )
 
-        assert "analysis" in result
-        assert isinstance(result["analysis"], str)
-        assert len(result["analysis"]) > 0
+        assert result.analysis is not None
+        assert isinstance(result.analysis, str)
+        assert len(result.analysis) > 0
 
     @pytest.mark.asyncio
     async def test_includes_device_and_channel(
@@ -124,8 +125,8 @@ class TestAnalyzeChannelScene:
             analysis_type="scene_description",
         )
 
-        assert result["device_id"] == "my-device"
-        assert result["channel"] == "2"
+        assert result.device_id == "my-device"
+        assert result.channel == "2"
 
     @pytest.mark.asyncio
     async def test_includes_model_used(self, mock_pearl_settings, mock_pearl_client, mock_analyzer):
@@ -136,7 +137,7 @@ class TestAnalyzeChannelScene:
             analysis_type="scene_description",
         )
 
-        assert "model_used" in result
+        assert result.model_used is not None
 
     @pytest.mark.asyncio
     async def test_handles_text_extraction_type(
@@ -149,8 +150,8 @@ class TestAnalyzeChannelScene:
             analysis_type="text_extraction",
         )
 
-        assert result["success"] is True
-        assert result["analysis_type"] == "text_extraction"
+        assert result.success is True
+        assert result.analysis_type == "text_extraction"
 
     @pytest.mark.asyncio
     async def test_handles_quality_check_type(
@@ -163,8 +164,8 @@ class TestAnalyzeChannelScene:
             analysis_type="quality_check",
         )
 
-        assert result["success"] is True
-        assert result["analysis_type"] == "quality_check"
+        assert result.success is True
+        assert result.analysis_type == "quality_check"
 
     @pytest.mark.asyncio
     async def test_returns_error_on_pearl_failure(self, mock_pearl_settings):
@@ -178,8 +179,8 @@ class TestAnalyzeChannelScene:
 
             result = await analyze_channel_scene(device_id="default", channel="1")
 
-            assert result["success"] is False
-            assert "error" in result
+            assert result.success is False
+            assert result.error is not None
 
 
 # ============================================================
@@ -200,9 +201,9 @@ class TestExtractTextFromPreview:
             channel="1",
         )
 
-        assert result["success"] is True
-        assert "text" in result
-        assert isinstance(result["text"], str)
+        assert result.success is True
+        assert result.text is not None
+        assert isinstance(result.text, str)
 
     @pytest.mark.asyncio
     async def test_includes_device_and_channel(
@@ -214,8 +215,8 @@ class TestExtractTextFromPreview:
             channel="3",
         )
 
-        assert result["device_id"] == "test-device"
-        assert result["channel"] == "3"
+        assert result.device_id == "test-device"
+        assert result.channel == "3"
 
 
 # ============================================================
@@ -239,8 +240,8 @@ class TestDetectLayoutChanges:
             channel="1",
         )
 
-        assert result["success"] is True
-        assert result["changed"] is False
+        assert result.success is True
+        assert result.changed is False
 
     @pytest.mark.asyncio
     async def test_includes_sensitivity_response(
@@ -253,7 +254,7 @@ class TestDetectLayoutChanges:
             sensitivity="high",
         )
 
-        assert result["success"] is True
+        assert result.success is True
 
     @pytest.mark.asyncio
     async def test_includes_hash_info(self, mock_pearl_settings, mock_pearl_client, mock_analyzer):
@@ -263,7 +264,7 @@ class TestDetectLayoutChanges:
             channel="1",
         )
 
-        assert "current_hash" in result
+        assert result.current_hash is not None
 
 
 # ============================================================
@@ -284,9 +285,9 @@ class TestCheckVideoQuality:
             channel="1",
         )
 
-        assert result["success"] is True
-        assert "quality_report" in result
-        assert isinstance(result["quality_report"], str)
+        assert result.success is True
+        assert result.quality_report is not None
+        assert isinstance(result.quality_report, str)
 
     @pytest.mark.asyncio
     async def test_includes_model_used(self, mock_pearl_settings, mock_pearl_client, mock_analyzer):
@@ -296,7 +297,7 @@ class TestCheckVideoQuality:
             channel="1",
         )
 
-        assert "model_used" in result
+        assert result.model_used is not None
 
 
 # ============================================================
@@ -312,7 +313,7 @@ class TestClearChangeDetectionCache:
         """Should return success on cache clear."""
         result = await clear_change_detection_cache()
 
-        assert result["success"] is True
+        assert result.success is True
 
     @pytest.mark.asyncio
     async def test_accepts_device_and_channel(self):
@@ -322,14 +323,14 @@ class TestClearChangeDetectionCache:
             channel="1",
         )
 
-        assert result["success"] is True
+        assert result.success is True
 
     @pytest.mark.asyncio
     async def test_includes_cleared_info(self):
         """Should include info about what was cleared."""
         result = await clear_change_detection_cache()
 
-        assert "cleared" in result or "message" in result
+        assert result.cleared or result.message
 
 
 # ============================================================
@@ -371,10 +372,10 @@ class TestAIToolsIntegration:
             )
 
             # Verify we got a complete response
-            assert result["success"] is True
-            assert "analysis" in result
-            assert "model_used" in result
-            assert "timestamp" in result
+            assert result.success is True
+            assert result.analysis is not None
+            assert result.model_used is not None
+            assert result.timestamp is not None
 
 
 # ============================================================
@@ -389,14 +390,14 @@ class TestDetectRecordingIssues:
     async def test_returns_success_dict(
         self, mock_pearl_settings, mock_pearl_client, mock_analyzer
     ):
-        """Should return dict with success=True on successful detection."""
+        """Should return a typed result with success=True on successful detection."""
         result = await detect_recording_issues(
             device_id="default",
             channel="1",
         )
 
-        assert isinstance(result, dict)
-        assert result["success"] is True
+        assert isinstance(result, RecordingIssuesResult)
+        assert result.success is True
 
     @pytest.mark.asyncio
     async def test_includes_issues_detected_flag(
@@ -408,8 +409,8 @@ class TestDetectRecordingIssues:
             channel="1",
         )
 
-        assert "issues_detected" in result
-        assert isinstance(result["issues_detected"], bool)
+        assert result.issues_detected is not None
+        assert isinstance(result.issues_detected, bool)
 
     @pytest.mark.asyncio
     async def test_includes_quality_score(
@@ -421,9 +422,9 @@ class TestDetectRecordingIssues:
             channel="1",
         )
 
-        assert "quality_score" in result
-        assert isinstance(result["quality_score"], int)
-        assert 0 <= result["quality_score"] <= 100
+        assert result.quality_score is not None
+        assert isinstance(result.quality_score, int)
+        assert 0 <= result.quality_score <= 100
 
     @pytest.mark.asyncio
     async def test_includes_issues_list(
@@ -435,8 +436,8 @@ class TestDetectRecordingIssues:
             channel="1",
         )
 
-        assert "issues" in result
-        assert isinstance(result["issues"], list)
+        assert result.issues is not None
+        assert isinstance(result.issues, list)
 
     @pytest.mark.asyncio
     async def test_includes_recommendation(
@@ -448,9 +449,9 @@ class TestDetectRecordingIssues:
             channel="1",
         )
 
-        assert "recommendation" in result
-        assert isinstance(result["recommendation"], str)
-        assert len(result["recommendation"]) > 0
+        assert result.recommendation is not None
+        assert isinstance(result.recommendation, str)
+        assert len(result.recommendation) > 0
 
     @pytest.mark.asyncio
     async def test_includes_device_and_channel(
@@ -462,8 +463,8 @@ class TestDetectRecordingIssues:
             channel="2",
         )
 
-        assert result["device_id"] == "my-device"
-        assert result["channel"] == "2"
+        assert result.device_id == "my-device"
+        assert result.channel == "2"
 
     @pytest.mark.asyncio
     async def test_returns_error_on_pearl_failure(self, mock_pearl_settings):
@@ -477,5 +478,5 @@ class TestDetectRecordingIssues:
 
             result = await detect_recording_issues(device_id="default", channel="1")
 
-            assert result["success"] is False
-            assert "error" in result
+            assert result.success is False
+            assert result.error is not None

@@ -1275,6 +1275,113 @@ class PublisherTypesResult(BaseModel):
 
 
 # ============================================================
+# AI Tool Response Models
+# ============================================================
+#
+# AI tools predate the ``device`` key convention: they identify the device
+# under the ``device_id`` key. The models keep that name — renaming it would
+# be a wire-compat break for existing MCP clients.
+
+
+class SceneAnalysisResult(BaseModel):
+    """Return type of ``analyze_channel_scene``."""
+
+    success: bool = Field(description="Whether the analysis succeeded")
+    analysis: str | None = Field(default=None, description="Analysis result text")
+    analysis_type: str | None = Field(
+        default=None,
+        description="Type of analysis performed: scene_description, content_detection, "
+        "quality_check, text_extraction, presenter_detection.",
+    )
+    model_used: str | None = Field(default=None, description="LLM model used")
+    timestamp: str | None = Field(default=None, description="Analysis timestamp (ISO 8601)")
+    image_hash: str | None = Field(default=None, description="Hash of the analyzed frame")
+    device_id: str = Field(default="", description="Device that was analyzed")
+    channel: str | None = Field(default=None, description="Channel that was analyzed")
+    error: str | None = Field(default=None, description="Error message on failure.")
+
+
+class TextExtractionResult(BaseModel):
+    """Return type of ``extract_text_from_preview``."""
+
+    success: bool = Field(description="Whether the extraction succeeded")
+    text: str | None = Field(default=None, description="Extracted text content")
+    model_used: str | None = Field(default=None, description="LLM model used")
+    timestamp: str | None = Field(default=None, description="Analysis timestamp (ISO 8601)")
+    image_hash: str | None = Field(default=None, description="Hash of the analyzed frame")
+    device_id: str = Field(default="", description="Device that was analyzed")
+    channel: str | None = Field(default=None, description="Channel that was analyzed")
+    error: str | None = Field(default=None, description="Error message on failure.")
+
+
+class ChangeDetectionResult(BaseModel):
+    """Return type of ``detect_layout_changes``."""
+
+    model_config = ConfigDict(extra="allow")
+
+    success: bool = Field(description="Whether the change detection ran")
+    device_id: str = Field(default="", description="Device that was monitored")
+    channel: str | None = Field(default=None, description="Channel that was monitored")
+    changed: bool | None = Field(default=None, description="Whether a change was detected")
+    change_type: str | None = Field(
+        default=None, description="Type of change: first_frame, none, or content_change."
+    )
+    previous_hash: str | None = Field(default=None, description="Hash of the previous frame")
+    current_hash: str | None = Field(default=None, description="Hash of the current frame")
+    message: str | None = Field(default=None, description="Description of the change")
+    error: str | None = Field(default=None, description="Error message on failure.")
+
+
+class QualityCheckResult(BaseModel):
+    """Return type of ``check_video_quality``."""
+
+    success: bool = Field(description="Whether the quality check succeeded")
+    quality_report: str | None = Field(default=None, description="Detailed quality assessment")
+    model_used: str | None = Field(default=None, description="LLM model used")
+    timestamp: str | None = Field(default=None, description="Analysis timestamp (ISO 8601)")
+    image_hash: str | None = Field(default=None, description="Hash of the analyzed frame")
+    device_id: str = Field(default="", description="Device that was analyzed")
+    channel: str | None = Field(default=None, description="Channel that was analyzed")
+    error: str | None = Field(default=None, description="Error message on failure.")
+
+
+class ChangeCacheClearResult(BaseModel):
+    """Return type of ``clear_change_detection_cache``."""
+
+    success: bool = Field(description="Whether the cache was cleared")
+    cleared: list[str] = Field(
+        default_factory=list,
+        description="Cache keys cleared: 'device:channel' entries, or ['all'].",
+    )
+    message: str | None = Field(default=None, description="Human-readable confirmation message")
+    error: str | None = Field(default=None, description="Error message on failure.")
+
+
+class RecordingIssuesResult(BaseModel):
+    """Return type of ``detect_recording_issues``."""
+
+    success: bool = Field(description="Whether the issue detection ran")
+    issues_detected: bool | None = Field(
+        default=None, description="Whether any problems were found"
+    )
+    issues: list[dict[str, Any]] = Field(
+        default_factory=list,
+        description="Detected issues, each with type/description/severity/action.",
+    )
+    quality_score: int | None = Field(
+        default=None, description="Overall quality rating from 0 (worst) to 100 (best)"
+    )
+    recommendation: str | None = Field(
+        default=None, description="Suggested action if issues were found"
+    )
+    model_used: str | None = Field(default=None, description="LLM model used")
+    timestamp: str | None = Field(default=None, description="Analysis timestamp (ISO 8601)")
+    device_id: str = Field(default="", description="Device that was checked")
+    channel: str | None = Field(default=None, description="Channel that was checked")
+    error: str | None = Field(default=None, description="Error message on failure.")
+
+
+# ============================================================
 # Q-SYS Integration Tool Response Models
 # ============================================================
 #

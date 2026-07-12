@@ -3,6 +3,17 @@
 **Last Updated**: 2026-02-05
 **Status**: Production Ready + Pearl Discovery Tools Complete
 
+> ⚠️ **Stale (flagged 2026-07-12):** counts below ("101 tools", P0 launch items) pre-date
+> current reality (115 tools; CI format/lint gates exist). Needs a cleanup pass.
+
+## Active: Typed-Schema Conversion (2026-07-12)
+Converting all tool modules from `dict[str, Any]` returns to typed Pydantic
+params + return models (enforced by `tests/test_tool_schemas.py` `NOT_YET_CONVERTED`
+ratchet). **Done (11/21):** fleet, device, system, recording, storage, discovery,
+layout, maintenance, streaming, inputs (+ fleet phase-1). **Remaining (10):**
+ai_tools, cloud, ec20, kaltura, opencast, panopto, publishers, qsys, schedule, youtube.
+Recipe documented in PROJECT_CONTEXT "Tomorrow" handoff.
+
 ---
 
 ## Implementation Status Summary

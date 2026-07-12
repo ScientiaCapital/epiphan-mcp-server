@@ -648,6 +648,69 @@ class ArchiveFilesResult(BaseModel):
 
 
 # ============================================================
+# Storage Tool Response Models
+# ============================================================
+
+
+class InputListResult(BaseModel):
+    """Return type of ``list_inputs``."""
+
+    success: bool = Field(description="Whether the inputs were retrieved")
+    device: str = Field(
+        default="", description="Device host, or the requested device_id on error"
+    )
+    total_inputs: int = Field(default=0, description="Number of input sources returned")
+    inputs: list[dict[str, Any]] = Field(
+        default_factory=list,
+        description="Input sources, each with id, name, type, connection status, "
+        "resolution, and signal info.",
+    )
+    error: str | None = Field(default=None, description="Error message on failure.")
+
+
+class StorageReportResult(BaseModel):
+    """Return type of ``get_storage_report``."""
+
+    success: bool = Field(description="Whether the storage report was retrieved")
+    device: str = Field(
+        default="", description="Device host, or the requested device_id on error"
+    )
+    total_storages: int = Field(default=0, description="Number of storage volumes")
+    storages: list[dict[str, Any]] = Field(
+        default_factory=list,
+        description="Per-volume storage info (id, type, total/free bytes, percent).",
+    )
+    summary: dict[str, Any] | None = Field(
+        default=None,
+        description="Fleet-of-volumes totals: total/free/used bytes and GB, and "
+        "used_percent across all volumes.",
+    )
+    error: str | None = Field(default=None, description="Error message on failure.")
+
+
+class AFUStatusResult(BaseModel):
+    """Return type of ``get_afu_status`` (Automatic File Upload)."""
+
+    success: bool = Field(description="Whether the AFU status was retrieved")
+    device: str = Field(
+        default="", description="Device host, or the requested device_id on error"
+    )
+    total_destinations: int = Field(
+        default=0, description="Number of AFU destinations"
+    )
+    destinations: list[dict[str, Any]] = Field(
+        default_factory=list,
+        description="AFU destinations, each with id, name, protocol, state, "
+        "queue_count, and destination URL.",
+    )
+    summary: dict[str, Any] | None = Field(
+        default=None,
+        description="Totals: total_queued_files, uploading_count, error_count.",
+    )
+    error: str | None = Field(default=None, description="Error message on failure.")
+
+
+# ============================================================
 # Fleet Tool Response Models (LLM-legible tool output schemas)
 # ============================================================
 #

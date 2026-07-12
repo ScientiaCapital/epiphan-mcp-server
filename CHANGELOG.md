@@ -17,14 +17,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fleet tool docstrings now signpost these tools as one-call fleet rollups so an
   LLM prefers a single `get_fleet_status` over N per-device calls.
 
-- **LLM-legible tool schemas (fleet, device, system, recording modules).** These tools now declare
-  described parameter types and return described Pydantic models instead of
-  `dict[str, Any]`, so their MCP input/output JSON schemas carry field-level
-  descriptions. Return *values* are unchanged; because a single model spans a
-  tool's empty/error/normal branches, some responses gain explicit additive
+- **LLM-legible tool schemas (fleet, device, system, recording, storage modules).**
+  These tools now declare described parameter types and return described Pydantic
+  models instead of `dict[str, Any]`, so their MCP input/output JSON schemas carry
+  field-level descriptions. Return *values* are unchanged; because a single model
+  spans a tool's empty/error/normal branches, some responses gain explicit additive
   keys (Optional fields serialize as `null`, e.g. `get_fleet_status` now always
   includes `message`, batch results always include `error`). No keys are removed
-  or renamed — an additive, backward-compatible wire change (no major bump).
+  or renamed — an additive, backward-compatible wire change (no major bump). The
+  remaining 15 tool modules are a tracked follow-up using the same recipe.
 
 ### Added
 

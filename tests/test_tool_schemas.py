@@ -51,7 +51,6 @@ NOT_YET_CONVERTED = {
     "publishers",
     "qsys",
     "schedule",
-    "storage",
     "streaming",
     "youtube",
 }

@@ -1667,12 +1667,12 @@ class TestListInputs:
 
                 result = await list_inputs.fn(device_id="default")
 
-        assert result["success"] is True
-        assert result["total_inputs"] == 3
-        assert len(result["inputs"]) == 3
+        assert result.success is True
+        assert result.total_inputs == 3
+        assert len(result.inputs) == 3
         # Verify first input (model uses 'id' and 'type' as field names)
-        assert result["inputs"][0]["id"] == "hdmi-1"
-        assert result["inputs"][0]["type"] == "hdmi"
+        assert result.inputs[0]["id"] == "hdmi-1"
+        assert result.inputs[0]["type"] == "hdmi"
 
     async def test_list_inputs_empty(self, mock_pearl_host: str):
         """Test input listing with no inputs."""
@@ -1691,8 +1691,8 @@ class TestListInputs:
 
                 result = await list_inputs.fn(device_id="default")
 
-        assert result["success"] is True
-        assert result["total_inputs"] == 0
+        assert result.success is True
+        assert result.total_inputs == 0
 
     async def test_list_inputs_api_error(self, mock_pearl_host: str):
         """Test input listing with API error."""
@@ -1710,8 +1710,8 @@ class TestListInputs:
 
                 result = await list_inputs.fn(device_id="default")
 
-        assert result["success"] is False
-        assert "error" in result
+        assert result.success is False
+        assert hasattr(result, "error")
 
     async def test_list_inputs_invalid_device(self):
         """Test input listing with invalid device."""
@@ -1722,8 +1722,8 @@ class TestListInputs:
 
             result = await list_inputs.fn(device_id="nonexistent")
 
-        assert result["success"] is False
-        assert "error" in result
+        assert result.success is False
+        assert hasattr(result, "error")
 
 
 # ============================================================
@@ -1750,13 +1750,13 @@ class TestGetStorageReport:
 
                 result = await get_storage_report.fn(device_id="default")
 
-        assert result["success"] is True
-        assert result["total_storages"] == 1
-        assert len(result["storages"]) == 1
-        assert "summary" in result
-        assert result["summary"]["total_gb"] > 0
-        assert result["summary"]["free_gb"] > 0
-        assert result["summary"]["used_percent"] == 20.0
+        assert result.success is True
+        assert result.total_storages == 1
+        assert len(result.storages) == 1
+        assert hasattr(result, "summary")
+        assert result.summary["total_gb"] > 0
+        assert result.summary["free_gb"] > 0
+        assert result.summary["used_percent"] == 20.0
 
     async def test_get_storage_report_low_space(self, mock_pearl_host: str):
         """Test storage report with low space."""
@@ -1774,8 +1774,8 @@ class TestGetStorageReport:
 
                 result = await get_storage_report.fn(device_id="default")
 
-        assert result["success"] is True
-        assert result["summary"]["used_percent"] == 90.0
+        assert result.success is True
+        assert result.summary["used_percent"] == 90.0
 
     async def test_get_storage_report_api_error(self, mock_pearl_host: str):
         """Test storage report with API error."""
@@ -1793,8 +1793,8 @@ class TestGetStorageReport:
 
                 result = await get_storage_report.fn(device_id="default")
 
-        assert result["success"] is False
-        assert "error" in result
+        assert result.success is False
+        assert hasattr(result, "error")
 
     async def test_get_storage_report_invalid_device(self):
         """Test storage report with invalid device."""
@@ -1805,8 +1805,8 @@ class TestGetStorageReport:
 
             result = await get_storage_report.fn(device_id="nonexistent")
 
-        assert result["success"] is False
-        assert "error" in result
+        assert result.success is False
+        assert hasattr(result, "error")
 
 
 # ============================================================
@@ -1833,13 +1833,13 @@ class TestGetAfuStatus:
 
                 result = await get_afu_status.fn(device_id="default")
 
-        assert result["success"] is True
-        assert result["total_destinations"] == 1
-        assert len(result["destinations"]) == 1
-        assert result["destinations"][0]["id"] == "afu-1"
-        assert result["destinations"][0]["protocol"] == "s3"
-        assert "summary" in result
-        assert result["summary"]["total_queued_files"] == 0
+        assert result.success is True
+        assert result.total_destinations == 1
+        assert len(result.destinations) == 1
+        assert result.destinations[0]["id"] == "afu-1"
+        assert result.destinations[0]["protocol"] == "s3"
+        assert hasattr(result, "summary")
+        assert result.summary["total_queued_files"] == 0
 
     async def test_get_afu_status_with_uploads(self, mock_pearl_host: str):
         """Test AFU status with active uploads."""
@@ -1878,10 +1878,10 @@ class TestGetAfuStatus:
 
                 result = await get_afu_status.fn(device_id="default")
 
-        assert result["success"] is True
-        assert result["total_destinations"] == 2
-        assert result["summary"]["total_queued_files"] == 3
-        assert result["summary"]["uploading_count"] == 1
+        assert result.success is True
+        assert result.total_destinations == 2
+        assert result.summary["total_queued_files"] == 3
+        assert result.summary["uploading_count"] == 1
 
     async def test_get_afu_status_with_errors(self, mock_pearl_host: str):
         """Test AFU status with error state."""
@@ -1912,8 +1912,8 @@ class TestGetAfuStatus:
 
                 result = await get_afu_status.fn(device_id="default")
 
-        assert result["success"] is True
-        assert result["summary"]["error_count"] == 1
+        assert result.success is True
+        assert result.summary["error_count"] == 1
 
     async def test_get_afu_status_empty(self, mock_pearl_host: str):
         """Test AFU status with no destinations configured."""
@@ -1932,8 +1932,8 @@ class TestGetAfuStatus:
 
                 result = await get_afu_status.fn(device_id="default")
 
-        assert result["success"] is True
-        assert result["total_destinations"] == 0
+        assert result.success is True
+        assert result.total_destinations == 0
 
     async def test_get_afu_status_api_error(self, mock_pearl_host: str):
         """Test AFU status with API error."""
@@ -1951,8 +1951,8 @@ class TestGetAfuStatus:
 
                 result = await get_afu_status.fn(device_id="default")
 
-        assert result["success"] is False
-        assert "error" in result
+        assert result.success is False
+        assert hasattr(result, "error")
 
     async def test_get_afu_status_invalid_device(self):
         """Test AFU status with invalid device."""
@@ -1963,5 +1963,5 @@ class TestGetAfuStatus:
 
             result = await get_afu_status.fn(device_id="nonexistent")
 
-        assert result["success"] is False
-        assert "error" in result
+        assert result.success is False
+        assert hasattr(result, "error")

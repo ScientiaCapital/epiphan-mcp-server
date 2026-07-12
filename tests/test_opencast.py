@@ -11,7 +11,7 @@ Tests cover:
 """
 
 import os
-from datetime import datetime, timedelta
+from datetime import datetime
 from unittest.mock import patch
 
 import httpx
@@ -24,7 +24,6 @@ from epiphan_mcp.integrations.opencast import (
     OpencastClient,
     _build_dublin_core,
 )
-
 
 # ============================================================================
 # Dublin Core Tests

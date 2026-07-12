@@ -6,8 +6,8 @@ from unittest.mock import AsyncMock, patch
 import pytest
 
 from epiphan_mcp.tools.discovery import (
-    _device_cache,
     _cache_timestamps,
+    _device_cache,
     _parse_resource_number,
     clear_discovery_cache,
     discover_device,

@@ -12,7 +12,7 @@ Tests cover:
 import asyncio
 import json
 import os
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
@@ -22,7 +22,6 @@ from epiphan_mcp.integrations.qsys import (
     QSysConnectionError,
     QSysRPCError,
 )
-
 
 # ============================================================================
 # Mock TCP Stream Helpers

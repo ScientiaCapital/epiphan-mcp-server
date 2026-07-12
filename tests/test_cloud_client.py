@@ -5,9 +5,9 @@ import respx
 from httpx import Response
 
 from epiphan_mcp.integrations.cloud import (
-    EpiphanCloudClient,
-    EpiphanCloudAuthError,
     EpiphanCloudAPIError,
+    EpiphanCloudAuthError,
+    EpiphanCloudClient,
 )
 
 MOCK_TOKEN = "test-bearer-token-123"
@@ -22,7 +22,7 @@ class TestCloudClientInit:
         """Test client creation with default host."""
         client = EpiphanCloudClient(token=MOCK_TOKEN)
         assert client._token == MOCK_TOKEN
-        assert client._base_url == f"https://go.epiphan.cloud/front/api/v2"
+        assert client._base_url == "https://go.epiphan.cloud/front/api/v2"
         assert client._timeout == 30.0
 
     def test_init_custom_host(self):

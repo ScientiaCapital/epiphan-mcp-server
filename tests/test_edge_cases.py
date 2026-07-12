@@ -5,7 +5,7 @@ malformed API responses, and boundary values.
 """
 
 import asyncio
-from unittest.mock import AsyncMock, patch
+from unittest.mock import patch
 
 import pytest
 import respx
@@ -19,15 +19,13 @@ from epiphan_mcp.tools.fleet import (
     batch_stop_recording,
     get_fleet_status,
 )
-from epiphan_mcp.tools.recording import start_recording, stop_recording
+from epiphan_mcp.tools.recording import start_recording
 
 from .fixtures.responses import (
-    CONTROL_SUCCESS_RESPONSE,
     DEVICE_RESPONSE,
     RECORDER_STATUS_STOPPED,
     STORAGE_RESPONSE,
 )
-
 
 # ============================================================
 # Helper Functions

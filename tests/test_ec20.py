@@ -12,20 +12,17 @@ Note: EC20 REST API endpoints are placeholders until discovered from real hardwa
 The actual endpoints will be filled in after accessing the EC20 web interface.
 """
 
-import json
-import os
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import httpx
 import pytest
 
+from epiphan_mcp.config import Settings
 from epiphan_mcp.integrations.ec20 import (
+    EC20APIError,
     EC20Client,
     EC20ConnectionError,
-    EC20APIError,
 )
-from epiphan_mcp.config import Settings
-
 
 # ============================================================================
 # Mock Response Helpers

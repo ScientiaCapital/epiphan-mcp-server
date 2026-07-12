@@ -1484,6 +1484,146 @@ class CloudPreviewResult(BaseModel):
 
 
 # ============================================================
+# EC20 PTZ Camera Tool Response Models
+# ============================================================
+#
+# EC20 tools identify the camera under the ``camera_id`` key (resolved
+# host on success, the requested identifier on error).
+
+
+class EC20StatusResult(BaseModel):
+    """Return type of ``ec20_get_status``."""
+
+    success: bool = Field(description="Whether the status was retrieved")
+    camera_id: str = Field(
+        default="", description="Resolved camera host, or the requested camera_id on error"
+    )
+    camera: dict[str, Any] | None = Field(
+        default=None,
+        description="Camera status: model, firmware, PTZ position, tracking state.",
+    )
+    error: str | None = Field(default=None, description="Error message on failure.")
+
+
+class EC20PanTiltResult(BaseModel):
+    """Return type of ``ec20_pan_tilt``."""
+
+    success: bool = Field(description="Whether the move succeeded")
+    camera_id: str = Field(
+        default="", description="Resolved camera host, or the requested camera_id on error"
+    )
+    pan: float | None = Field(default=None, description="New pan position in degrees")
+    tilt: float | None = Field(default=None, description="New tilt position in degrees")
+    pan_result: dict[str, Any] | None = Field(
+        default=None, description="Raw pan command result from the camera."
+    )
+    tilt_result: dict[str, Any] | None = Field(
+        default=None, description="Raw tilt command result from the camera."
+    )
+    error: str | None = Field(default=None, description="Error message on failure.")
+
+
+class EC20ZoomResult(BaseModel):
+    """Return type of ``ec20_zoom``."""
+
+    success: bool = Field(description="Whether the zoom succeeded")
+    camera_id: str = Field(
+        default="", description="Resolved camera host, or the requested camera_id on error"
+    )
+    zoom_level: int | None = Field(default=None, description="New zoom level (1-36)")
+    result: dict[str, Any] | None = Field(
+        default=None, description="Raw zoom command result from the camera."
+    )
+    error: str | None = Field(default=None, description="Error message on failure.")
+
+
+class EC20PresetRecallResult(BaseModel):
+    """Return type of ``ec20_goto_preset``."""
+
+    success: bool = Field(description="Whether the preset was recalled")
+    camera_id: str = Field(
+        default="", description="Resolved camera host, or the requested camera_id on error"
+    )
+    preset_id: int | None = Field(default=None, description="Preset ID recalled")
+    result: dict[str, Any] | None = Field(
+        default=None, description="Raw preset command result from the camera."
+    )
+    error: str | None = Field(default=None, description="Error message on failure.")
+
+
+class EC20PresetSaveResult(BaseModel):
+    """Return type of ``ec20_save_preset``."""
+
+    success: bool = Field(description="Whether the preset was saved")
+    camera_id: str = Field(
+        default="", description="Resolved camera host, or the requested camera_id on error"
+    )
+    preset_id: int | None = Field(default=None, description="Preset ID saved")
+    name: str | None = Field(default=None, description="Preset name")
+    result: dict[str, Any] | None = Field(
+        default=None, description="Raw preset command result from the camera."
+    )
+    error: str | None = Field(default=None, description="Error message on failure.")
+
+
+class EC20OperationResult(BaseModel):
+    """Return type of ``ec20_home`` / ``ec20_disable_tracking``."""
+
+    success: bool = Field(description="Whether the operation succeeded")
+    camera_id: str = Field(
+        default="", description="Resolved camera host, or the requested camera_id on error"
+    )
+    result: dict[str, Any] | None = Field(
+        default=None, description="Raw command result from the camera."
+    )
+    error: str | None = Field(default=None, description="Error message on failure.")
+
+
+class EC20TrackingResult(BaseModel):
+    """Return type of ``ec20_enable_tracking``."""
+
+    success: bool = Field(description="Whether tracking was enabled")
+    camera_id: str = Field(
+        default="", description="Resolved camera host, or the requested camera_id on error"
+    )
+    mode: str | None = Field(
+        default=None, description="Tracking mode enabled: presenter, zone, or body."
+    )
+    result: dict[str, Any] | None = Field(
+        default=None, description="Raw tracking command result from the camera."
+    )
+    error: str | None = Field(default=None, description="Error message on failure.")
+
+
+class EC20PresetListResult(BaseModel):
+    """Return type of ``ec20_list_presets``."""
+
+    success: bool = Field(description="Whether the presets were retrieved")
+    camera_id: str = Field(
+        default="", description="Resolved camera host, or the requested camera_id on error"
+    )
+    presets: list[dict[str, Any]] = Field(
+        default_factory=list,
+        description="Saved presets, each with id, name, pan, tilt, zoom.",
+    )
+    error: str | None = Field(default=None, description="Error message on failure.")
+
+
+class EC20PreviewResult(BaseModel):
+    """Return type of ``ec20_get_preview``."""
+
+    success: bool = Field(description="Whether the preview was captured")
+    camera_id: str = Field(
+        default="", description="Resolved camera host, or the requested camera_id on error"
+    )
+    image_base64: str | None = Field(
+        default=None, description="Preview image bytes, base64-encoded (ASCII)."
+    )
+    content_type: str | None = Field(default=None, description="Image MIME type (image/jpeg)")
+    error: str | None = Field(default=None, description="Error message on failure.")
+
+
+# ============================================================
 # Q-SYS Integration Tool Response Models
 # ============================================================
 #

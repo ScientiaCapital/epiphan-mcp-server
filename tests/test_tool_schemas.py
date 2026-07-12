@@ -37,10 +37,10 @@ from .fixtures.responses import (
 )
 
 # Tool modules not yet converted to typed params + typed returns.
-# Remove a module from this set in the same commit that converts it.
-NOT_YET_CONVERTED = {
-    "ec20",
-}
+# Empty since the Phase-2 conversion completed (2026-07-12): every tool in the
+# server must have a fully described schema. Add a module here only while a
+# newly introduced tool module is being built out.
+NOT_YET_CONVERTED: set[str] = set()
 
 # Fetched once at collection time; get_tools() is async but self-contained.
 _TOOLS = asyncio.run(mcp.get_tools())
@@ -335,6 +335,22 @@ _MODEL_MUST_KEEP_FIELDS = {
     "CloudSettingsResult": {"settings", "device_id", "error"},
     "CloudPreviewResult": {
         "image_base64", "content_type", "size_bytes", "device_id", "error",
+    },
+    # ec20 (identifies the camera under the `camera_id` key)
+    "EC20StatusResult": {"success", "camera_id", "camera", "error"},
+    "EC20PanTiltResult": {
+        "success", "camera_id", "pan", "tilt", "pan_result", "tilt_result", "error",
+    },
+    "EC20ZoomResult": {"success", "camera_id", "zoom_level", "result", "error"},
+    "EC20PresetRecallResult": {"success", "camera_id", "preset_id", "result", "error"},
+    "EC20PresetSaveResult": {
+        "success", "camera_id", "preset_id", "name", "result", "error",
+    },
+    "EC20OperationResult": {"success", "camera_id", "result", "error"},
+    "EC20TrackingResult": {"success", "camera_id", "mode", "result", "error"},
+    "EC20PresetListResult": {"success", "camera_id", "presets", "error"},
+    "EC20PreviewResult": {
+        "success", "camera_id", "image_base64", "content_type", "error",
     },
     # qsys (integration convention: list/status tools carry no `success` key)
     "QSysComponentListResult": {"components", "count", "filter", "qsys_host", "error"},

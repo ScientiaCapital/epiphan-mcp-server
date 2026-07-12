@@ -30,14 +30,62 @@ Example:
 
 import base64
 import logging
-from typing import Any
+from typing import Annotated
 
 from fastmcp import FastMCP
+from pydantic import Field
 
 from epiphan_mcp.config import get_settings
 from epiphan_mcp.integrations.ec20 import EC20APIError, EC20Client, EC20ConnectionError
+from epiphan_mcp.models import (
+    EC20OperationResult,
+    EC20PanTiltResult,
+    EC20PresetListResult,
+    EC20PresetRecallResult,
+    EC20PresetSaveResult,
+    EC20PreviewResult,
+    EC20StatusResult,
+    EC20TrackingResult,
+    EC20ZoomResult,
+)
 
 logger = logging.getLogger(__name__)
+
+_CameraId = Annotated[
+    str,
+    Field(
+        description="EC20 camera identifier: 'default' for the first configured camera, "
+        "an IP address or hostname, or a numeric index like '0' or '1'."
+    ),
+]
+_Pan = Annotated[
+    float,
+    Field(description="Pan position in degrees (-162.5 to +162.5)."),
+]
+_Tilt = Annotated[
+    float,
+    Field(description="Tilt position in degrees (-30 to +90 typical)."),
+]
+_Speed = Annotated[
+    int,
+    Field(description="Movement speed (1-100, default 50)."),
+]
+_ZoomLevel = Annotated[
+    int,
+    Field(description="Zoom level (1-36: 1-20 optical, 21-36 digital)."),
+]
+_PresetId = Annotated[
+    int,
+    Field(description="Preset ID (1-255)."),
+]
+_PresetName = Annotated[
+    str,
+    Field(description="Name for the preset."),
+]
+_TrackingMode = Annotated[
+    str,
+    Field(description="Tracking mode: 'presenter' (default), 'zone', or 'body'."),
+]
 
 
 def _get_ec20_client(camera_id: str = "default") -> tuple[EC20Client, str]:
@@ -66,7 +114,7 @@ def _get_ec20_client(camera_id: str = "default") -> tuple[EC20Client, str]:
     return client, host
 
 
-async def ec20_get_status(camera_id: str = "default") -> dict[str, Any]:
+async def ec20_get_status(camera_id: _CameraId = "default") -> EC20StatusResult:
     """Get EC20 camera status including PTZ position and tracking state.
 
     Args:
@@ -76,15 +124,11 @@ async def ec20_get_status(camera_id: str = "default") -> dict[str, Any]:
             - Index like "0", "1" - nth configured camera
 
     Returns:
-        Dict containing:
-            - success: bool
-            - camera_id: Resolved hostname/IP
-            - status: Camera status data (model, firmware, position, tracking)
-            - error: Error message if success=False
+        Camera status data (model, firmware, position, tracking).
 
     Example:
         >>> result = await ec20_get_status(camera_id="192.168.1.50")
-        >>> print(result["status"]["pan"])
+        >>> print(result.camera["pan"])
         45.0
     """
     try:
@@ -93,38 +137,38 @@ async def ec20_get_status(camera_id: str = "default") -> dict[str, Any]:
         async with client:
             status = await client.get_status()
 
-        return {
-            "success": True,
-            "camera_id": host,
-            "camera": status,
-        }
+        return EC20StatusResult(
+            success=True,
+            camera_id=host,
+            camera=status,
+        )
 
     except ValueError as e:
-        return {
-            "success": False,
-            "camera_id": camera_id,
-            "error": str(e),
-        }
+        return EC20StatusResult(
+            success=False,
+            camera_id=camera_id,
+            error=str(e),
+        )
     except EC20ConnectionError as e:
-        return {
-            "success": False,
-            "camera_id": camera_id,
-            "error": f"Connection error: {e}",
-        }
+        return EC20StatusResult(
+            success=False,
+            camera_id=camera_id,
+            error=f"Connection error: {e}",
+        )
     except EC20APIError as e:
-        return {
-            "success": False,
-            "camera_id": camera_id,
-            "error": f"API error: {e}",
-        }
+        return EC20StatusResult(
+            success=False,
+            camera_id=camera_id,
+            error=f"API error: {e}",
+        )
 
 
 async def ec20_pan_tilt(
-    camera_id: str = "default",
-    pan: float = 0.0,
-    tilt: float = 0.0,
-    speed: int = 50,
-) -> dict[str, Any]:
+    camera_id: _CameraId = "default",
+    pan: _Pan = 0.0,
+    tilt: _Tilt = 0.0,
+    speed: _Speed = 50,
+) -> EC20PanTiltResult:
     """Move EC20 camera to absolute pan/tilt position.
 
     Args:
@@ -134,16 +178,11 @@ async def ec20_pan_tilt(
         speed: Movement speed (1-100, default 50)
 
     Returns:
-        Dict containing:
-            - success: bool
-            - camera_id: Resolved hostname/IP
-            - pan: New pan position
-            - tilt: New tilt position
-            - error: Error message if success=False
+        New pan/tilt position and raw command results.
 
     Example:
         >>> result = await ec20_pan_tilt(pan=45.0, tilt=15.0, speed=75)
-        >>> print(result["pan"], result["tilt"])
+        >>> print(result.pan, result.tilt)
         45.0 15.0
     """
     try:
@@ -153,39 +192,39 @@ async def ec20_pan_tilt(
             pan_result = await client.pan(degrees=pan, speed=speed)
             tilt_result = await client.tilt(degrees=tilt, speed=speed)
 
-        return {
-            "success": True,
-            "camera_id": host,
-            "pan": pan,
-            "tilt": tilt,
-            "pan_result": pan_result,
-            "tilt_result": tilt_result,
-        }
+        return EC20PanTiltResult(
+            success=True,
+            camera_id=host,
+            pan=pan,
+            tilt=tilt,
+            pan_result=pan_result,
+            tilt_result=tilt_result,
+        )
 
     except ValueError as e:
-        return {
-            "success": False,
-            "camera_id": camera_id,
-            "error": str(e),
-        }
+        return EC20PanTiltResult(
+            success=False,
+            camera_id=camera_id,
+            error=str(e),
+        )
     except EC20ConnectionError as e:
-        return {
-            "success": False,
-            "camera_id": camera_id,
-            "error": f"Connection error: {e}",
-        }
+        return EC20PanTiltResult(
+            success=False,
+            camera_id=camera_id,
+            error=f"Connection error: {e}",
+        )
     except EC20APIError as e:
-        return {
-            "success": False,
-            "camera_id": camera_id,
-            "error": f"API error: {e}",
-        }
+        return EC20PanTiltResult(
+            success=False,
+            camera_id=camera_id,
+            error=f"API error: {e}",
+        )
 
 
 async def ec20_zoom(
-    camera_id: str = "default",
-    level: int = 1,
-) -> dict[str, Any]:
+    camera_id: _CameraId = "default",
+    level: _ZoomLevel = 1,
+) -> EC20ZoomResult:
     """Set EC20 camera zoom level.
 
     Args:
@@ -193,15 +232,11 @@ async def ec20_zoom(
         level: Zoom level (1-36: 1-20 optical, 21-36 digital)
 
     Returns:
-        Dict containing:
-            - success: bool
-            - camera_id: Resolved hostname/IP
-            - zoom_level: New zoom level
-            - error: Error message if success=False
+        New zoom level and raw command result.
 
     Example:
         >>> result = await ec20_zoom(level=10)
-        >>> print(result["zoom_level"])
+        >>> print(result.zoom_level)
         10
     """
     try:
@@ -210,37 +245,37 @@ async def ec20_zoom(
         async with client:
             zoom_result = await client.zoom(level=level)
 
-        return {
-            "success": True,
-            "camera_id": host,
-            "zoom_level": level,
-            "result": zoom_result,
-        }
+        return EC20ZoomResult(
+            success=True,
+            camera_id=host,
+            zoom_level=level,
+            result=zoom_result,
+        )
 
     except ValueError as e:
-        return {
-            "success": False,
-            "camera_id": camera_id,
-            "error": str(e),
-        }
+        return EC20ZoomResult(
+            success=False,
+            camera_id=camera_id,
+            error=str(e),
+        )
     except EC20ConnectionError as e:
-        return {
-            "success": False,
-            "camera_id": camera_id,
-            "error": f"Connection error: {e}",
-        }
+        return EC20ZoomResult(
+            success=False,
+            camera_id=camera_id,
+            error=f"Connection error: {e}",
+        )
     except EC20APIError as e:
-        return {
-            "success": False,
-            "camera_id": camera_id,
-            "error": f"API error: {e}",
-        }
+        return EC20ZoomResult(
+            success=False,
+            camera_id=camera_id,
+            error=f"API error: {e}",
+        )
 
 
 async def ec20_goto_preset(
-    camera_id: str = "default",
-    preset_id: int = 1,
-) -> dict[str, Any]:
+    camera_id: _CameraId = "default",
+    preset_id: _PresetId = 1,
+) -> EC20PresetRecallResult:
     """Move EC20 camera to a saved preset position.
 
     Args:
@@ -248,15 +283,11 @@ async def ec20_goto_preset(
         preset_id: ID of preset to recall (1-255)
 
     Returns:
-        Dict containing:
-            - success: bool
-            - camera_id: Resolved hostname/IP
-            - preset_id: Preset ID recalled
-            - error: Error message if success=False
+        Recalled preset ID and raw command result.
 
     Example:
         >>> result = await ec20_goto_preset(preset_id=1)
-        >>> print(result["preset_id"])
+        >>> print(result.preset_id)
         1
     """
     try:
@@ -265,38 +296,38 @@ async def ec20_goto_preset(
         async with client:
             result = await client.goto_preset(preset_id=preset_id)
 
-        return {
-            "success": True,
-            "camera_id": host,
-            "preset_id": preset_id,
-            "result": result,
-        }
+        return EC20PresetRecallResult(
+            success=True,
+            camera_id=host,
+            preset_id=preset_id,
+            result=result,
+        )
 
     except ValueError as e:
-        return {
-            "success": False,
-            "camera_id": camera_id,
-            "error": str(e),
-        }
+        return EC20PresetRecallResult(
+            success=False,
+            camera_id=camera_id,
+            error=str(e),
+        )
     except EC20ConnectionError as e:
-        return {
-            "success": False,
-            "camera_id": camera_id,
-            "error": f"Connection error: {e}",
-        }
+        return EC20PresetRecallResult(
+            success=False,
+            camera_id=camera_id,
+            error=f"Connection error: {e}",
+        )
     except EC20APIError as e:
-        return {
-            "success": False,
-            "camera_id": camera_id,
-            "error": f"API error: {e}",
-        }
+        return EC20PresetRecallResult(
+            success=False,
+            camera_id=camera_id,
+            error=f"API error: {e}",
+        )
 
 
 async def ec20_save_preset(
-    camera_id: str = "default",
-    preset_id: int = 1,
-    name: str = "",
-) -> dict[str, Any]:
+    camera_id: _CameraId = "default",
+    preset_id: _PresetId = 1,
+    name: _PresetName = "",
+) -> EC20PresetSaveResult:
     """Save current EC20 camera position as a preset.
 
     Args:
@@ -305,16 +336,11 @@ async def ec20_save_preset(
         name: Name for the preset
 
     Returns:
-        Dict containing:
-            - success: bool
-            - camera_id: Resolved hostname/IP
-            - preset_id: Preset ID saved
-            - name: Preset name
-            - error: Error message if success=False
+        Saved preset ID, name, and raw command result.
 
     Example:
         >>> result = await ec20_save_preset(preset_id=1, name="Podium")
-        >>> print(result["name"])
+        >>> print(result.name)
         "Podium"
     """
     try:
@@ -323,50 +349,46 @@ async def ec20_save_preset(
         async with client:
             result = await client.save_preset(preset_id=preset_id, name=name)
 
-        return {
-            "success": True,
-            "camera_id": host,
-            "preset_id": preset_id,
-            "name": name,
-            "result": result,
-        }
+        return EC20PresetSaveResult(
+            success=True,
+            camera_id=host,
+            preset_id=preset_id,
+            name=name,
+            result=result,
+        )
 
     except ValueError as e:
-        return {
-            "success": False,
-            "camera_id": camera_id,
-            "error": str(e),
-        }
+        return EC20PresetSaveResult(
+            success=False,
+            camera_id=camera_id,
+            error=str(e),
+        )
     except EC20ConnectionError as e:
-        return {
-            "success": False,
-            "camera_id": camera_id,
-            "error": f"Connection error: {e}",
-        }
+        return EC20PresetSaveResult(
+            success=False,
+            camera_id=camera_id,
+            error=f"Connection error: {e}",
+        )
     except EC20APIError as e:
-        return {
-            "success": False,
-            "camera_id": camera_id,
-            "error": f"API error: {e}",
-        }
+        return EC20PresetSaveResult(
+            success=False,
+            camera_id=camera_id,
+            error=f"API error: {e}",
+        )
 
 
-async def ec20_home(camera_id: str = "default") -> dict[str, Any]:
+async def ec20_home(camera_id: _CameraId = "default") -> EC20OperationResult:
     """Return EC20 camera to home position (pan=0, tilt=0, zoom=1).
 
     Args:
         camera_id: EC20 camera identifier
 
     Returns:
-        Dict containing:
-            - success: bool
-            - camera_id: Resolved hostname/IP
-            - result: Home operation result
-            - error: Error message if success=False
+        Home operation result.
 
     Example:
         >>> result = await ec20_home()
-        >>> print(result["success"])
+        >>> print(result.success)
         True
     """
     try:
@@ -375,36 +397,36 @@ async def ec20_home(camera_id: str = "default") -> dict[str, Any]:
         async with client:
             result = await client.home()
 
-        return {
-            "success": True,
-            "camera_id": host,
-            "result": result,
-        }
+        return EC20OperationResult(
+            success=True,
+            camera_id=host,
+            result=result,
+        )
 
     except ValueError as e:
-        return {
-            "success": False,
-            "camera_id": camera_id,
-            "error": str(e),
-        }
+        return EC20OperationResult(
+            success=False,
+            camera_id=camera_id,
+            error=str(e),
+        )
     except EC20ConnectionError as e:
-        return {
-            "success": False,
-            "camera_id": camera_id,
-            "error": f"Connection error: {e}",
-        }
+        return EC20OperationResult(
+            success=False,
+            camera_id=camera_id,
+            error=f"Connection error: {e}",
+        )
     except EC20APIError as e:
-        return {
-            "success": False,
-            "camera_id": camera_id,
-            "error": f"API error: {e}",
-        }
+        return EC20OperationResult(
+            success=False,
+            camera_id=camera_id,
+            error=f"API error: {e}",
+        )
 
 
 async def ec20_enable_tracking(
-    camera_id: str = "default",
-    mode: str = "presenter",
-) -> dict[str, Any]:
+    camera_id: _CameraId = "default",
+    mode: _TrackingMode = "presenter",
+) -> EC20TrackingResult:
     """Enable AI tracking on EC20 camera.
 
     Args:
@@ -412,16 +434,11 @@ async def ec20_enable_tracking(
         mode: Tracking mode - "presenter", "zone", or "body"
 
     Returns:
-        Dict containing:
-            - success: bool
-            - camera_id: Resolved hostname/IP
-            - mode: Tracking mode enabled
-            - result: Tracking operation result
-            - error: Error message if success=False
+        Enabled tracking mode and raw command result.
 
     Example:
         >>> result = await ec20_enable_tracking(mode="presenter")
-        >>> print(result["mode"])
+        >>> print(result.mode)
         "presenter"
     """
     try:
@@ -430,49 +447,45 @@ async def ec20_enable_tracking(
         async with client:
             result = await client.enable_tracking(mode=mode)
 
-        return {
-            "success": True,
-            "camera_id": host,
-            "mode": mode,
-            "result": result,
-        }
+        return EC20TrackingResult(
+            success=True,
+            camera_id=host,
+            mode=mode,
+            result=result,
+        )
 
     except ValueError as e:
-        return {
-            "success": False,
-            "camera_id": camera_id,
-            "error": str(e),
-        }
+        return EC20TrackingResult(
+            success=False,
+            camera_id=camera_id,
+            error=str(e),
+        )
     except EC20ConnectionError as e:
-        return {
-            "success": False,
-            "camera_id": camera_id,
-            "error": f"Connection error: {e}",
-        }
+        return EC20TrackingResult(
+            success=False,
+            camera_id=camera_id,
+            error=f"Connection error: {e}",
+        )
     except EC20APIError as e:
-        return {
-            "success": False,
-            "camera_id": camera_id,
-            "error": f"API error: {e}",
-        }
+        return EC20TrackingResult(
+            success=False,
+            camera_id=camera_id,
+            error=f"API error: {e}",
+        )
 
 
-async def ec20_disable_tracking(camera_id: str = "default") -> dict[str, Any]:
+async def ec20_disable_tracking(camera_id: _CameraId = "default") -> EC20OperationResult:
     """Disable AI tracking on EC20 camera.
 
     Args:
         camera_id: EC20 camera identifier
 
     Returns:
-        Dict containing:
-            - success: bool
-            - camera_id: Resolved hostname/IP
-            - result: Tracking disabled result
-            - error: Error message if success=False
+        Tracking disabled result.
 
     Example:
         >>> result = await ec20_disable_tracking()
-        >>> print(result["success"])
+        >>> print(result.success)
         True
     """
     try:
@@ -481,48 +494,44 @@ async def ec20_disable_tracking(camera_id: str = "default") -> dict[str, Any]:
         async with client:
             result = await client.disable_tracking()
 
-        return {
-            "success": True,
-            "camera_id": host,
-            "result": result,
-        }
+        return EC20OperationResult(
+            success=True,
+            camera_id=host,
+            result=result,
+        )
 
     except ValueError as e:
-        return {
-            "success": False,
-            "camera_id": camera_id,
-            "error": str(e),
-        }
+        return EC20OperationResult(
+            success=False,
+            camera_id=camera_id,
+            error=str(e),
+        )
     except EC20ConnectionError as e:
-        return {
-            "success": False,
-            "camera_id": camera_id,
-            "error": f"Connection error: {e}",
-        }
+        return EC20OperationResult(
+            success=False,
+            camera_id=camera_id,
+            error=f"Connection error: {e}",
+        )
     except EC20APIError as e:
-        return {
-            "success": False,
-            "camera_id": camera_id,
-            "error": f"API error: {e}",
-        }
+        return EC20OperationResult(
+            success=False,
+            camera_id=camera_id,
+            error=f"API error: {e}",
+        )
 
 
-async def ec20_list_presets(camera_id: str = "default") -> dict[str, Any]:
+async def ec20_list_presets(camera_id: _CameraId = "default") -> EC20PresetListResult:
     """List all saved presets on EC20 camera.
 
     Args:
         camera_id: EC20 camera identifier
 
     Returns:
-        Dict containing:
-            - success: bool
-            - camera_id: Resolved hostname/IP
-            - presets: List of preset dicts with id, name, pan, tilt, zoom
-            - error: Error message if success=False
+        List of presets with id, name, pan, tilt, zoom.
 
     Example:
         >>> result = await ec20_list_presets()
-        >>> for preset in result["presets"]:
+        >>> for preset in result.presets:
         ...     print(f"{preset['id']}: {preset['name']}")
         1: Podium
         2: Whiteboard
@@ -533,50 +542,45 @@ async def ec20_list_presets(camera_id: str = "default") -> dict[str, Any]:
         async with client:
             presets = await client.get_presets()
 
-        return {
-            "success": True,
-            "camera_id": host,
-            "presets": presets,
-        }
+        return EC20PresetListResult(
+            success=True,
+            camera_id=host,
+            presets=presets,
+        )
 
     except ValueError as e:
-        return {
-            "success": False,
-            "camera_id": camera_id,
-            "error": str(e),
-        }
+        return EC20PresetListResult(
+            success=False,
+            camera_id=camera_id,
+            error=str(e),
+        )
     except EC20ConnectionError as e:
-        return {
-            "success": False,
-            "camera_id": camera_id,
-            "error": f"Connection error: {e}",
-        }
+        return EC20PresetListResult(
+            success=False,
+            camera_id=camera_id,
+            error=f"Connection error: {e}",
+        )
     except EC20APIError as e:
-        return {
-            "success": False,
-            "camera_id": camera_id,
-            "error": f"API error: {e}",
-        }
+        return EC20PresetListResult(
+            success=False,
+            camera_id=camera_id,
+            error=f"API error: {e}",
+        )
 
 
-async def ec20_get_preview(camera_id: str = "default") -> dict[str, Any]:
+async def ec20_get_preview(camera_id: _CameraId = "default") -> EC20PreviewResult:
     """Get preview image from EC20 camera.
 
     Args:
         camera_id: EC20 camera identifier
 
     Returns:
-        Dict containing:
-            - success: bool
-            - camera_id: Resolved hostname/IP
-            - image_base64: Base64-encoded JPEG image
-            - content_type: "image/jpeg"
-            - error: Error message if success=False
+        Base64-encoded JPEG preview image.
 
     Example:
         >>> result = await ec20_get_preview()
         >>> import base64
-        >>> image_bytes = base64.b64decode(result["image_base64"])
+        >>> image_bytes = base64.b64decode(result.image_base64)
     """
     try:
         client, host = _get_ec20_client(camera_id)
@@ -584,31 +588,31 @@ async def ec20_get_preview(camera_id: str = "default") -> dict[str, Any]:
         async with client:
             image_bytes = await client.get_preview()
 
-        return {
-            "success": True,
-            "camera_id": host,
-            "image_base64": base64.b64encode(image_bytes).decode("utf-8"),
-            "content_type": "image/jpeg",
-        }
+        return EC20PreviewResult(
+            success=True,
+            camera_id=host,
+            image_base64=base64.b64encode(image_bytes).decode("utf-8"),
+            content_type="image/jpeg",
+        )
 
     except ValueError as e:
-        return {
-            "success": False,
-            "camera_id": camera_id,
-            "error": str(e),
-        }
+        return EC20PreviewResult(
+            success=False,
+            camera_id=camera_id,
+            error=str(e),
+        )
     except EC20ConnectionError as e:
-        return {
-            "success": False,
-            "camera_id": camera_id,
-            "error": f"Connection error: {e}",
-        }
+        return EC20PreviewResult(
+            success=False,
+            camera_id=camera_id,
+            error=f"Connection error: {e}",
+        )
     except EC20APIError as e:
-        return {
-            "success": False,
-            "camera_id": camera_id,
-            "error": f"API error: {e}",
-        }
+        return EC20PreviewResult(
+            success=False,
+            camera_id=camera_id,
+            error=f"API error: {e}",
+        )
 
 
 def register(server: FastMCP) -> None:

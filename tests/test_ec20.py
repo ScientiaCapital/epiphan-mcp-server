@@ -544,8 +544,8 @@ class TestEC20MCPTools:
 
             result = await ec20_get_status(camera_id="192.168.1.100")
 
-            assert result["success"] is True
-            assert result["camera"]["model"] == "EC20"
+            assert result.success is True
+            assert result.camera["model"] == "EC20"
 
     @pytest.mark.asyncio
     async def test_ec20_pan_tilt_tool(self):
@@ -563,7 +563,7 @@ class TestEC20MCPTools:
 
             result = await ec20_pan_tilt(camera_id="192.168.1.100", pan=30.0, tilt=-10.0)
 
-            assert result["success"] is True
+            assert result.success is True
 
     @pytest.mark.asyncio
     async def test_ec20_zoom_tool(self):
@@ -579,7 +579,7 @@ class TestEC20MCPTools:
 
             result = await ec20_zoom(camera_id="192.168.1.100", level=10)
 
-            assert result["success"] is True
+            assert result.success is True
             mock_instance.zoom.assert_called_with(level=10)
 
     @pytest.mark.asyncio
@@ -596,7 +596,7 @@ class TestEC20MCPTools:
 
             result = await ec20_goto_preset(camera_id="192.168.1.100", preset_id=1)
 
-            assert result["success"] is True
+            assert result.success is True
             mock_instance.goto_preset.assert_called_with(preset_id=1)
 
     @pytest.mark.asyncio
@@ -615,7 +615,7 @@ class TestEC20MCPTools:
 
             result = await ec20_home(camera_id="192.168.1.100")
 
-            assert result["success"] is True
+            assert result.success is True
 
     @pytest.mark.asyncio
     async def test_ec20_enable_tracking_tool(self):
@@ -633,7 +633,7 @@ class TestEC20MCPTools:
 
             result = await ec20_enable_tracking(camera_id="192.168.1.100", mode="presenter")
 
-            assert result["success"] is True
+            assert result.success is True
             mock_instance.enable_tracking.assert_called_with(mode="presenter")
 
     @pytest.mark.asyncio
@@ -652,7 +652,7 @@ class TestEC20MCPTools:
 
             result = await ec20_disable_tracking(camera_id="192.168.1.100")
 
-            assert result["success"] is True
+            assert result.success is True
 
     @pytest.mark.asyncio
     async def test_ec20_list_presets_tool(self):
@@ -673,8 +673,8 @@ class TestEC20MCPTools:
 
             result = await ec20_list_presets(camera_id="192.168.1.100")
 
-            assert result["success"] is True
-            assert len(result["presets"]) == 2
+            assert result.success is True
+            assert len(result.presets) == 2
 
     @pytest.mark.asyncio
     async def test_ec20_save_preset_tool(self):
@@ -692,5 +692,5 @@ class TestEC20MCPTools:
 
             result = await ec20_save_preset(camera_id="192.168.1.100", preset_id=5, name="New View")
 
-            assert result["success"] is True
+            assert result.success is True
             mock_instance.save_preset.assert_called_with(preset_id=5, name="New View")

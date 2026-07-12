@@ -2022,3 +2022,75 @@ class KalturaUploadStatusResult(BaseModel):
     uploaded_bytes: int | None = Field(default=None, description="Bytes uploaded so far")
     details: dict[str, Any] | None = Field(default=None, description="Full raw upload status.")
     error: str | None = Field(default=None, description="Error message on failure.")
+
+
+# ============================================================
+# YuJa Integration Tool Response Models
+# ============================================================
+#
+# Born typed (2026-07-12) — same integration convention as the other CMS
+# modules: list/get/upload tools carry no ``success`` key; error paths
+# return a bare ``error``. Only the destructive delete carries ``success``.
+
+
+class YuJaVideoListResult(BaseModel):
+    """Return type of ``list_yuja_videos``."""
+
+    videos: list[dict[str, Any]] = Field(
+        default_factory=list, description="Videos, each with id, title, and status."
+    )
+    count: int | None = Field(default=None, description="Number of videos returned")
+    search_query: str | None = Field(default=None, description="Search filter applied, if any")
+    error: str | None = Field(default=None, description="Error message on failure.")
+
+
+class YuJaVideoResult(BaseModel):
+    """Return type of ``get_yuja_video``."""
+
+    video: dict[str, Any] | None = Field(
+        default=None, description="Video detail including metadata entries."
+    )
+    error: str | None = Field(default=None, description="Error message on failure.")
+
+
+class YuJaChannelListResult(BaseModel):
+    """Return type of ``list_yuja_channels``."""
+
+    channels: list[dict[str, Any]] = Field(
+        default_factory=list, description="Media channels, each with id and name."
+    )
+    count: int | None = Field(default=None, description="Number of channels returned")
+    error: str | None = Field(default=None, description="Error message on failure.")
+
+
+class YuJaUploadResult(BaseModel):
+    """Return type of ``upload_video_to_yuja``."""
+
+    upload: dict[str, Any] | None = Field(
+        default=None, description="Final upload session status from YuJa."
+    )
+    message: str | None = Field(default=None, description="Human-readable confirmation message")
+    file_size: int | None = Field(default=None, description="Uploaded file size in bytes")
+    error: str | None = Field(default=None, description="Error message on failure.")
+
+
+class YuJaUploadStatusResult(BaseModel):
+    """Return type of ``get_yuja_upload_status``."""
+
+    session_id: str | None = Field(default=None, description="Upload session ID queried")
+    status: str | None = Field(default=None, description="Upload/processing state")
+    details: dict[str, Any] | None = Field(
+        default=None, description="Full raw upload session status."
+    )
+    error: str | None = Field(default=None, description="Error message on failure.")
+
+
+class YuJaDeleteResult(BaseModel):
+    """Return type of ``delete_yuja_video``."""
+
+    success: bool | None = Field(
+        default=None, description="True when the video was deleted; null on failure."
+    )
+    message: str | None = Field(default=None, description="Human-readable confirmation message")
+    video_id: str | None = Field(default=None, description="Video the deletion targeted")
+    error: str | None = Field(default=None, description="Error message on failure.")

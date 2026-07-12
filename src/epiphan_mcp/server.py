@@ -29,6 +29,7 @@ from .tools import (
     streaming,
     system,
     youtube,
+    yuja,
 )
 
 logger = logging.getLogger(__name__)
@@ -59,6 +60,7 @@ for _module in [
     opencast,
     qsys,
     youtube,
+    yuja,
     ec20,
     cloud,
 ]:

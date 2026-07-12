@@ -133,6 +133,14 @@ from .youtube import (
     get_youtube_broadcast_status,
     list_youtube_broadcasts,
 )
+from .yuja import (
+    delete_yuja_video,
+    get_yuja_upload_status,
+    get_yuja_video,
+    list_yuja_channels,
+    list_yuja_videos,
+    upload_video_to_yuja,
+)
 
 __all__ = [
     # Device tools
@@ -245,6 +253,13 @@ __all__ = [
     "get_youtube_broadcast_status",
     "list_youtube_broadcasts",
     "end_youtube_broadcast",
+    # YuJa CMS integration tools
+    "list_yuja_videos",
+    "get_yuja_video",
+    "list_yuja_channels",
+    "upload_video_to_yuja",
+    "get_yuja_upload_status",
+    "delete_yuja_video",
     # Epiphan Cloud fleet management tools
     "cloud_get_user",
     "cloud_list_devices",

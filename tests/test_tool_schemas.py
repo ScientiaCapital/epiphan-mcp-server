@@ -395,6 +395,13 @@ _MODEL_MUST_KEEP_FIELDS = {
     "KalturaUploadStatusResult": {
         "upload_token_id", "status", "status_code", "uploaded_bytes", "details", "error",
     },
+    # yuja (born typed 2026-07-12; pins the v1 wire contract going forward)
+    "YuJaVideoListResult": {"videos", "count", "search_query", "error"},
+    "YuJaVideoResult": {"video", "error"},
+    "YuJaChannelListResult": {"channels", "count", "error"},
+    "YuJaUploadResult": {"upload", "message", "file_size", "error"},
+    "YuJaUploadStatusResult": {"session_id", "status", "details", "error"},
+    "YuJaDeleteResult": {"success", "message", "video_id", "error"},
 }
 
 

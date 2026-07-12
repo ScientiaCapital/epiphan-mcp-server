@@ -449,14 +449,14 @@ class TestMCPToolRegistration:
     """Tests for MCP tool registration."""
 
     def test_all_tools_registered(self):
-        """Test that all 118 MCP tools are registered.
+        """Test that all 124 MCP tools are registered.
 
-        58 Pearl core + 2 Discovery + 9 Panopto + 9 Kaltura + 9 Opencast + 5 Q-SYS + 4 YouTube + 10 EC20 + 12 Cloud = 118
+        58 Pearl core + 2 Discovery + 9 Panopto + 9 Kaltura + 9 Opencast + 5 Q-SYS + 4 YouTube + 6 YuJa + 10 EC20 + 12 Cloud = 124
         """
         from epiphan_mcp.server import mcp
 
         tools = list(mcp._tool_manager._tools.keys())
-        assert len(tools) == 118, f"Expected 118 tools, got {len(tools)}: {tools}"
+        assert len(tools) == 124, f"Expected 124 tools, got {len(tools)}: {tools}"
 
     def test_expected_tools_registered(self):
         """Test that all expected tools are registered with MCP."""
@@ -568,6 +568,13 @@ class TestMCPToolRegistration:
             "get_youtube_broadcast_status",
             "list_youtube_broadcasts",
             "end_youtube_broadcast",
+            # YuJa
+            "list_yuja_videos",
+            "get_yuja_video",
+            "list_yuja_channels",
+            "upload_video_to_yuja",
+            "get_yuja_upload_status",
+            "delete_yuja_video",
             # EC20 PTZ camera control tools
             "ec20_get_status",
             "ec20_pan_tilt",
@@ -606,9 +613,9 @@ class TestMCPToolRegistration:
             assert expected in tools, f"Missing tool: {expected}"
 
     def test_tool_count_unchanged(self):
-        """Test that the tool count is exactly 118.
+        """Test that the tool count is exactly 124.
 
-        58 Pearl core + 2 Discovery + 9 Panopto + 9 Kaltura + 9 Opencast + 5 Q-SYS + 4 YouTube + 10 EC20 + 12 Cloud = 118
+        58 Pearl core + 2 Discovery + 9 Panopto + 9 Kaltura + 9 Opencast + 5 Q-SYS + 4 YouTube + 6 YuJa + 10 EC20 + 12 Cloud = 124
         """
         from epiphan_mcp.server import mcp
 
@@ -711,6 +718,13 @@ class TestMCPToolRegistration:
             "get_youtube_broadcast_status",
             "list_youtube_broadcasts",
             "end_youtube_broadcast",
+            # YuJa
+            "list_yuja_videos",
+            "get_yuja_video",
+            "list_yuja_channels",
+            "upload_video_to_yuja",
+            "get_yuja_upload_status",
+            "delete_yuja_video",
             # EC20 PTZ camera control tools
             "ec20_get_status",
             "ec20_pan_tilt",
@@ -745,7 +759,7 @@ class TestMCPToolRegistration:
         ]
 
         tools = list(mcp._tool_manager._tools.keys())
-        # Total: 58 Pearl + 2 Discovery + 9 Panopto + 9 Kaltura + 9 Opencast + 5 Q-SYS + 4 YouTube + 10 EC20 + 12 Cloud = 118
+        # Total: 58 Pearl + 2 Discovery + 9 Panopto + 9 Kaltura + 9 Opencast + 5 Q-SYS + 4 YouTube + 6 YuJa + 10 EC20 + 12 Cloud = 124
         assert len(tools) == len(expected_tools), (
             f"Tool count mismatch: expected {len(expected_tools)}, got {len(tools)}"
         )

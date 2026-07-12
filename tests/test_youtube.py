@@ -486,8 +486,8 @@ class TestMCPTools:
                 title="Test",
                 scheduled_start="2024-01-15T10:00:00Z",
             )
-            assert "error" in result
-            assert "YOUTUBE_CLIENT_ID" in result["error"]
+            assert result.error is not None
+            assert "YOUTUBE_CLIENT_ID" in result.error
 
     @pytest.mark.asyncio
     async def test_create_youtube_broadcast_missing_title(self):
@@ -496,7 +496,7 @@ class TestMCPTools:
             title="",
             scheduled_start="2024-01-15T10:00:00Z",
         )
-        assert result == {"error": "title is required"}
+        assert result.error == "title is required"
 
     @pytest.mark.asyncio
     async def test_create_youtube_broadcast_missing_start(self):
@@ -505,7 +505,7 @@ class TestMCPTools:
             title="Test",
             scheduled_start="",
         )
-        assert result == {"error": "scheduled_start is required (ISO 8601 format)"}
+        assert result.error == "scheduled_start is required (ISO 8601 format)"
 
     @respx.mock
     @pytest.mark.asyncio
@@ -539,17 +539,17 @@ class TestMCPTools:
                 scheduled_start="2024-01-15T10:00:00Z",
             )
 
-            assert "error" not in result
-            assert result["broadcast_id"] == "broadcast-123"
-            assert result["stream_id"] == "stream-456"
-            assert result["rtmp_url"] == "rtmp://a.rtmp.youtube.com/live2"
-            assert result["stream_key"] == "xxxx-xxxx-xxxx-xxxx"
+            assert result.error is None
+            assert result.broadcast_id == "broadcast-123"
+            assert result.stream_id == "stream-456"
+            assert result.rtmp_url == "rtmp://a.rtmp.youtube.com/live2"
+            assert result.stream_key == "xxxx-xxxx-xxxx-xxxx"
 
     @pytest.mark.asyncio
     async def test_get_youtube_broadcast_status_missing_id(self):
         """Test tool with missing broadcast ID."""
         result = await get_youtube_broadcast_status("")
-        assert result == {"error": "broadcast_id is required"}
+        assert result.error == "broadcast_id is required"
 
     @respx.mock
     @pytest.mark.asyncio
@@ -577,9 +577,9 @@ class TestMCPTools:
         ):
             result = await get_youtube_broadcast_status("broadcast-123")
 
-            assert "error" not in result
-            assert result["status"]["broadcast_id"] == "broadcast-123"
-            assert result["status"]["broadcast_status"] == "created"
+            assert result.error is None
+            assert result.status["broadcast_id"] == "broadcast-123"
+            assert result.status["broadcast_status"] == "created"
 
     @respx.mock
     @pytest.mark.asyncio
@@ -602,16 +602,16 @@ class TestMCPTools:
         ):
             result = await list_youtube_broadcasts(status_filter="upcoming")
 
-            assert "error" not in result
-            assert result["count"] == 1
-            assert result["broadcasts"][0]["id"] == "broadcast-123"
-            assert result["filter"] == "upcoming"
+            assert result.error is None
+            assert result.count == 1
+            assert result.broadcasts[0]["id"] == "broadcast-123"
+            assert result.filter == "upcoming"
 
     @pytest.mark.asyncio
     async def test_end_youtube_broadcast_missing_id(self):
         """Test tool with missing broadcast ID."""
         result = await end_youtube_broadcast("")
-        assert result == {"error": "broadcast_id is required"}
+        assert result.error == "broadcast_id is required"
 
     @respx.mock
     @pytest.mark.asyncio
@@ -635,10 +635,10 @@ class TestMCPTools:
         ):
             result = await end_youtube_broadcast("broadcast-123")
 
-            assert "error" not in result
-            assert result["success"] is True
-            assert result["broadcast_id"] == "broadcast-123"
-            assert result["new_status"] == "complete"
+            assert result.error is None
+            assert result.success is True
+            assert result.broadcast_id == "broadcast-123"
+            assert result.new_status == "complete"
 
 
 # =============================================================================

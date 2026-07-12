@@ -47,7 +47,6 @@ NOT_YET_CONVERTED = {
     "panopto",
     "publishers",
     "schedule",
-    "youtube",
 }
 
 # Fetched once at collection time; get_tools() is async but self-contained.
@@ -299,6 +298,14 @@ _MODEL_MUST_KEEP_FIELDS = {
     "QSysControlResult": {
         "success", "message", "component", "layout_id", "qsys_host", "result", "error",
     },
+    # youtube (integration convention: create/status/list carry no `success` key)
+    "YouTubeBroadcastResult": {
+        "broadcast_id", "stream_id", "title", "scheduled_start", "privacy", "rtmp_url",
+        "stream_key", "full_rtmp_url", "message", "pearl_config_hint", "error",
+    },
+    "YouTubeBroadcastStatusResult": {"status", "error"},
+    "YouTubeBroadcastListResult": {"broadcasts", "count", "filter", "error"},
+    "YouTubeBroadcastEndResult": {"success", "broadcast_id", "new_status", "message", "error"},
 }
 
 

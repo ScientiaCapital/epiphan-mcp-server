@@ -1202,3 +1202,69 @@ class QSysControlResult(BaseModel):
         default=None, description="Raw Q-SYS RPC result payload."
     )
     error: str | None = Field(default=None, description="Error message on failure.")
+
+
+# ============================================================
+# YouTube Live Integration Tool Response Models
+# ============================================================
+#
+# Like the other integration tools, the create/status/list tools carry no
+# ``success`` key on their success path; errors return a bare ``error``.
+
+
+class YouTubeBroadcastResult(BaseModel):
+    """Return type of ``create_youtube_broadcast``."""
+
+    broadcast_id: str | None = Field(default=None, description="YouTube broadcast ID")
+    stream_id: str | None = Field(default=None, description="YouTube stream ID")
+    title: str | None = Field(default=None, description="Broadcast title")
+    scheduled_start: str | None = Field(
+        default=None, description="Scheduled start (ISO 8601)"
+    )
+    privacy: str | None = Field(default=None, description="Privacy: public, unlisted, or private")
+    rtmp_url: str | None = Field(default=None, description="RTMP server URL for Pearl publisher")
+    stream_key: str | None = Field(default=None, description="RTMP stream key")
+    full_rtmp_url: str | None = Field(
+        default=None, description="Complete RTMP URL (rtmp_url/stream_key)"
+    )
+    message: str | None = Field(default=None, description="Human-readable confirmation message")
+    pearl_config_hint: dict[str, Any] | None = Field(
+        default=None, description="Suggested Pearl publisher settings (publisher_type, url, note)."
+    )
+    error: str | None = Field(default=None, description="Error message on failure.")
+
+
+class YouTubeBroadcastStatusResult(BaseModel):
+    """Return type of ``get_youtube_broadcast_status``."""
+
+    status: dict[str, Any] | None = Field(
+        default=None,
+        description="Broadcast + stream status (broadcast_id, lifecycle status, health).",
+    )
+    error: str | None = Field(default=None, description="Error message on failure.")
+
+
+class YouTubeBroadcastListResult(BaseModel):
+    """Return type of ``list_youtube_broadcasts``."""
+
+    broadcasts: list[dict[str, Any]] = Field(
+        default_factory=list,
+        description="Broadcasts, each with id, title, scheduled/actual start, status, privacy.",
+    )
+    count: int | None = Field(default=None, description="Number of broadcasts returned")
+    filter: str | None = Field(
+        default=None, description="Status filter applied ('all' when unfiltered)"
+    )
+    error: str | None = Field(default=None, description="Error message on failure.")
+
+
+class YouTubeBroadcastEndResult(BaseModel):
+    """Return type of ``end_youtube_broadcast``."""
+
+    success: bool | None = Field(default=None, description="Whether the broadcast was ended")
+    broadcast_id: str | None = Field(default=None, description="Broadcast ID that was ended")
+    new_status: str | None = Field(
+        default=None, description="New lifecycle status (e.g. 'complete')"
+    )
+    message: str | None = Field(default=None, description="Human-readable confirmation message")
+    error: str | None = Field(default=None, description="Error message on failure.")

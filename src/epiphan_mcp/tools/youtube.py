@@ -11,9 +11,10 @@ Environment Variables Required:
 """
 
 import os
-from typing import Any
+from typing import Annotated, Any
 
 from fastmcp import FastMCP
+from pydantic import Field
 
 from epiphan_mcp.integrations.youtube import (
     YouTubeAPIError,
@@ -21,6 +22,38 @@ from epiphan_mcp.integrations.youtube import (
     YouTubeClient,
     YouTubeQuotaError,
 )
+from epiphan_mcp.models import (
+    YouTubeBroadcastEndResult,
+    YouTubeBroadcastListResult,
+    YouTubeBroadcastResult,
+    YouTubeBroadcastStatusResult,
+)
+
+_Title = Annotated[str, Field(description="Broadcast title (visible to viewers).")]
+_ScheduledStart = Annotated[
+    str, Field(description="Start time in ISO 8601 format (e.g. '2024-01-15T10:00:00Z').")
+]
+_Description = Annotated[str, Field(description="Broadcast description.")]
+_Privacy = Annotated[
+    str, Field(description="Privacy status: 'public', 'unlisted' (default), or 'private'.")
+]
+_Resolution = Annotated[
+    str, Field(description="Video resolution: '720p', '1080p' (default), '1440p', or '2160p'.")
+]
+_FrameRate = Annotated[str, Field(description="Frame rate: '30fps' (default) or '60fps'.")]
+_BroadcastId = Annotated[str, Field(description="The YouTube broadcast ID.")]
+_StatusFilter = Annotated[
+    str,
+    Field(
+        description=(
+            "Filter by status: 'active', 'all', 'completed', or 'upcoming' "
+            "(empty string for all statuses)."
+        )
+    ),
+]
+_ListLimit = Annotated[
+    int, Field(description="Maximum number of results (default 25, max 50).")
+]
 
 
 def _get_youtube_config() -> dict[str, Any]:
@@ -50,13 +83,13 @@ def _get_youtube_config() -> dict[str, Any]:
 
 
 async def create_youtube_broadcast(
-    title: str,
-    scheduled_start: str,
-    description: str = "",
-    privacy: str = "unlisted",
-    resolution: str = "1080p",
-    frame_rate: str = "30fps",
-) -> dict[str, Any]:
+    title: _Title,
+    scheduled_start: _ScheduledStart,
+    description: _Description = "",
+    privacy: _Privacy = "unlisted",
+    resolution: _Resolution = "1080p",
+    frame_rate: _FrameRate = "30fps",
+) -> YouTubeBroadcastResult:
     """Create a YouTube Live broadcast with stream for Pearl integration.
 
     Creates a broadcast, stream, and binds them together. Returns RTMP
@@ -83,14 +116,14 @@ async def create_youtube_broadcast(
         "Set up YouTube streaming for Pearl with 1080p60"
     """
     if not title:
-        return {"error": "title is required"}
+        return YouTubeBroadcastResult(error="title is required")
     if not scheduled_start:
-        return {"error": "scheduled_start is required (ISO 8601 format)"}
+        return YouTubeBroadcastResult(error="scheduled_start is required (ISO 8601 format)")
 
     try:
         config = _get_youtube_config()
     except ValueError as e:
-        return {"error": str(e)}
+        return YouTubeBroadcastResult(error=str(e))
 
     try:
         async with YouTubeClient(**config) as client:
@@ -107,31 +140,36 @@ async def create_youtube_broadcast(
             broadcast = result["broadcast"]
             stream = result["stream"]
 
-            return {
-                "broadcast_id": broadcast["id"],
-                "stream_id": stream["id"],
-                "title": title,
-                "scheduled_start": scheduled_start,
-                "privacy": privacy,
-                "rtmp_url": rtmp_creds["rtmp_url"],
-                "stream_key": rtmp_creds["stream_key"],
-                "full_rtmp_url": rtmp_creds["full_url"],
-                "message": f"Created YouTube broadcast '{title}'. Use RTMP credentials to configure Pearl publisher.",
-                "pearl_config_hint": {
+            return YouTubeBroadcastResult(
+                broadcast_id=broadcast["id"],
+                stream_id=stream["id"],
+                title=title,
+                scheduled_start=scheduled_start,
+                privacy=privacy,
+                rtmp_url=rtmp_creds["rtmp_url"],
+                stream_key=rtmp_creds["stream_key"],
+                full_rtmp_url=rtmp_creds["full_url"],
+                message=(
+                    f"Created YouTube broadcast '{title}'. "
+                    "Use RTMP credentials to configure Pearl publisher."
+                ),
+                pearl_config_hint={
                     "publisher_type": "rtmp",
                     "url": rtmp_creds["full_url"],
                     "note": "Create Pearl publisher with these RTMP settings",
                 },
-            }
+            )
     except YouTubeAuthError as e:
-        return {"error": f"Authentication failed: {e}"}
+        return YouTubeBroadcastResult(error=f"Authentication failed: {e}")
     except YouTubeQuotaError as e:
-        return {"error": f"Quota exceeded: {e}"}
+        return YouTubeBroadcastResult(error=f"Quota exceeded: {e}")
     except YouTubeAPIError as e:
-        return {"error": f"API error: {e}"}
+        return YouTubeBroadcastResult(error=f"API error: {e}")
 
 
-async def get_youtube_broadcast_status(broadcast_id: str) -> dict[str, Any]:
+async def get_youtube_broadcast_status(
+    broadcast_id: _BroadcastId,
+) -> YouTubeBroadcastStatusResult:
     """Get the status of a YouTube Live broadcast.
 
     Returns the current lifecycle status of the broadcast and its
@@ -148,29 +186,29 @@ async def get_youtube_broadcast_status(broadcast_id: str) -> dict[str, Any]:
         "Is the YouTube stream healthy?"
     """
     if not broadcast_id:
-        return {"error": "broadcast_id is required"}
+        return YouTubeBroadcastStatusResult(error="broadcast_id is required")
 
     try:
         config = _get_youtube_config()
     except ValueError as e:
-        return {"error": str(e)}
+        return YouTubeBroadcastStatusResult(error=str(e))
 
     try:
         async with YouTubeClient(**config) as client:
             status = await client.get_broadcast_status(broadcast_id)
-            return {"status": status}
+            return YouTubeBroadcastStatusResult(status=status)
     except YouTubeAuthError as e:
-        return {"error": f"Authentication failed: {e}"}
+        return YouTubeBroadcastStatusResult(error=f"Authentication failed: {e}")
     except YouTubeQuotaError as e:
-        return {"error": f"Quota exceeded: {e}"}
+        return YouTubeBroadcastStatusResult(error=f"Quota exceeded: {e}")
     except YouTubeAPIError as e:
-        return {"error": f"API error: {e}"}
+        return YouTubeBroadcastStatusResult(error=f"API error: {e}")
 
 
 async def list_youtube_broadcasts(
-    status_filter: str = "",
-    limit: int = 25,
-) -> dict[str, Any]:
+    status_filter: _StatusFilter = "",
+    limit: _ListLimit = 25,
+) -> YouTubeBroadcastListResult:
     """List YouTube Live broadcasts for the authenticated account.
 
     Args:
@@ -189,7 +227,7 @@ async def list_youtube_broadcasts(
     try:
         config = _get_youtube_config()
     except ValueError as e:
-        return {"error": str(e), "broadcasts": []}
+        return YouTubeBroadcastListResult(error=str(e), broadcasts=[])
 
     try:
         async with YouTubeClient(**config) as client:
@@ -214,20 +252,20 @@ async def list_youtube_broadcasts(
                     }
                 )
 
-            return {
-                "broadcasts": simplified,
-                "count": len(simplified),
-                "filter": status_filter or "all",
-            }
+            return YouTubeBroadcastListResult(
+                broadcasts=simplified,
+                count=len(simplified),
+                filter=status_filter or "all",
+            )
     except YouTubeAuthError as e:
-        return {"error": f"Authentication failed: {e}", "broadcasts": []}
+        return YouTubeBroadcastListResult(error=f"Authentication failed: {e}", broadcasts=[])
     except YouTubeQuotaError as e:
-        return {"error": f"Quota exceeded: {e}", "broadcasts": []}
+        return YouTubeBroadcastListResult(error=f"Quota exceeded: {e}", broadcasts=[])
     except YouTubeAPIError as e:
-        return {"error": f"API error: {e}", "broadcasts": []}
+        return YouTubeBroadcastListResult(error=f"API error: {e}", broadcasts=[])
 
 
-async def end_youtube_broadcast(broadcast_id: str) -> dict[str, Any]:
+async def end_youtube_broadcast(broadcast_id: _BroadcastId) -> YouTubeBroadcastEndResult:
     """End a YouTube Live broadcast.
 
     Transitions the broadcast to 'complete' status. The broadcast must
@@ -245,12 +283,12 @@ async def end_youtube_broadcast(broadcast_id: str) -> dict[str, Any]:
         "Stop the YouTube Live stream"
     """
     if not broadcast_id:
-        return {"error": "broadcast_id is required"}
+        return YouTubeBroadcastEndResult(error="broadcast_id is required")
 
     try:
         config = _get_youtube_config()
     except ValueError as e:
-        return {"error": str(e)}
+        return YouTubeBroadcastEndResult(error=str(e))
 
     try:
         async with YouTubeClient(**config) as client:
@@ -259,18 +297,18 @@ async def end_youtube_broadcast(broadcast_id: str) -> dict[str, Any]:
                 status="complete",
             )
 
-            return {
-                "success": True,
-                "broadcast_id": broadcast_id,
-                "new_status": result.get("status", {}).get("lifeCycleStatus", "complete"),
-                "message": f"Broadcast {broadcast_id} ended successfully",
-            }
+            return YouTubeBroadcastEndResult(
+                success=True,
+                broadcast_id=broadcast_id,
+                new_status=result.get("status", {}).get("lifeCycleStatus", "complete"),
+                message=f"Broadcast {broadcast_id} ended successfully",
+            )
     except YouTubeAuthError as e:
-        return {"error": f"Authentication failed: {e}"}
+        return YouTubeBroadcastEndResult(error=f"Authentication failed: {e}")
     except YouTubeQuotaError as e:
-        return {"error": f"Quota exceeded: {e}"}
+        return YouTubeBroadcastEndResult(error=f"Quota exceeded: {e}")
     except YouTubeAPIError as e:
-        return {"error": f"API error: {e}"}
+        return YouTubeBroadcastEndResult(error=f"API error: {e}")
 
 
 # Tool registry for MCP server registration

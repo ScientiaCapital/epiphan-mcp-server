@@ -121,25 +121,25 @@ class TestConcurrentOperations:
         """Multiple simultaneous fleet status calls should all complete."""
         settings = create_test_settings(devices="192.168.1.100")
 
-        with patch("epiphan_mcp.tools.fleet.get_settings", return_value=settings):
-            with respx.mock(assert_all_called=False) as router:
-                api_base = "http://192.168.1.100/api/v2.0"
-                router.get(f"{api_base}/device").mock(
-                    return_value=Response(200, json=DEVICE_RESPONSE)
-                )
-                router.get(f"{api_base}/storages").mock(
-                    return_value=Response(200, json=STORAGE_RESPONSE)
-                )
-                router.get(f"{api_base}/recorders/recorder-1/status").mock(
-                    return_value=Response(200, json=RECORDER_STATUS_STOPPED)
-                )
+        with (
+            patch("epiphan_mcp.tools.fleet.get_settings", return_value=settings),
+            respx.mock(assert_all_called=False) as router,
+        ):
+            api_base = "http://192.168.1.100/api/v2.0"
+            router.get(f"{api_base}/device").mock(return_value=Response(200, json=DEVICE_RESPONSE))
+            router.get(f"{api_base}/storages").mock(
+                return_value=Response(200, json=STORAGE_RESPONSE)
+            )
+            router.get(f"{api_base}/recorders/recorder-1/status").mock(
+                return_value=Response(200, json=RECORDER_STATUS_STOPPED)
+            )
 
-                # Launch 3 concurrent fleet status calls
-                results = await asyncio.gather(
-                    get_fleet_status(),
-                    get_fleet_status(),
-                    get_fleet_status(),
-                )
+            # Launch 3 concurrent fleet status calls
+            results = await asyncio.gather(
+                get_fleet_status(),
+                get_fleet_status(),
+                get_fleet_status(),
+            )
 
         for result in results:
             assert result.success is True
@@ -153,31 +153,31 @@ class TestConcurrentOperations:
             await asyncio.sleep(0.3)
             return Response(200, json=DEVICE_RESPONSE)
 
-        with patch("epiphan_mcp.tools.fleet.get_settings", return_value=settings):
-            with respx.mock(assert_all_called=False) as router:
-                # Device 1: slow
-                api_base1 = "http://192.168.1.100/api/v2.0"
-                router.get(f"{api_base1}/device").mock(side_effect=slow_response)
-                router.get(f"{api_base1}/storages").mock(
-                    return_value=Response(200, json=STORAGE_RESPONSE)
-                )
-                router.get(f"{api_base1}/recorders/recorder-1/status").mock(
-                    return_value=Response(200, json=RECORDER_STATUS_STOPPED)
-                )
+        with (
+            patch("epiphan_mcp.tools.fleet.get_settings", return_value=settings),
+            respx.mock(assert_all_called=False) as router,
+        ):
+            # Device 1: slow
+            api_base1 = "http://192.168.1.100/api/v2.0"
+            router.get(f"{api_base1}/device").mock(side_effect=slow_response)
+            router.get(f"{api_base1}/storages").mock(
+                return_value=Response(200, json=STORAGE_RESPONSE)
+            )
+            router.get(f"{api_base1}/recorders/recorder-1/status").mock(
+                return_value=Response(200, json=RECORDER_STATUS_STOPPED)
+            )
 
-                # Device 2: fast
-                api_base2 = "http://192.168.1.101/api/v2.0"
-                router.get(f"{api_base2}/device").mock(
-                    return_value=Response(200, json=DEVICE_RESPONSE)
-                )
-                router.get(f"{api_base2}/storages").mock(
-                    return_value=Response(200, json=STORAGE_RESPONSE)
-                )
-                router.get(f"{api_base2}/recorders/recorder-1/status").mock(
-                    return_value=Response(200, json=RECORDER_STATUS_STOPPED)
-                )
+            # Device 2: fast
+            api_base2 = "http://192.168.1.101/api/v2.0"
+            router.get(f"{api_base2}/device").mock(return_value=Response(200, json=DEVICE_RESPONSE))
+            router.get(f"{api_base2}/storages").mock(
+                return_value=Response(200, json=STORAGE_RESPONSE)
+            )
+            router.get(f"{api_base2}/recorders/recorder-1/status").mock(
+                return_value=Response(200, json=RECORDER_STATUS_STOPPED)
+            )
 
-                result = await get_fleet_status()
+            result = await get_fleet_status()
 
         assert result.success is True
         assert result.total_devices == 2
@@ -214,13 +214,15 @@ class TestTimeoutHandling:
             await asyncio.sleep(10)  # Much longer than timeout
             return Response(200, json=DEVICE_RESPONSE)
 
-        with patch("epiphan_mcp.tools.fleet.get_settings", return_value=settings):
-            with respx.mock(assert_all_called=False) as router:
-                api_base = "http://192.168.1.100/api/v2.0"
-                router.get(f"{api_base}/device").mock(side_effect=timeout_response)
-                router.get(f"{api_base}/storages").mock(side_effect=timeout_response)
+        with (
+            patch("epiphan_mcp.tools.fleet.get_settings", return_value=settings),
+            respx.mock(assert_all_called=False) as router,
+        ):
+            api_base = "http://192.168.1.100/api/v2.0"
+            router.get(f"{api_base}/device").mock(side_effect=timeout_response)
+            router.get(f"{api_base}/storages").mock(side_effect=timeout_response)
 
-                result = await get_fleet_status()
+            result = await get_fleet_status()
 
         assert result.success is True
         assert result.online_devices == 0
@@ -235,14 +237,16 @@ class TestTimeoutHandling:
             await asyncio.sleep(10)
             return Response(200, json=DEVICE_RESPONSE)
 
-        with patch("epiphan_mcp.tools.fleet.get_settings", return_value=settings):
-            with respx.mock(assert_all_called=False) as router:
-                for ip in ["192.168.1.100", "192.168.1.101"]:
-                    api_base = f"http://{ip}/api/v2.0"
-                    router.get(f"{api_base}/device").mock(side_effect=timeout_response)
-                    router.get(f"{api_base}/storages").mock(side_effect=timeout_response)
+        with (
+            patch("epiphan_mcp.tools.fleet.get_settings", return_value=settings),
+            respx.mock(assert_all_called=False) as router,
+        ):
+            for ip in ["192.168.1.100", "192.168.1.101"]:
+                api_base = f"http://{ip}/api/v2.0"
+                router.get(f"{api_base}/device").mock(side_effect=timeout_response)
+                router.get(f"{api_base}/storages").mock(side_effect=timeout_response)
 
-                result = await get_fleet_status()
+            result = await get_fleet_status()
 
         assert result.success is True
         assert result.total_devices == 2
@@ -254,17 +258,15 @@ class TestTimeoutHandling:
         """Connection refused should be handled by fleet operations gracefully."""
         settings = create_test_settings(devices="192.168.1.100")
 
-        with patch("epiphan_mcp.tools.fleet.get_settings", return_value=settings):
-            with respx.mock(assert_all_called=False) as router:
-                api_base = "http://192.168.1.100/api/v2.0"
-                router.get(f"{api_base}/device").mock(
-                    side_effect=ConnectError("Connection refused")
-                )
-                router.get(f"{api_base}/storages").mock(
-                    side_effect=ConnectError("Connection refused")
-                )
+        with (
+            patch("epiphan_mcp.tools.fleet.get_settings", return_value=settings),
+            respx.mock(assert_all_called=False) as router,
+        ):
+            api_base = "http://192.168.1.100/api/v2.0"
+            router.get(f"{api_base}/device").mock(side_effect=ConnectError("Connection refused"))
+            router.get(f"{api_base}/storages").mock(side_effect=ConnectError("Connection refused"))
 
-                result = await get_fleet_status()
+            result = await get_fleet_status()
 
         assert result.success is True
         assert result.online_devices == 0
@@ -288,21 +290,23 @@ class TestMalformedApiResponses:
         """Response missing 'status' field should result in device marked offline."""
         settings = create_test_settings(devices="192.168.1.100")
 
-        with patch("epiphan_mcp.tools.fleet.get_settings", return_value=settings):
-            with respx.mock(assert_all_called=False) as router:
-                api_base = "http://192.168.1.100/api/v2.0"
-                # Response with no 'status' field — client may raise an error
-                router.get(f"{api_base}/device").mock(
-                    return_value=Response(200, json={"result": {"name": "test"}})
-                )
-                router.get(f"{api_base}/storages").mock(
-                    return_value=Response(200, json=STORAGE_RESPONSE)
-                )
-                router.get(f"{api_base}/recorders/recorder-1/status").mock(
-                    return_value=Response(200, json=RECORDER_STATUS_STOPPED)
-                )
+        with (
+            patch("epiphan_mcp.tools.fleet.get_settings", return_value=settings),
+            respx.mock(assert_all_called=False) as router,
+        ):
+            api_base = "http://192.168.1.100/api/v2.0"
+            # Response with no 'status' field — client may raise an error
+            router.get(f"{api_base}/device").mock(
+                return_value=Response(200, json={"result": {"name": "test"}})
+            )
+            router.get(f"{api_base}/storages").mock(
+                return_value=Response(200, json=STORAGE_RESPONSE)
+            )
+            router.get(f"{api_base}/recorders/recorder-1/status").mock(
+                return_value=Response(200, json=RECORDER_STATUS_STOPPED)
+            )
 
-                result = await get_fleet_status()
+            result = await get_fleet_status()
 
         # Fleet status should succeed even if device response is unexpected
         assert result.success is True
@@ -317,26 +321,22 @@ class TestMalformedApiResponses:
         """
         settings = create_test_settings(devices="192.168.1.100")
 
-        with patch("epiphan_mcp.tools.fleet.get_settings", return_value=settings):
-            with respx.mock(assert_all_called=False) as router:
-                api_base = "http://192.168.1.100/api/v2.0"
-                router.get(f"{api_base}/device").mock(
-                    return_value=Response(
-                        500, json={"status": "error", "message": "Internal error"}
-                    )
-                )
-                router.get(f"{api_base}/storages").mock(
-                    return_value=Response(
-                        500, json={"status": "error", "message": "Internal error"}
-                    )
-                )
-                router.get(f"{api_base}/recorders/recorder-1/status").mock(
-                    return_value=Response(
-                        500, json={"status": "error", "message": "Internal error"}
-                    )
-                )
+        with (
+            patch("epiphan_mcp.tools.fleet.get_settings", return_value=settings),
+            respx.mock(assert_all_called=False) as router,
+        ):
+            api_base = "http://192.168.1.100/api/v2.0"
+            router.get(f"{api_base}/device").mock(
+                return_value=Response(500, json={"status": "error", "message": "Internal error"})
+            )
+            router.get(f"{api_base}/storages").mock(
+                return_value=Response(500, json={"status": "error", "message": "Internal error"})
+            )
+            router.get(f"{api_base}/recorders/recorder-1/status").mock(
+                return_value=Response(500, json={"status": "error", "message": "Internal error"})
+            )
 
-                result = await get_fleet_status()
+            result = await get_fleet_status()
 
         assert result.success is True
         assert result.total_devices == 1
@@ -349,20 +349,22 @@ class TestMalformedApiResponses:
         """API 'busy' response should be handled gracefully."""
         settings = create_test_settings(devices="192.168.1.100")
 
-        with patch("epiphan_mcp.tools.fleet.get_settings", return_value=settings):
-            with respx.mock(assert_all_called=False) as router:
-                api_base = "http://192.168.1.100/api/v2.0"
-                router.get(f"{api_base}/device").mock(
-                    return_value=Response(200, json={"status": "busy"})
-                )
-                router.get(f"{api_base}/storages").mock(
-                    return_value=Response(200, json=STORAGE_RESPONSE)
-                )
-                router.get(f"{api_base}/recorders/recorder-1/status").mock(
-                    return_value=Response(200, json=RECORDER_STATUS_STOPPED)
-                )
+        with (
+            patch("epiphan_mcp.tools.fleet.get_settings", return_value=settings),
+            respx.mock(assert_all_called=False) as router,
+        ):
+            api_base = "http://192.168.1.100/api/v2.0"
+            router.get(f"{api_base}/device").mock(
+                return_value=Response(200, json={"status": "busy"})
+            )
+            router.get(f"{api_base}/storages").mock(
+                return_value=Response(200, json=STORAGE_RESPONSE)
+            )
+            router.get(f"{api_base}/recorders/recorder-1/status").mock(
+                return_value=Response(200, json=RECORDER_STATUS_STOPPED)
+            )
 
-                result = await get_fleet_status()
+            result = await get_fleet_status()
 
         assert result.success is True
         assert result.total_devices == 1
@@ -371,23 +373,25 @@ class TestMalformedApiResponses:
         """API explicit error response should be handled gracefully."""
         settings = create_test_settings(devices="192.168.1.100")
 
-        with patch("epiphan_mcp.tools.fleet.get_settings", return_value=settings):
-            with respx.mock(assert_all_called=False) as router:
-                api_base = "http://192.168.1.100/api/v2.0"
-                router.get(f"{api_base}/device").mock(
-                    return_value=Response(
-                        200,
-                        json={"status": "error", "message": "Access denied"},
-                    )
+        with (
+            patch("epiphan_mcp.tools.fleet.get_settings", return_value=settings),
+            respx.mock(assert_all_called=False) as router,
+        ):
+            api_base = "http://192.168.1.100/api/v2.0"
+            router.get(f"{api_base}/device").mock(
+                return_value=Response(
+                    200,
+                    json={"status": "error", "message": "Access denied"},
                 )
-                router.get(f"{api_base}/storages").mock(
-                    return_value=Response(200, json=STORAGE_RESPONSE)
-                )
-                router.get(f"{api_base}/recorders/recorder-1/status").mock(
-                    return_value=Response(200, json=RECORDER_STATUS_STOPPED)
-                )
+            )
+            router.get(f"{api_base}/storages").mock(
+                return_value=Response(200, json=STORAGE_RESPONSE)
+            )
+            router.get(f"{api_base}/recorders/recorder-1/status").mock(
+                return_value=Response(200, json=RECORDER_STATUS_STOPPED)
+            )
 
-                result = await get_fleet_status()
+            result = await get_fleet_status()
 
         assert result.success is True
         assert result.total_devices == 1
@@ -449,23 +453,23 @@ class TestBoundaryValues:
         """Recorder with non-standard ID format should work or fail gracefully."""
         settings = create_test_settings(devices="192.168.1.100")
 
-        with patch("epiphan_mcp.tools.device.get_settings", return_value=settings):
-            with respx.mock(assert_all_called=False) as router:
-                api_base = "http://192.168.1.100/api/v2.0"
-                router.get(f"{api_base}/device").mock(
-                    return_value=Response(200, json=DEVICE_RESPONSE)
+        with (
+            patch("epiphan_mcp.tools.device.get_settings", return_value=settings),
+            respx.mock(assert_all_called=False) as router,
+        ):
+            api_base = "http://192.168.1.100/api/v2.0"
+            router.get(f"{api_base}/device").mock(return_value=Response(200, json=DEVICE_RESPONSE))
+            router.get(f"{api_base}/storages").mock(
+                return_value=Response(200, json=STORAGE_RESPONSE)
+            )
+            router.post(f"{api_base}/recorders/recorder-999/control/start").mock(
+                return_value=Response(
+                    200,
+                    json={"status": "error", "message": "Recorder not found"},
                 )
-                router.get(f"{api_base}/storages").mock(
-                    return_value=Response(200, json=STORAGE_RESPONSE)
-                )
-                router.post(f"{api_base}/recorders/recorder-999/control/start").mock(
-                    return_value=Response(
-                        200,
-                        json={"status": "error", "message": "Recorder not found"},
-                    )
-                )
+            )
 
-                result = await start_recording(device_id="192.168.1.100", recorder="recorder-999")
+            result = await start_recording(device_id="192.168.1.100", recorder="recorder-999")
 
         # Should handle the error from the API gracefully (typed error result)
         assert result.success is False
@@ -475,21 +479,21 @@ class TestBoundaryValues:
         """Numeric device index should resolve to the correct device."""
         settings = create_test_settings(devices="192.168.1.100,192.168.1.101,192.168.1.102")
 
-        with patch("epiphan_mcp.tools.device.get_settings", return_value=settings):
-            with respx.mock(assert_all_called=False) as router:
-                api_base = "http://192.168.1.101/api/v2.0"
-                router.get(f"{api_base}/device").mock(
-                    return_value=Response(200, json=DEVICE_RESPONSE)
-                )
-                router.get(f"{api_base}/storages").mock(
-                    return_value=Response(200, json=STORAGE_RESPONSE)
-                )
-                router.get(f"{api_base}/recorders/recorder-1/status").mock(
-                    return_value=Response(200, json=RECORDER_STATUS_STOPPED)
-                )
+        with (
+            patch("epiphan_mcp.tools.device.get_settings", return_value=settings),
+            respx.mock(assert_all_called=False) as router,
+        ):
+            api_base = "http://192.168.1.101/api/v2.0"
+            router.get(f"{api_base}/device").mock(return_value=Response(200, json=DEVICE_RESPONSE))
+            router.get(f"{api_base}/storages").mock(
+                return_value=Response(200, json=STORAGE_RESPONSE)
+            )
+            router.get(f"{api_base}/recorders/recorder-1/status").mock(
+                return_value=Response(200, json=RECORDER_STATUS_STOPPED)
+            )
 
-                # Index 1 should resolve to 192.168.1.101
-                result = await get_device_status(device_id="1")
+            # Index 1 should resolve to 192.168.1.101
+            result = await get_device_status(device_id="1")
 
         assert result.success is True
 

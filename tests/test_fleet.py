@@ -192,10 +192,7 @@ class TestFleetStatusParallel:
                     return_value=Response(200, json=RECORDER_STATUS_STOPPED)
                 )
 
-                # Use a short timeout to verify the test completes quickly
-                start_time = time.monotonic()
                 result = await get_fleet_status.fn()
-                elapsed = time.monotonic() - start_time
 
         # The operation should complete in reasonable time, not wait for timeout
         # Note: The actual timeout handling depends on implementation

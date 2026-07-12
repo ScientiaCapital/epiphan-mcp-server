@@ -64,9 +64,11 @@ class TestRetryBasicBehavior:
         """All retries fail, raises last exception."""
         operation = AsyncMock(side_effect=httpx.ConnectError("Connection refused"))
 
-        with patch("epiphan_mcp.retry.asyncio.sleep", new_callable=AsyncMock):
-            with pytest.raises(httpx.ConnectError, match="Connection refused"):
-                await with_retry(operation, max_retries=3, base_delay=1.0)
+        with (
+            patch("epiphan_mcp.retry.asyncio.sleep", new_callable=AsyncMock),
+            pytest.raises(httpx.ConnectError, match="Connection refused"),
+        ):
+            await with_retry(operation, max_retries=3, base_delay=1.0)
 
         # Initial attempt + 3 retries = 4 total attempts
         assert operation.call_count == 4
@@ -247,9 +249,11 @@ class TestBusyAPIStatus:
             side_effect=PearlAPIError("Resource busy", status_code=200, api_status="busy")
         )
 
-        with patch("epiphan_mcp.retry.asyncio.sleep", new_callable=AsyncMock):
-            with pytest.raises(PearlAPIError) as exc_info:
-                await with_retry(operation, max_retries=3)
+        with (
+            patch("epiphan_mcp.retry.asyncio.sleep", new_callable=AsyncMock),
+            pytest.raises(PearlAPIError) as exc_info,
+        ):
+            await with_retry(operation, max_retries=3)
 
         assert exc_info.value.api_status == "busy"
         # Initial + 3 retries = 4 attempts
@@ -358,12 +362,14 @@ class TestRetryLogging:
             ]
         )
 
-        with patch("epiphan_mcp.retry.asyncio.sleep", new_callable=AsyncMock):
-            with patch("epiphan_mcp.retry.logger") as mock_logger:
-                await with_retry(operation, max_retries=3, base_delay=1.0)
+        with (
+            patch("epiphan_mcp.retry.asyncio.sleep", new_callable=AsyncMock),
+            patch("epiphan_mcp.retry.logger") as mock_logger,
+        ):
+            await with_retry(operation, max_retries=3, base_delay=1.0)
 
-                # Should log warning on retry
-                assert mock_logger.warning.called
+            # Should log warning on retry
+            assert mock_logger.warning.called
 
 
 # ============================================================

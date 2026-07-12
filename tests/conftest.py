@@ -14,6 +14,22 @@ from epiphan_mcp.client import PearlClient
 from epiphan_mcp.config import Settings
 from epiphan_mcp.tools.fleet import _reset_fleet_semaphore
 
+from .fixtures.responses import (
+    ARCHIVE_FILES_RESPONSE,
+    CHANNELS_RESPONSE,
+    CONTROL_SUCCESS_RESPONSE,
+    DEVICE_RESPONSE,
+    INPUTS_RESPONSE,
+    LAYOUTS_RESPONSE,
+    PUBLISHER_STATUS_STOPPED,
+    PUBLISHER_STATUS_STREAMING,
+    PUBLISHERS_RESPONSE,
+    RECORDER_STATUS_RECORDING,
+    RECORDER_STATUS_STOPPED,
+    RECORDERS_RESPONSE,
+    STORAGE_RESPONSE,
+)
+
 # ============================================================
 # Fleet Semaphore Isolation
 # ============================================================
@@ -101,22 +117,6 @@ def isolated_llm_env(monkeypatch):
     # Clear cache again after test
     get_llm_settings.cache_clear()
 
-
-from .fixtures.responses import (
-    ARCHIVE_FILES_RESPONSE,
-    CHANNELS_RESPONSE,
-    CONTROL_SUCCESS_RESPONSE,
-    DEVICE_RESPONSE,
-    INPUTS_RESPONSE,
-    LAYOUTS_RESPONSE,
-    PUBLISHER_STATUS_STOPPED,
-    PUBLISHER_STATUS_STREAMING,
-    PUBLISHERS_RESPONSE,
-    RECORDER_STATUS_RECORDING,
-    RECORDER_STATUS_STOPPED,
-    RECORDERS_RESPONSE,
-    STORAGE_RESPONSE,
-)
 
 # ============================================================
 # Configuration Fixtures

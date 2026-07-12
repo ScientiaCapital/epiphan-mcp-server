@@ -185,7 +185,7 @@ class TestEC20ClientPTZ:
             mock_client_class.return_value = mock_client
 
             async with EC20Client(host="192.168.1.100") as client:
-                result = await client.pan(degrees=30.0, speed=50)
+                await client.pan(degrees=30.0, speed=50)
 
             # Verify the request was made with correct parameters
             mock_client.post.assert_called_once()
@@ -203,7 +203,7 @@ class TestEC20ClientPTZ:
             mock_client_class.return_value = mock_client
 
             async with EC20Client(host="192.168.1.100") as client:
-                result = await client.tilt(degrees=-15.0, speed=30)
+                await client.tilt(degrees=-15.0, speed=30)
 
             mock_client.post.assert_called_once()
 
@@ -218,7 +218,7 @@ class TestEC20ClientPTZ:
             mock_client_class.return_value = mock_client
 
             async with EC20Client(host="192.168.1.100") as client:
-                result = await client.zoom(level=10)
+                await client.zoom(level=10)
 
             mock_client.post.assert_called_once()
 
@@ -535,12 +535,12 @@ class TestEC20MCPTools:
             "ptz": {"pan": 0, "tilt": 0, "zoom": 1},
         }
 
-        with patch("epiphan_mcp.tools.ec20.EC20Client") as MockClient:
+        with patch("epiphan_mcp.tools.ec20.EC20Client") as mock_client_class:
             mock_instance = AsyncMock()
             mock_instance.get_status = AsyncMock(return_value=mock_status)
             mock_instance.__aenter__ = AsyncMock(return_value=mock_instance)
             mock_instance.__aexit__ = AsyncMock(return_value=None)
-            MockClient.return_value = mock_instance
+            mock_client_class.return_value = mock_instance
 
             result = await ec20_get_status(camera_id="192.168.1.100")
 
@@ -552,15 +552,14 @@ class TestEC20MCPTools:
         """Test ec20_pan_tilt MCP tool."""
         from epiphan_mcp.tools.ec20 import ec20_pan_tilt
 
-        mock_result = {"success": True, "pan": 30.0, "tilt": -10.0}
 
-        with patch("epiphan_mcp.tools.ec20.EC20Client") as MockClient:
+        with patch("epiphan_mcp.tools.ec20.EC20Client") as mock_client_class:
             mock_instance = AsyncMock()
             mock_instance.pan = AsyncMock(return_value={"success": True, "pan": 30.0})
             mock_instance.tilt = AsyncMock(return_value={"success": True, "tilt": -10.0})
             mock_instance.__aenter__ = AsyncMock(return_value=mock_instance)
             mock_instance.__aexit__ = AsyncMock(return_value=None)
-            MockClient.return_value = mock_instance
+            mock_client_class.return_value = mock_instance
 
             result = await ec20_pan_tilt(camera_id="192.168.1.100", pan=30.0, tilt=-10.0)
 
@@ -571,12 +570,12 @@ class TestEC20MCPTools:
         """Test ec20_zoom MCP tool."""
         from epiphan_mcp.tools.ec20 import ec20_zoom
 
-        with patch("epiphan_mcp.tools.ec20.EC20Client") as MockClient:
+        with patch("epiphan_mcp.tools.ec20.EC20Client") as mock_client_class:
             mock_instance = AsyncMock()
             mock_instance.zoom = AsyncMock(return_value={"success": True, "zoom": 10})
             mock_instance.__aenter__ = AsyncMock(return_value=mock_instance)
             mock_instance.__aexit__ = AsyncMock(return_value=None)
-            MockClient.return_value = mock_instance
+            mock_client_class.return_value = mock_instance
 
             result = await ec20_zoom(camera_id="192.168.1.100", level=10)
 
@@ -588,12 +587,12 @@ class TestEC20MCPTools:
         """Test ec20_goto_preset MCP tool."""
         from epiphan_mcp.tools.ec20 import ec20_goto_preset
 
-        with patch("epiphan_mcp.tools.ec20.EC20Client") as MockClient:
+        with patch("epiphan_mcp.tools.ec20.EC20Client") as mock_client_class:
             mock_instance = AsyncMock()
             mock_instance.goto_preset = AsyncMock(return_value={"success": True, "preset_id": 1})
             mock_instance.__aenter__ = AsyncMock(return_value=mock_instance)
             mock_instance.__aexit__ = AsyncMock(return_value=None)
-            MockClient.return_value = mock_instance
+            mock_client_class.return_value = mock_instance
 
             result = await ec20_goto_preset(camera_id="192.168.1.100", preset_id=1)
 
@@ -605,14 +604,14 @@ class TestEC20MCPTools:
         """Test ec20_home MCP tool."""
         from epiphan_mcp.tools.ec20 import ec20_home
 
-        with patch("epiphan_mcp.tools.ec20.EC20Client") as MockClient:
+        with patch("epiphan_mcp.tools.ec20.EC20Client") as mock_client_class:
             mock_instance = AsyncMock()
             mock_instance.home = AsyncMock(
                 return_value={"success": True, "pan": 0, "tilt": 0, "zoom": 1}
             )
             mock_instance.__aenter__ = AsyncMock(return_value=mock_instance)
             mock_instance.__aexit__ = AsyncMock(return_value=None)
-            MockClient.return_value = mock_instance
+            mock_client_class.return_value = mock_instance
 
             result = await ec20_home(camera_id="192.168.1.100")
 
@@ -623,14 +622,14 @@ class TestEC20MCPTools:
         """Test ec20_enable_tracking MCP tool."""
         from epiphan_mcp.tools.ec20 import ec20_enable_tracking
 
-        with patch("epiphan_mcp.tools.ec20.EC20Client") as MockClient:
+        with patch("epiphan_mcp.tools.ec20.EC20Client") as mock_client_class:
             mock_instance = AsyncMock()
             mock_instance.enable_tracking = AsyncMock(
                 return_value={"success": True, "tracking": {"enabled": True, "mode": "presenter"}}
             )
             mock_instance.__aenter__ = AsyncMock(return_value=mock_instance)
             mock_instance.__aexit__ = AsyncMock(return_value=None)
-            MockClient.return_value = mock_instance
+            mock_client_class.return_value = mock_instance
 
             result = await ec20_enable_tracking(camera_id="192.168.1.100", mode="presenter")
 
@@ -642,14 +641,14 @@ class TestEC20MCPTools:
         """Test ec20_disable_tracking MCP tool."""
         from epiphan_mcp.tools.ec20 import ec20_disable_tracking
 
-        with patch("epiphan_mcp.tools.ec20.EC20Client") as MockClient:
+        with patch("epiphan_mcp.tools.ec20.EC20Client") as mock_client_class:
             mock_instance = AsyncMock()
             mock_instance.disable_tracking = AsyncMock(
                 return_value={"success": True, "tracking": {"enabled": False}}
             )
             mock_instance.__aenter__ = AsyncMock(return_value=mock_instance)
             mock_instance.__aexit__ = AsyncMock(return_value=None)
-            MockClient.return_value = mock_instance
+            mock_client_class.return_value = mock_instance
 
             result = await ec20_disable_tracking(camera_id="192.168.1.100")
 
@@ -665,12 +664,12 @@ class TestEC20MCPTools:
             {"id": 2, "name": "Whiteboard"},
         ]
 
-        with patch("epiphan_mcp.tools.ec20.EC20Client") as MockClient:
+        with patch("epiphan_mcp.tools.ec20.EC20Client") as mock_client_class:
             mock_instance = AsyncMock()
             mock_instance.get_presets = AsyncMock(return_value=mock_presets)
             mock_instance.__aenter__ = AsyncMock(return_value=mock_instance)
             mock_instance.__aexit__ = AsyncMock(return_value=None)
-            MockClient.return_value = mock_instance
+            mock_client_class.return_value = mock_instance
 
             result = await ec20_list_presets(camera_id="192.168.1.100")
 
@@ -682,14 +681,14 @@ class TestEC20MCPTools:
         """Test ec20_save_preset MCP tool."""
         from epiphan_mcp.tools.ec20 import ec20_save_preset
 
-        with patch("epiphan_mcp.tools.ec20.EC20Client") as MockClient:
+        with patch("epiphan_mcp.tools.ec20.EC20Client") as mock_client_class:
             mock_instance = AsyncMock()
             mock_instance.save_preset = AsyncMock(
                 return_value={"success": True, "preset_id": 5, "name": "New View"}
             )
             mock_instance.__aenter__ = AsyncMock(return_value=mock_instance)
             mock_instance.__aexit__ = AsyncMock(return_value=None)
-            MockClient.return_value = mock_instance
+            mock_client_class.return_value = mock_instance
 
             result = await ec20_save_preset(camera_id="192.168.1.100", preset_id=5, name="New View")
 

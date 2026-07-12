@@ -712,10 +712,12 @@ class TestQSysToolsConnectionErrors:
         )
         writer = MockStreamWriter()
 
-        with patch.dict(os.environ, {"QSYS_PIN": "wrong"}):
-            with patch("asyncio.open_connection", new_callable=AsyncMock) as mock_connect:
-                mock_connect.return_value = (reader, writer)
+        with (
+            patch.dict(os.environ, {"QSYS_PIN": "wrong"}),
+            patch("asyncio.open_connection", new_callable=AsyncMock) as mock_connect,
+        ):
+            mock_connect.return_value = (reader, writer)
 
-                result = await list_qsys_components()
-                assert result.error is not None
-                assert "Authentication failed" in result.error
+            result = await list_qsys_components()
+            assert result.error is not None
+            assert "Authentication failed" in result.error

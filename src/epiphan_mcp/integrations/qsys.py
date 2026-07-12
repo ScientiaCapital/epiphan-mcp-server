@@ -309,10 +309,7 @@ class QSysClient:
         components: list[dict[str, Any]] = result if isinstance(result, list) else []
 
         if name_filter:
-            components = [
-                c for c in components
-                if name_filter.lower() in c.get("Name", "").lower()
-            ]
+            components = [c for c in components if name_filter.lower() in c.get("Name", "").lower()]
 
         return components
 

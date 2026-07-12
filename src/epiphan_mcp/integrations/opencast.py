@@ -399,6 +399,7 @@ class OpencastClient:
 
         # Opencast expects metadata as JSON string in form data
         import json
+
         data = {
             "metadata": json.dumps(metadata),
             "acl": json.dumps([]),  # Default ACL

@@ -314,9 +314,7 @@ class PanoptoClient:
             List of session objects
         """
         params = {"sortField": sort_field, "sortOrder": sort_order}
-        result = await self._request(
-            "GET", f"/folders/{folder_id}/sessions", params=params
-        )
+        result = await self._request("GET", f"/folders/{folder_id}/sessions", params=params)
         sessions: list[dict[str, Any]] = result.get("Results", [])
         return sessions
 
@@ -594,9 +592,7 @@ class PanoptoClient:
                         logger.info(f"Processing complete for {upload_id}")
                         return status
                     elif state == 5:
-                        raise PanoptoAPIError(
-                            f"Processing failed for {upload_id}: {status}"
-                        )
+                        raise PanoptoAPIError(f"Processing failed for {upload_id}: {status}")
 
                     await asyncio.sleep(poll_interval)
                     elapsed += poll_interval
@@ -624,9 +620,7 @@ class PanoptoClient:
         Returns:
             List of matching users
         """
-        result = await self._request(
-            "GET", "/users/search", params={"searchQuery": search_query}
-        )
+        result = await self._request("GET", "/users/search", params={"searchQuery": search_query})
         users: list[dict[str, Any]] = result.get("Results", [])
         return users
 

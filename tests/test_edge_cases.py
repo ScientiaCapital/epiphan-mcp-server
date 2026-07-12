@@ -231,9 +231,7 @@ class TestTimeoutHandling:
 
     async def test_fleet_all_devices_timeout(self):
         """All devices timing out should return graceful error for each."""
-        settings = create_test_settings(
-            devices="192.168.1.100,192.168.1.101", timeout=0.5
-        )
+        settings = create_test_settings(devices="192.168.1.100,192.168.1.101", timeout=0.5)
 
         async def timeout_response(*args, **kwargs):
             await asyncio.sleep(10)
@@ -243,12 +241,8 @@ class TestTimeoutHandling:
             with respx.mock(assert_all_called=False) as router:
                 for ip in ["192.168.1.100", "192.168.1.101"]:
                     api_base = f"http://{ip}/api/v2.0"
-                    router.get(f"{api_base}/device").mock(
-                        side_effect=timeout_response
-                    )
-                    router.get(f"{api_base}/storages").mock(
-                        side_effect=timeout_response
-                    )
+                    router.get(f"{api_base}/device").mock(side_effect=timeout_response)
+                    router.get(f"{api_base}/storages").mock(side_effect=timeout_response)
 
                 result = await get_fleet_status()
 
@@ -329,13 +323,19 @@ class TestMalformedApiResponses:
             with respx.mock(assert_all_called=False) as router:
                 api_base = "http://192.168.1.100/api/v2.0"
                 router.get(f"{api_base}/device").mock(
-                    return_value=Response(500, json={"status": "error", "message": "Internal error"})
+                    return_value=Response(
+                        500, json={"status": "error", "message": "Internal error"}
+                    )
                 )
                 router.get(f"{api_base}/storages").mock(
-                    return_value=Response(500, json={"status": "error", "message": "Internal error"})
+                    return_value=Response(
+                        500, json={"status": "error", "message": "Internal error"}
+                    )
                 )
                 router.get(f"{api_base}/recorders/recorder-1/status").mock(
-                    return_value=Response(500, json={"status": "error", "message": "Internal error"})
+                    return_value=Response(
+                        500, json={"status": "error", "message": "Internal error"}
+                    )
                 )
 
                 result = await get_fleet_status()
@@ -460,18 +460,14 @@ class TestBoundaryValues:
                 router.get(f"{api_base}/storages").mock(
                     return_value=Response(200, json=STORAGE_RESPONSE)
                 )
-                router.post(
-                    f"{api_base}/recorders/recorder-999/control/start"
-                ).mock(
+                router.post(f"{api_base}/recorders/recorder-999/control/start").mock(
                     return_value=Response(
                         200,
                         json={"status": "error", "message": "Recorder not found"},
                     )
                 )
 
-                result = await start_recording(
-                    device_id="192.168.1.100", recorder="recorder-999"
-                )
+                result = await start_recording(device_id="192.168.1.100", recorder="recorder-999")
 
         # Should handle the error from the API gracefully (typed error result)
         assert result.success is False
@@ -479,9 +475,7 @@ class TestBoundaryValues:
 
     async def test_device_id_numeric_index(self):
         """Numeric device index should resolve to the correct device."""
-        settings = create_test_settings(
-            devices="192.168.1.100,192.168.1.101,192.168.1.102"
-        )
+        settings = create_test_settings(devices="192.168.1.100,192.168.1.101,192.168.1.102")
 
         with patch("epiphan_mcp.tools.device.get_settings", return_value=settings):
             with respx.mock(assert_all_called=False) as router:

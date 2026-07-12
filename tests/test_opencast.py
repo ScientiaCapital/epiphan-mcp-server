@@ -149,9 +149,7 @@ class TestOpencastClientAuth:
     @respx.mock
     async def test_authentication_invalid_credentials(self):
         """Test authentication with invalid credentials."""
-        respx.get("https://opencast.example.edu/api/info/me").mock(
-            return_value=httpx.Response(401)
-        )
+        respx.get("https://opencast.example.edu/api/info/me").mock(return_value=httpx.Response(401))
 
         with pytest.raises(OpencastAuthError, match="Invalid credentials"):
             async with OpencastClient(
@@ -165,9 +163,7 @@ class TestOpencastClientAuth:
     @respx.mock
     async def test_authentication_insufficient_permissions(self):
         """Test authentication with insufficient permissions."""
-        respx.get("https://opencast.example.edu/api/info/me").mock(
-            return_value=httpx.Response(403)
-        )
+        respx.get("https://opencast.example.edu/api/info/me").mock(return_value=httpx.Response(403))
 
         with pytest.raises(OpencastAuthError, match="Insufficient permissions"):
             async with OpencastClient(
@@ -712,7 +708,9 @@ class TestOpencastTools:
         """Test that missing parameters return errors."""
         from epiphan_mcp.tools.opencast import schedule_opencast_capture
 
-        result = await schedule_opencast_capture("", "2024-01-15T10:00:00", "2024-01-15T11:00:00", "agent")
+        result = await schedule_opencast_capture(
+            "", "2024-01-15T10:00:00", "2024-01-15T11:00:00", "agent"
+        )
         assert "title is required" in result["error"]
 
         result = await schedule_opencast_capture("Title", "", "2024-01-15T11:00:00", "agent")
@@ -721,7 +719,9 @@ class TestOpencastTools:
         result = await schedule_opencast_capture("Title", "2024-01-15T10:00:00", "", "agent")
         assert "end_time is required" in result["error"]
 
-        result = await schedule_opencast_capture("Title", "2024-01-15T10:00:00", "2024-01-15T11:00:00", "")
+        result = await schedule_opencast_capture(
+            "Title", "2024-01-15T10:00:00", "2024-01-15T11:00:00", ""
+        )
         assert "capture_agent is required" in result["error"]
 
     @pytest.mark.asyncio
@@ -729,7 +729,9 @@ class TestOpencastTools:
         """Test that invalid datetime returns error."""
         from epiphan_mcp.tools.opencast import schedule_opencast_capture
 
-        result = await schedule_opencast_capture("Title", "not-a-date", "2024-01-15T11:00:00", "agent")
+        result = await schedule_opencast_capture(
+            "Title", "not-a-date", "2024-01-15T11:00:00", "agent"
+        )
         assert "Invalid datetime format" in result["error"]
 
     @pytest.mark.asyncio
@@ -789,9 +791,7 @@ class TestOpencastToolsAuthErrors:
         """Test that auth errors return error dict instead of raising."""
         from epiphan_mcp.tools.opencast import list_opencast_series
 
-        respx.get("https://opencast.example.edu/api/info/me").mock(
-            return_value=httpx.Response(401)
-        )
+        respx.get("https://opencast.example.edu/api/info/me").mock(return_value=httpx.Response(401))
 
         result = await list_opencast_series()
         assert "error" in result

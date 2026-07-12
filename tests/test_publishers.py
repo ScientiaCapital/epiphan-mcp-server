@@ -176,9 +176,7 @@ class TestListPublisherTypes:
 
         mock_client = AsyncMock()
         mock_client.host = "192.168.1.100"
-        mock_client.get_publisher_types = AsyncMock(
-            return_value=["rtmp", "srt", "hls", "rtsp"]
-        )
+        mock_client.get_publisher_types = AsyncMock(return_value=["rtmp", "srt", "hls", "rtsp"])
 
         with patch(
             "epiphan_mcp.tools.publishers.get_client",

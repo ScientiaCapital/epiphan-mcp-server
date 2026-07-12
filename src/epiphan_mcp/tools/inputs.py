@@ -287,9 +287,7 @@ async def set_output_source(
 
     try:
         async with get_client(device_id) as client:
-            channel_id = (
-                f"channel-{source_channel}" if source_channel is not None else None
-            )
+            channel_id = f"channel-{source_channel}" if source_channel is not None else None
             result = await client.set_output_source(output_id, channel_id)
             return result.model_dump()
     except PearlAPIError as e:

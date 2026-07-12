@@ -17,6 +17,7 @@ from urllib.parse import urlparse
 
 class ValidationError(ValueError):
     """Raised when input validation fails."""
+
     pass
 
 

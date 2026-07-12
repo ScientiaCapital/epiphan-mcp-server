@@ -31,9 +31,7 @@ def _get_qsys_config() -> dict[str, Any]:
     host = os.environ.get("QSYS_CORE_IP")
 
     if not host:
-        raise ValueError(
-            "Missing Q-SYS configuration. Set QSYS_CORE_IP environment variable."
-        )
+        raise ValueError("Missing Q-SYS configuration. Set QSYS_CORE_IP environment variable.")
 
     return {
         "host": host,

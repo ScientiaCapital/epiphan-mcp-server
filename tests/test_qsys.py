@@ -149,9 +149,7 @@ class TestQSysClientRPC:
     @pytest.mark.asyncio
     async def test_request_format(self):
         """Test that requests follow JSON-RPC 2.0 format with null terminator."""
-        reader = MockStreamReader([
-            {"jsonrpc": "2.0", "id": 1, "result": {"test": "value"}}
-        ])
+        reader = MockStreamReader([{"jsonrpc": "2.0", "id": 1, "result": {"test": "value"}}])
         writer = MockStreamWriter()
 
         with patch("asyncio.open_connection", new_callable=AsyncMock) as mock_connect:
@@ -182,13 +180,15 @@ class TestQSysClientRPC:
     @pytest.mark.asyncio
     async def test_rpc_error_handling(self):
         """Test that RPC errors raise QSysRPCError."""
-        reader = MockStreamReader([
-            {
-                "jsonrpc": "2.0",
-                "id": 1,
-                "error": {"code": -32600, "message": "Invalid Request"},
-            }
-        ])
+        reader = MockStreamReader(
+            [
+                {
+                    "jsonrpc": "2.0",
+                    "id": 1,
+                    "error": {"code": -32600, "message": "Invalid Request"},
+                }
+            ]
+        )
         writer = MockStreamWriter()
 
         with patch("asyncio.open_connection", new_callable=AsyncMock) as mock_connect:
@@ -211,6 +211,7 @@ class TestQSysClientRPC:
 
         class InfiniteReader:
             """Reader that provides responses on-demand."""
+
             def __init__(self):
                 self._response_id = 0
 
@@ -252,9 +253,7 @@ class TestQSysClientAuth:
     @pytest.mark.asyncio
     async def test_logon_with_pin(self):
         """Test that PIN authentication sends Logon request."""
-        reader = MockStreamReader([
-            {"jsonrpc": "2.0", "id": 1, "result": {"success": True}}
-        ])
+        reader = MockStreamReader([{"jsonrpc": "2.0", "id": 1, "result": {"success": True}}])
         writer = MockStreamWriter()
 
         with patch("asyncio.open_connection", new_callable=AsyncMock) as mock_connect:
@@ -273,13 +272,15 @@ class TestQSysClientAuth:
     @pytest.mark.asyncio
     async def test_logon_failure(self):
         """Test that PIN authentication failure raises QSysAuthError."""
-        reader = MockStreamReader([
-            {
-                "jsonrpc": "2.0",
-                "id": 1,
-                "error": {"code": -32603, "message": "Invalid PIN"},
-            }
-        ])
+        reader = MockStreamReader(
+            [
+                {
+                    "jsonrpc": "2.0",
+                    "id": 1,
+                    "error": {"code": -32603, "message": "Invalid PIN"},
+                }
+            ]
+        )
         writer = MockStreamWriter()
 
         with patch("asyncio.open_connection", new_callable=AsyncMock) as mock_connect:
@@ -301,17 +302,19 @@ class TestQSysClientComponents:
     @pytest.mark.asyncio
     async def test_discover_components(self):
         """Test component discovery."""
-        reader = MockStreamReader([
-            {
-                "jsonrpc": "2.0",
-                "id": 1,
-                "result": [
-                    {"Name": "Pearl_Recorder", "Type": "PearlPlugin"},
-                    {"Name": "Pearl_Layout", "Type": "PearlPlugin"},
-                    {"Name": "Audio_Mixer", "Type": "Mixer"},
-                ],
-            }
-        ])
+        reader = MockStreamReader(
+            [
+                {
+                    "jsonrpc": "2.0",
+                    "id": 1,
+                    "result": [
+                        {"Name": "Pearl_Recorder", "Type": "PearlPlugin"},
+                        {"Name": "Pearl_Layout", "Type": "PearlPlugin"},
+                        {"Name": "Audio_Mixer", "Type": "Mixer"},
+                    ],
+                }
+            ]
+        )
         writer = MockStreamWriter()
 
         with patch("asyncio.open_connection", new_callable=AsyncMock) as mock_connect:
@@ -330,16 +333,18 @@ class TestQSysClientComponents:
     @pytest.mark.asyncio
     async def test_discover_all_components(self):
         """Test discovering all components without filter."""
-        reader = MockStreamReader([
-            {
-                "jsonrpc": "2.0",
-                "id": 1,
-                "result": [
-                    {"Name": "Pearl_Recorder", "Type": "PearlPlugin"},
-                    {"Name": "Audio_Mixer", "Type": "Mixer"},
-                ],
-            }
-        ])
+        reader = MockStreamReader(
+            [
+                {
+                    "jsonrpc": "2.0",
+                    "id": 1,
+                    "result": [
+                        {"Name": "Pearl_Recorder", "Type": "PearlPlugin"},
+                        {"Name": "Audio_Mixer", "Type": "Mixer"},
+                    ],
+                }
+            ]
+        )
         writer = MockStreamWriter()
 
         with patch("asyncio.open_connection", new_callable=AsyncMock) as mock_connect:
@@ -356,19 +361,21 @@ class TestQSysClientComponents:
     @pytest.mark.asyncio
     async def test_get_component(self):
         """Test getting component values."""
-        reader = MockStreamReader([
-            {
-                "jsonrpc": "2.0",
-                "id": 1,
-                "result": {
-                    "Name": "Pearl_Recorder",
-                    "Controls": [
-                        {"Name": "is_recording", "Value": 1},
-                        {"Name": "is_streaming", "Value": 0},
-                    ],
-                },
-            }
-        ])
+        reader = MockStreamReader(
+            [
+                {
+                    "jsonrpc": "2.0",
+                    "id": 1,
+                    "result": {
+                        "Name": "Pearl_Recorder",
+                        "Controls": [
+                            {"Name": "is_recording", "Value": 1},
+                            {"Name": "is_streaming", "Value": 0},
+                        ],
+                    },
+                }
+            ]
+        )
         writer = MockStreamWriter()
 
         with patch("asyncio.open_connection", new_callable=AsyncMock) as mock_connect:
@@ -389,9 +396,7 @@ class TestQSysClientComponents:
     @pytest.mark.asyncio
     async def test_set_component(self):
         """Test setting component values."""
-        reader = MockStreamReader([
-            {"jsonrpc": "2.0", "id": 1, "result": {"success": True}}
-        ])
+        reader = MockStreamReader([{"jsonrpc": "2.0", "id": 1, "result": {"success": True}}])
         writer = MockStreamWriter()
 
         with patch("asyncio.open_connection", new_callable=AsyncMock) as mock_connect:
@@ -422,20 +427,22 @@ class TestQSysClientPearlOps:
     @pytest.mark.asyncio
     async def test_get_pearl_status(self):
         """Test getting Pearl status through Q-SYS."""
-        reader = MockStreamReader([
-            {
-                "jsonrpc": "2.0",
-                "id": 1,
-                "result": {
-                    "Name": "Pearl_Recorder",
-                    "Controls": [
-                        {"Name": "is_recording", "Value": 1},
-                        {"Name": "is_streaming", "Value": 0},
-                        {"Name": "current_layout", "Value": 2, "String": "Picture-in-Picture"},
-                    ],
-                },
-            }
-        ])
+        reader = MockStreamReader(
+            [
+                {
+                    "jsonrpc": "2.0",
+                    "id": 1,
+                    "result": {
+                        "Name": "Pearl_Recorder",
+                        "Controls": [
+                            {"Name": "is_recording", "Value": 1},
+                            {"Name": "is_streaming", "Value": 0},
+                            {"Name": "current_layout", "Value": 2, "String": "Picture-in-Picture"},
+                        ],
+                    },
+                }
+            ]
+        )
         writer = MockStreamWriter()
 
         with patch("asyncio.open_connection", new_callable=AsyncMock) as mock_connect:
@@ -454,9 +461,7 @@ class TestQSysClientPearlOps:
     @pytest.mark.asyncio
     async def test_start_recording(self):
         """Test starting recording through Q-SYS."""
-        reader = MockStreamReader([
-            {"jsonrpc": "2.0", "id": 1, "result": {"success": True}}
-        ])
+        reader = MockStreamReader([{"jsonrpc": "2.0", "id": 1, "result": {"success": True}}])
         writer = MockStreamWriter()
 
         with patch("asyncio.open_connection", new_callable=AsyncMock) as mock_connect:
@@ -476,9 +481,7 @@ class TestQSysClientPearlOps:
     @pytest.mark.asyncio
     async def test_stop_recording(self):
         """Test stopping recording through Q-SYS."""
-        reader = MockStreamReader([
-            {"jsonrpc": "2.0", "id": 1, "result": {"success": True}}
-        ])
+        reader = MockStreamReader([{"jsonrpc": "2.0", "id": 1, "result": {"success": True}}])
         writer = MockStreamWriter()
 
         with patch("asyncio.open_connection", new_callable=AsyncMock) as mock_connect:
@@ -497,9 +500,7 @@ class TestQSysClientPearlOps:
     @pytest.mark.asyncio
     async def test_switch_layout(self):
         """Test switching layout through Q-SYS."""
-        reader = MockStreamReader([
-            {"jsonrpc": "2.0", "id": 1, "result": {"success": True}}
-        ])
+        reader = MockStreamReader([{"jsonrpc": "2.0", "id": 1, "result": {"success": True}}])
         writer = MockStreamWriter()
 
         with patch("asyncio.open_connection", new_callable=AsyncMock) as mock_connect:
@@ -552,15 +553,17 @@ class TestQSysTools:
         """Test successful component listing via MCP tool."""
         from epiphan_mcp.tools.qsys import list_qsys_components
 
-        reader = MockStreamReader([
-            {
-                "jsonrpc": "2.0",
-                "id": 1,
-                "result": [
-                    {"Name": "Pearl_Recorder", "Type": "PearlPlugin"},
-                ],
-            }
-        ])
+        reader = MockStreamReader(
+            [
+                {
+                    "jsonrpc": "2.0",
+                    "id": 1,
+                    "result": [
+                        {"Name": "Pearl_Recorder", "Type": "PearlPlugin"},
+                    ],
+                }
+            ]
+        )
         writer = MockStreamWriter()
 
         with patch("asyncio.open_connection", new_callable=AsyncMock) as mock_connect:
@@ -575,20 +578,22 @@ class TestQSysTools:
         """Test successful Pearl status retrieval via MCP tool."""
         from epiphan_mcp.tools.qsys import qsys_get_pearl_status
 
-        reader = MockStreamReader([
-            {
-                "jsonrpc": "2.0",
-                "id": 1,
-                "result": {
-                    "Name": "Pearl_Recorder",
-                    "Controls": [
-                        {"Name": "is_recording", "Value": 1},
-                        {"Name": "is_streaming", "Value": 0},
-                        {"Name": "current_layout", "Value": 1, "String": "Default"},
-                    ],
-                },
-            }
-        ])
+        reader = MockStreamReader(
+            [
+                {
+                    "jsonrpc": "2.0",
+                    "id": 1,
+                    "result": {
+                        "Name": "Pearl_Recorder",
+                        "Controls": [
+                            {"Name": "is_recording", "Value": 1},
+                            {"Name": "is_streaming", "Value": 0},
+                            {"Name": "current_layout", "Value": 1, "String": "Default"},
+                        ],
+                    },
+                }
+            ]
+        )
         writer = MockStreamWriter()
 
         with patch("asyncio.open_connection", new_callable=AsyncMock) as mock_connect:
@@ -612,9 +617,7 @@ class TestQSysTools:
         """Test successful recording start via MCP tool."""
         from epiphan_mcp.tools.qsys import qsys_start_recording
 
-        reader = MockStreamReader([
-            {"jsonrpc": "2.0", "id": 1, "result": {"success": True}}
-        ])
+        reader = MockStreamReader([{"jsonrpc": "2.0", "id": 1, "result": {"success": True}}])
         writer = MockStreamWriter()
 
         with patch("asyncio.open_connection", new_callable=AsyncMock) as mock_connect:
@@ -629,9 +632,7 @@ class TestQSysTools:
         """Test successful recording stop via MCP tool."""
         from epiphan_mcp.tools.qsys import qsys_stop_recording
 
-        reader = MockStreamReader([
-            {"jsonrpc": "2.0", "id": 1, "result": {"success": True}}
-        ])
+        reader = MockStreamReader([{"jsonrpc": "2.0", "id": 1, "result": {"success": True}}])
         writer = MockStreamWriter()
 
         with patch("asyncio.open_connection", new_callable=AsyncMock) as mock_connect:
@@ -646,9 +647,7 @@ class TestQSysTools:
         """Test successful layout switch via MCP tool."""
         from epiphan_mcp.tools.qsys import qsys_switch_layout
 
-        reader = MockStreamReader([
-            {"jsonrpc": "2.0", "id": 1, "result": {"success": True}}
-        ])
+        reader = MockStreamReader([{"jsonrpc": "2.0", "id": 1, "result": {"success": True}}])
         writer = MockStreamWriter()
 
         with patch("asyncio.open_connection", new_callable=AsyncMock) as mock_connect:
@@ -701,13 +700,15 @@ class TestQSysToolsConnectionErrors:
         """Test that auth errors return error dict instead of raising."""
         from epiphan_mcp.tools.qsys import list_qsys_components
 
-        reader = MockStreamReader([
-            {
-                "jsonrpc": "2.0",
-                "id": 1,
-                "error": {"code": -32603, "message": "Invalid PIN"},
-            }
-        ])
+        reader = MockStreamReader(
+            [
+                {
+                    "jsonrpc": "2.0",
+                    "id": 1,
+                    "error": {"code": -32603, "message": "Invalid PIN"},
+                }
+            ]
+        )
         writer = MockStreamWriter()
 
         with patch.dict(os.environ, {"QSYS_PIN": "wrong"}):

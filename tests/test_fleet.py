@@ -27,9 +27,7 @@ from .fixtures.responses import (
 # ============================================================
 
 
-def create_test_settings(
-    devices: str = "192.168.1.100", fleet_name: str = "test"
-) -> Settings:
+def create_test_settings(devices: str = "192.168.1.100", fleet_name: str = "test") -> Settings:
     """Create settings for testing."""
     return Settings(
         devices=devices,
@@ -158,9 +156,7 @@ class TestFleetStatusParallel:
         assert result.recording_devices == 1
 
         # Verify the failed device is recorded
-        failed_device = next(
-            d for d in result.devices if d["host"] == "192.168.1.101"
-        )
+        failed_device = next(d for d in result.devices if d["host"] == "192.168.1.101")
         assert failed_device["online"] is False
         assert "error" in failed_device
 
@@ -267,17 +263,17 @@ class TestBatchStartParallel:
 
             with respx.mock(assert_all_called=False) as router:
                 # Device 1: Success
-                router.post("http://192.168.1.100/api/v2.0/recorders/recorder-1/control/start").mock(
-                    return_value=Response(200, json=CONTROL_SUCCESS_RESPONSE)
-                )
+                router.post(
+                    "http://192.168.1.100/api/v2.0/recorders/recorder-1/control/start"
+                ).mock(return_value=Response(200, json=CONTROL_SUCCESS_RESPONSE))
                 # Device 2: Failure
-                router.post("http://192.168.1.101/api/v2.0/recorders/recorder-1/control/start").mock(
-                    side_effect=ConnectError("Connection refused")
-                )
+                router.post(
+                    "http://192.168.1.101/api/v2.0/recorders/recorder-1/control/start"
+                ).mock(side_effect=ConnectError("Connection refused"))
                 # Device 3: Success
-                router.post("http://192.168.1.102/api/v2.0/recorders/recorder-1/control/start").mock(
-                    return_value=Response(200, json=CONTROL_SUCCESS_RESPONSE)
-                )
+                router.post(
+                    "http://192.168.1.102/api/v2.0/recorders/recorder-1/control/start"
+                ).mock(return_value=Response(200, json=CONTROL_SUCCESS_RESPONSE))
 
                 result = await batch_start_recording.fn(device_ids="all")
 
@@ -392,12 +388,8 @@ class TestParallelTiming:
             with respx.mock(assert_all_called=False) as router:
                 for i in range(num_devices):
                     api_base = f"http://192.168.1.{100 + i}/api/v2.0"
-                    router.get(f"{api_base}/device").mock(
-                        side_effect=delayed_device_response
-                    )
-                    router.get(f"{api_base}/storages").mock(
-                        side_effect=delayed_storage_response
-                    )
+                    router.get(f"{api_base}/device").mock(side_effect=delayed_device_response)
+                    router.get(f"{api_base}/storages").mock(side_effect=delayed_storage_response)
                     router.get(f"{api_base}/recorders/recorder-1/status").mock(
                         side_effect=delayed_recorder_response
                     )
@@ -575,12 +567,12 @@ class TestFleetHealthScores:
                     "name": "Internal Storage",
                     "type": "internal",
                     "total_bytes": 500000000000,  # 500GB
-                    "used_bytes": 450000000000,   # 90% used
-                    "free_bytes": 50000000000,    # 50GB (10% free)
+                    "used_bytes": 450000000000,  # 90% used
+                    "free_bytes": 50000000000,  # 50GB (10% free)
                     "percent_used": 90.0,
                     "mounted": True,
                 }
-            ]
+            ],
         }
 
         with patch("epiphan_mcp.tools.fleet.get_settings") as mock_settings:
@@ -645,9 +637,7 @@ class TestFleetHealthReport:
         from epiphan_mcp.server import fleet_health_report
 
         with patch("epiphan_mcp.tools.fleet.get_settings") as mock_settings:
-            mock_settings.return_value = create_test_settings(
-                devices="192.168.1.100,192.168.1.101"
-            )
+            mock_settings.return_value = create_test_settings(devices="192.168.1.100,192.168.1.101")
 
             with respx.mock(assert_all_called=False) as router:
                 for i in [100, 101]:
@@ -700,13 +690,11 @@ class TestFleetHealthReport:
                     "percent_used": 90.0,
                     "mounted": True,
                 }
-            ]
+            ],
         }
 
         with patch("epiphan_mcp.tools.fleet.get_settings") as mock_settings:
-            mock_settings.return_value = create_test_settings(
-                devices="192.168.1.100,192.168.1.101"
-            )
+            mock_settings.return_value = create_test_settings(devices="192.168.1.100,192.168.1.101")
 
             with respx.mock(assert_all_called=False) as router:
                 # Device 1: Healthy
@@ -874,9 +862,7 @@ class TestSuggestMaintenanceWindow:
         from epiphan_mcp.server import suggest_maintenance_window
 
         with patch("epiphan_mcp.tools.fleet.get_settings") as mock_settings:
-            mock_settings.return_value = create_test_settings(
-                devices="192.168.1.100,192.168.1.101"
-            )
+            mock_settings.return_value = create_test_settings(devices="192.168.1.100,192.168.1.101")
 
             with respx.mock(assert_all_called=False) as router:
                 for i in [100, 101]:
@@ -931,9 +917,7 @@ class TestPredictFleetIssues:
         from epiphan_mcp.server import predict_fleet_issues
 
         with patch("epiphan_mcp.tools.fleet.get_settings") as mock_settings:
-            mock_settings.return_value = create_test_settings(
-                devices="192.168.1.100,192.168.1.101"
-            )
+            mock_settings.return_value = create_test_settings(devices="192.168.1.100,192.168.1.101")
 
             with respx.mock(assert_all_called=False) as router:
                 for i in [100, 101]:
@@ -972,9 +956,7 @@ class TestPredictFleetIssues:
         from epiphan_mcp.server import predict_fleet_issues
 
         with patch("epiphan_mcp.tools.fleet.get_settings") as mock_settings:
-            mock_settings.return_value = create_test_settings(
-                devices="192.168.1.100,192.168.1.101"
-            )
+            mock_settings.return_value = create_test_settings(devices="192.168.1.100,192.168.1.101")
 
             with respx.mock(assert_all_called=False) as router:
                 # Device 1: Healthy
@@ -1035,9 +1017,7 @@ class TestGenerateShiftHandoff:
         from epiphan_mcp.server import generate_shift_handoff
 
         with patch("epiphan_mcp.tools.fleet.get_settings") as mock_settings:
-            mock_settings.return_value = create_test_settings(
-                devices="192.168.1.100,192.168.1.101"
-            )
+            mock_settings.return_value = create_test_settings(devices="192.168.1.100,192.168.1.101")
 
             with respx.mock(assert_all_called=False) as router:
                 for i in [100, 101]:
@@ -1088,7 +1068,7 @@ class TestGenerateShiftHandoff:
                     "percent_used": 90.0,
                     "mounted": True,
                 }
-            ]
+            ],
         }
 
         with patch("epiphan_mcp.tools.fleet.get_settings") as mock_settings:

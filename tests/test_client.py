@@ -94,10 +94,13 @@ class TestRecorderOperations:
     ):
         """Test getting filtered list of recorders."""
         respx_mock.get(f"{mock_api_base}/recorders").mock(
-            return_value=Response(200, json={
-                "status": "ok",
-                "result": [{"id": "recorder-1", "name": "Recorder 1", "type": "mp4"}]
-            })
+            return_value=Response(
+                200,
+                json={
+                    "status": "ok",
+                    "result": [{"id": "recorder-1", "name": "Recorder 1", "type": "mp4"}],
+                },
+            )
         )
 
         async with pearl_client as client:
@@ -134,9 +137,7 @@ class TestRecorderOperations:
         assert status.file_size_bytes == 1073741824
         assert "recording_2025-01-22" in status.filename
 
-    async def test_get_all_recorder_status(
-        self, pearl_client: PearlClient, mock_recorder_routes
-    ):
+    async def test_get_all_recorder_status(self, pearl_client: PearlClient, mock_recorder_routes):
         """Test getting status for all recorders."""
         async with pearl_client as client:
             statuses = await client.get_all_recorder_status()
@@ -169,9 +170,7 @@ class TestRecorderOperations:
         assert result.success is True
         assert result.details["recorders"] == "all"
 
-    async def test_start_recorders_filtered(
-        self, pearl_client: PearlClient, mock_recorder_routes
-    ):
+    async def test_start_recorders_filtered(self, pearl_client: PearlClient, mock_recorder_routes):
         """Test starting filtered recorders."""
         async with pearl_client as client:
             result = await client.start_all_recorders(ids=["recorder-1"])
@@ -258,9 +257,7 @@ class TestPublisherOperations:
         assert publishers[0]["id"] == "publisher-1"
         assert publishers[0]["type"] == "rtmp"
 
-    async def test_get_publisher_status(
-        self, pearl_client: PearlClient, mock_publisher_routes
-    ):
+    async def test_get_publisher_status(self, pearl_client: PearlClient, mock_publisher_routes):
         """Test getting publisher status."""
         async with pearl_client as client:
             status = await client.get_publisher_status("channel-1", "publisher-1")
@@ -269,9 +266,7 @@ class TestPublisherOperations:
         assert status.duration_seconds == 1800
         assert status.viewers == 42
 
-    async def test_start_all_publishers(
-        self, pearl_client: PearlClient, mock_publisher_routes
-    ):
+    async def test_start_all_publishers(self, pearl_client: PearlClient, mock_publisher_routes):
         """Test starting all publishers on a channel."""
         async with pearl_client as client:
             result = await client.start_all_publishers("channel-1")
@@ -279,9 +274,7 @@ class TestPublisherOperations:
         assert result.success is True
         assert "started" in result.message.lower()
 
-    async def test_stop_all_publishers(
-        self, pearl_client: PearlClient, mock_publisher_routes
-    ):
+    async def test_stop_all_publishers(self, pearl_client: PearlClient, mock_publisher_routes):
         """Test stopping all publishers on a channel."""
         async with pearl_client as client:
             result = await client.stop_all_publishers("channel-1")
@@ -322,9 +315,7 @@ class TestInputOperations:
         assert inputs[0].connected is True
         assert inputs[0].resolution == "1920x1080"
 
-    async def test_get_inputs_filtered(
-        self, pearl_client: PearlClient, mock_input_routes
-    ):
+    async def test_get_inputs_filtered(self, pearl_client: PearlClient, mock_input_routes):
         """Test getting filtered inputs."""
         async with pearl_client as client:
             inputs = await client.get_inputs(types=["hdmi"])
@@ -386,9 +377,7 @@ class TestSystemOperations:
 class TestSingleTouchOperations:
     """Tests for single touch control operations."""
 
-    async def test_single_touch_start(
-        self, pearl_client: PearlClient, mock_singletouch_routes
-    ):
+    async def test_single_touch_start(self, pearl_client: PearlClient, mock_singletouch_routes):
         """Test single touch start (all recorders + streams)."""
         async with pearl_client as client:
             result = await client.single_touch_start()
@@ -396,9 +385,7 @@ class TestSingleTouchOperations:
         assert result.success is True
         assert "started" in result.message.lower()
 
-    async def test_single_touch_stop(
-        self, pearl_client: PearlClient, mock_singletouch_routes
-    ):
+    async def test_single_touch_stop(self, pearl_client: PearlClient, mock_singletouch_routes):
         """Test single touch stop."""
         async with pearl_client as client:
             result = await client.single_touch_stop()
@@ -445,9 +432,7 @@ class TestErrorHandling:
         assert exc_info.value.api_status == "busy"
         assert "busy" in str(exc_info.value).lower()
 
-    async def test_http_401_error(
-        self, pearl_client: PearlClient, mock_api_base: str, respx_mock
-    ):
+    async def test_http_401_error(self, pearl_client: PearlClient, mock_api_base: str, respx_mock):
         """Test handling of 401 Unauthorized."""
         respx_mock.get(f"{mock_api_base}/recorders").mock(
             return_value=Response(401, json={"error": "Unauthorized"})
@@ -459,9 +444,7 @@ class TestErrorHandling:
 
         assert exc_info.value.status_code == 401
 
-    async def test_http_404_error(
-        self, pearl_client: PearlClient, mock_api_base: str, respx_mock
-    ):
+    async def test_http_404_error(self, pearl_client: PearlClient, mock_api_base: str, respx_mock):
         """Test handling of 404 Not Found."""
         respx_mock.get(f"{mock_api_base}/recorders/nonexistent/status").mock(
             return_value=Response(404, json={"error": "Not found"})
@@ -473,9 +456,7 @@ class TestErrorHandling:
 
         assert exc_info.value.status_code == 404
 
-    async def test_http_500_error(
-        self, pearl_client: PearlClient, mock_api_base: str, respx_mock
-    ):
+    async def test_http_500_error(self, pearl_client: PearlClient, mock_api_base: str, respx_mock):
         """Test handling of 500 Internal Server Error on direct API call."""
         respx_mock.get(f"{mock_api_base}/recorders").mock(
             return_value=Response(500, json={"error": "Internal error"})
@@ -594,9 +575,7 @@ class TestBinaryResponses:
 class TestEventOperations:
     """Tests for scheduled event operations."""
 
-    async def test_get_events(
-        self, pearl_client: PearlClient, mock_api_base: str, respx_mock
-    ):
+    async def test_get_events(self, pearl_client: PearlClient, mock_api_base: str, respx_mock):
         """Test getting scheduled events."""
         from .fixtures.responses import EVENTS_RESPONSE
 
@@ -611,9 +590,7 @@ class TestEventOperations:
         assert events[0]["id"] == "event-001"
         assert events[0]["cms_type"] == "kaltura"
 
-    async def test_start_event(
-        self, pearl_client: PearlClient, mock_api_base: str, respx_mock
-    ):
+    async def test_start_event(self, pearl_client: PearlClient, mock_api_base: str, respx_mock):
         """Test force starting an event."""
         respx_mock.post(f"{mock_api_base}/schedule/events/event-001/control/start").mock(
             return_value=Response(200, json=CONTROL_SUCCESS_RESPONSE)
@@ -624,9 +601,7 @@ class TestEventOperations:
 
         assert result.success is True
 
-    async def test_stop_event(
-        self, pearl_client: PearlClient, mock_api_base: str, respx_mock
-    ):
+    async def test_stop_event(self, pearl_client: PearlClient, mock_api_base: str, respx_mock):
         """Test force stopping an event."""
         respx_mock.post(f"{mock_api_base}/schedule/events/event-001/control/stop").mock(
             return_value=Response(200, json=CONTROL_SUCCESS_RESPONSE)
@@ -646,9 +621,7 @@ class TestEventOperations:
 class TestAFUOperations:
     """Tests for Automatic File Upload operations."""
 
-    async def test_get_afu_status(
-        self, pearl_client: PearlClient, mock_api_base: str, respx_mock
-    ):
+    async def test_get_afu_status(self, pearl_client: PearlClient, mock_api_base: str, respx_mock):
         """Test getting AFU status."""
         from .fixtures.responses import AFU_STATUS_RESPONSE
 

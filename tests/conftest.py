@@ -64,6 +64,7 @@ def patch_settings(settings: Settings):
         for p in patches:
             p.stop()
 
+
 # ============================================================
 # Environment Isolation for LLM Tests
 # ============================================================
@@ -93,12 +94,14 @@ def isolated_llm_env(monkeypatch):
 
     # Also clear the lru_cache on get_llm_settings
     from epiphan_mcp.llm.config import get_llm_settings
+
     get_llm_settings.cache_clear()
 
     yield
 
     # Clear cache again after test
     get_llm_settings.cache_clear()
+
 
 from .fixtures.responses import (
     ARCHIVE_FILES_RESPONSE,
@@ -230,9 +233,7 @@ def respx_mock():
 @pytest.fixture
 def mock_device_routes(respx_mock, mock_api_base: str):
     """Set up mock routes for device/system endpoints."""
-    respx_mock.get(f"{mock_api_base}/device").mock(
-        return_value=Response(200, json=DEVICE_RESPONSE)
-    )
+    respx_mock.get(f"{mock_api_base}/device").mock(return_value=Response(200, json=DEVICE_RESPONSE))
     respx_mock.get(f"{mock_api_base}/storages").mock(
         return_value=Response(200, json=STORAGE_RESPONSE)
     )
@@ -332,9 +333,9 @@ def mock_publisher_routes(respx_mock, mock_api_base: str):
         return_value=Response(200, json=CONTROL_SUCCESS_RESPONSE)
     )
     # Individual publisher control
-    respx_mock.post(f"{mock_api_base}/channels/channel-1/publishers/publisher-1/control/start").mock(
-        return_value=Response(200, json=CONTROL_SUCCESS_RESPONSE)
-    )
+    respx_mock.post(
+        f"{mock_api_base}/channels/channel-1/publishers/publisher-1/control/start"
+    ).mock(return_value=Response(200, json=CONTROL_SUCCESS_RESPONSE))
     respx_mock.post(f"{mock_api_base}/channels/channel-1/publishers/publisher-1/control/stop").mock(
         return_value=Response(200, json=CONTROL_SUCCESS_RESPONSE)
     )
@@ -344,9 +345,7 @@ def mock_publisher_routes(respx_mock, mock_api_base: str):
 @pytest.fixture
 def mock_input_routes(respx_mock, mock_api_base: str):
     """Set up mock routes for input endpoints."""
-    respx_mock.get(f"{mock_api_base}/inputs").mock(
-        return_value=Response(200, json=INPUTS_RESPONSE)
-    )
+    respx_mock.get(f"{mock_api_base}/inputs").mock(return_value=Response(200, json=INPUTS_RESPONSE))
     return respx_mock
 
 

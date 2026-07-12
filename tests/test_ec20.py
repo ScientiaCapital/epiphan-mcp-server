@@ -610,7 +610,9 @@ class TestEC20MCPTools:
 
         with patch("epiphan_mcp.tools.ec20.EC20Client") as MockClient:
             mock_instance = AsyncMock()
-            mock_instance.home = AsyncMock(return_value={"success": True, "pan": 0, "tilt": 0, "zoom": 1})
+            mock_instance.home = AsyncMock(
+                return_value={"success": True, "pan": 0, "tilt": 0, "zoom": 1}
+            )
             mock_instance.__aenter__ = AsyncMock(return_value=mock_instance)
             mock_instance.__aexit__ = AsyncMock(return_value=None)
             MockClient.return_value = mock_instance

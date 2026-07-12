@@ -31,8 +31,8 @@ STORAGE_RESPONSE = {
             "name": "Internal Storage",
             "type": "internal",
             "total_bytes": 500000000000,  # 500GB
-            "used_bytes": 100000000000,   # 100GB
-            "free_bytes": 400000000000,   # 400GB
+            "used_bytes": 100000000000,  # 100GB
+            "free_bytes": 400000000000,  # 400GB
             "percent_used": 20.0,
             "mounted": True,
         },
@@ -126,7 +126,7 @@ ARCHIVE_FILES_RESPONSE = {
             "filename": "recording_2025-01-21_14-00-00.mp4",
             "path": "/recordings/recording_2025-01-21_14-00-00.mp4",
             "size": 2147483648,  # 2GB
-            "duration": 7200,    # 2 hours
+            "duration": 7200,  # 2 hours
             "created_at": "2025-01-21T14:00:00Z",
             "recorder_id": "recorder-1",
         },
@@ -135,7 +135,7 @@ ARCHIVE_FILES_RESPONSE = {
             "filename": "recording_2025-01-22_09-00-00.mp4",
             "path": "/recordings/recording_2025-01-22_09-00-00.mp4",
             "size": 1073741824,  # 1GB
-            "duration": 3600,    # 1 hour
+            "duration": 3600,  # 1 hour
             "created_at": "2025-01-22T09:00:00Z",
             "recorder_id": "recorder-1",
         },

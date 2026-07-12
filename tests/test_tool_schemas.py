@@ -66,9 +66,7 @@ def _module_of(tool) -> str:
 
 _ALL_TOOLS = sorted(_TOOLS.items())
 _CONVERTED_TOOLS = [
-    (name, tool)
-    for name, tool in _ALL_TOOLS
-    if _module_of(tool) not in NOT_YET_CONVERTED
+    (name, tool) for name, tool in _ALL_TOOLS if _module_of(tool) not in NOT_YET_CONVERTED
 ]
 
 
@@ -89,9 +87,7 @@ def test_some_tools_are_converted():
     assert _CONVERTED_TOOLS, "no converted tools found — schema contract not exercised"
 
 
-@pytest.mark.parametrize(
-    "name,tool", _CONVERTED_TOOLS, ids=[n for n, _ in _CONVERTED_TOOLS]
-)
+@pytest.mark.parametrize("name,tool", _CONVERTED_TOOLS, ids=[n for n, _ in _CONVERTED_TOOLS])
 def test_converted_tool_params_have_descriptions(name, tool):
     """Every input parameter of a converted tool has a non-empty description."""
     properties = (tool.parameters or {}).get("properties", {})
@@ -101,9 +97,7 @@ def test_converted_tool_params_have_descriptions(name, tool):
         )
 
 
-@pytest.mark.parametrize(
-    "name,tool", _CONVERTED_TOOLS, ids=[n for n, _ in _CONVERTED_TOOLS]
-)
+@pytest.mark.parametrize("name,tool", _CONVERTED_TOOLS, ids=[n for n, _ in _CONVERTED_TOOLS])
 def test_converted_tool_has_described_output_schema(name, tool):
     """Every converted tool exposes an output schema with described properties."""
     schema = tool.output_schema
@@ -171,9 +165,7 @@ def _assert_wire_compatible(tool_name: str, case: str, structured: dict):
     missing = pre_keys - sc_keys
     assert not missing, f"{tool_name} ({case}) dropped pre-conversion keys: {missing}"
     extra = sc_keys - pre_keys
-    assert extra <= additive, (
-        f"{tool_name} ({case}) added unexpected keys: {extra - additive}"
-    )
+    assert extra <= additive, f"{tool_name} ({case}) added unexpected keys: {extra - additive}"
 
 
 async def test_wire_compat_get_fleet_status_normal(monkeypatch):

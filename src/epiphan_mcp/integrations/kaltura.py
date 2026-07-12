@@ -163,9 +163,7 @@ class KalturaClient:
             )
 
             if widget_response.status_code != 200:
-                raise KalturaAuthError(
-                    f"Widget session failed: {widget_response.status_code}"
-                )
+                raise KalturaAuthError(f"Widget session failed: {widget_response.status_code}")
 
             widget_data = widget_response.json()
             if "ks" not in widget_data:
@@ -175,9 +173,7 @@ class KalturaClient:
             widget_ks = widget_data["ks"]
 
             # Step 2: Generate token hash = SHA256(widgetKS + appToken)
-            token_hash = hashlib.sha256(
-                (widget_ks + self.app_token).encode()
-            ).hexdigest()
+            token_hash = hashlib.sha256((widget_ks + self.app_token).encode()).hexdigest()
 
             # Step 3: Start app token session
             session_response = await self._client.post(
@@ -193,9 +189,7 @@ class KalturaClient:
             )
 
             if session_response.status_code != 200:
-                raise KalturaAuthError(
-                    f"App token session failed: {session_response.status_code}"
-                )
+                raise KalturaAuthError(f"App token session failed: {session_response.status_code}")
 
             session_data = session_response.json()
 
@@ -253,9 +247,7 @@ class KalturaClient:
             response = await self._client.post(url, data=request_data)
 
             if response.status_code != 200:
-                raise KalturaAPIError(
-                    f"API error: {response.status_code} - {response.text}"
-                )
+                raise KalturaAPIError(f"API error: {response.status_code} - {response.text}")
 
             result = response.json()
 
@@ -364,9 +356,7 @@ class KalturaClient:
         filter_data: dict[str, Any] = {}
 
         if category_ids:
-            filter_data["filter:categoriesIdsMatchAnd"] = ",".join(
-                str(cid) for cid in category_ids
-            )
+            filter_data["filter:categoriesIdsMatchAnd"] = ",".join(str(cid) for cid in category_ids)
         if search_text:
             filter_data["filter:freeText"] = search_text
 
@@ -623,9 +613,7 @@ class KalturaClient:
                     if not chunk:
                         break
 
-                    is_final = len(chunk) < chunk_size or (
-                        bytes_uploaded + len(chunk) >= file_size
-                    )
+                    is_final = len(chunk) < chunk_size or (bytes_uploaded + len(chunk) >= file_size)
 
                     await self.upload_chunk(
                         upload_token_id=token_id,
@@ -656,9 +644,7 @@ class KalturaClient:
                         return entry
                     # Status -1 = ERROR, -2 = DELETED
                     elif status in (-1, -2):
-                        raise KalturaAPIError(
-                            f"Entry processing failed with status {status}"
-                        )
+                        raise KalturaAPIError(f"Entry processing failed with status {status}")
 
                     await asyncio.sleep(poll_interval)
                     elapsed += poll_interval
@@ -737,9 +723,7 @@ class KalturaClient:
         }
 
         if start_date:
-            filter_data["filter:startDateGreaterThanOrEqual"] = int(
-                start_date.timestamp()
-            )
+            filter_data["filter:startDateGreaterThanOrEqual"] = int(start_date.timestamp())
         if end_date:
             filter_data["filter:endDateLessThanOrEqual"] = int(end_date.timestamp())
 

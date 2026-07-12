@@ -11,9 +11,7 @@ from .device import get_client
 logger = logging.getLogger(__name__)
 
 
-async def get_scheduled_events(
-    device_id: str = "default", limit: int = 100
-) -> dict[str, Any]:
+async def get_scheduled_events(device_id: str = "default", limit: int = 100) -> dict[str, Any]:
     """
     Get scheduled recording events from CMS integration (Kaltura/Panopto/Opencast).
 

@@ -102,9 +102,7 @@ class TestRebootDevice:
         mock_client = AsyncMock()
         mock_client.host = "192.168.1.100"
         mock_client.reboot = AsyncMock(
-            return_value=OperationResult(
-                success=True, message="Rebooting", device="192.168.1.100"
-            )
+            return_value=OperationResult(success=True, message="Rebooting", device="192.168.1.100")
         )
 
         with (
@@ -129,9 +127,7 @@ class TestRebootDevice:
             patch(
                 "epiphan_mcp.tools.system.get_client",
                 return_value=AsyncMock(
-                    __aenter__=AsyncMock(
-                        side_effect=PearlAPIError("Connection refused")
-                    )
+                    __aenter__=AsyncMock(side_effect=PearlAPIError("Connection refused"))
                 ),
             ),
             patch("epiphan_mcp.tools.system.log_operation") as mock_audit,

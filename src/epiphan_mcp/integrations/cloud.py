@@ -116,9 +116,7 @@ class EpiphanCloudClient:
 
             # Handle authentication errors specifically
             if response.status_code == 401:
-                raise EpiphanCloudAuthError(
-                    f"Authentication failed: 401 - {response.text}"
-                )
+                raise EpiphanCloudAuthError(f"Authentication failed: 401 - {response.text}")
 
             # Handle other client/server errors
             if response.status_code >= 400:
@@ -169,9 +167,7 @@ class EpiphanCloudClient:
 
             # Handle authentication errors specifically
             if response.status_code == 401:
-                raise EpiphanCloudAuthError(
-                    f"Authentication failed: 401 - {response.text}"
-                )
+                raise EpiphanCloudAuthError(f"Authentication failed: 401 - {response.text}")
 
             # Handle other client/server errors
             if response.status_code >= 400:

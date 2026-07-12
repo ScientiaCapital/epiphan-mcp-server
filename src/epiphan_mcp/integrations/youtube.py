@@ -555,10 +555,7 @@ class YouTubeClient:
         broadcast = await self.get_broadcast(broadcast_id)
 
         # Get bound stream status if available
-        bound_stream_id = (
-            broadcast.get("contentDetails", {})
-            .get("boundStreamId", "")
-        )
+        bound_stream_id = broadcast.get("contentDetails", {}).get("boundStreamId", "")
 
         stream_status = None
         if bound_stream_id:

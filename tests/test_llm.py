@@ -3,7 +3,6 @@
 TDD approach: These tests were written BEFORE the implementation fixes.
 """
 
-
 import pytest
 
 from epiphan_mcp.llm.analyzer import (
@@ -101,7 +100,9 @@ class TestLLMSettings:
     def test_quality_model_defaults_to_fast_model(self, isolated_llm_env):
         """Quality model should default to a fast model (Gemini Flash)."""
         settings = LLMSettings()
-        assert "gemini" in settings.quality_model.lower() or "flash" in settings.quality_model.lower()
+        assert (
+            "gemini" in settings.quality_model.lower() or "flash" in settings.quality_model.lower()
+        )
 
 
 # ============================================================
@@ -618,7 +619,9 @@ class TestOpenRouterResponseParsing:
         return b"\xff\xd8\xff" + b"\x00" * 200
 
     @pytest.mark.asyncio
-    async def test_analyze_image_missing_choices_field(self, isolated_llm_env, valid_jpeg, respx_mock):
+    async def test_analyze_image_missing_choices_field(
+        self, isolated_llm_env, valid_jpeg, respx_mock
+    ):
         """Should raise KeyError when 'choices' field is missing."""
         import httpx
 
@@ -633,7 +636,9 @@ class TestOpenRouterResponseParsing:
             await provider.analyze_image(valid_jpeg, "Describe this image")
 
     @pytest.mark.asyncio
-    async def test_analyze_image_empty_choices_array(self, isolated_llm_env, valid_jpeg, respx_mock):
+    async def test_analyze_image_empty_choices_array(
+        self, isolated_llm_env, valid_jpeg, respx_mock
+    ):
         """Should raise IndexError when 'choices' array is empty."""
         import httpx
 

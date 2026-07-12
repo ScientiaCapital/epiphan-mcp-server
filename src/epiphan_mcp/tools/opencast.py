@@ -405,9 +405,7 @@ async def schedule_opencast_capture(
         start_dt = datetime.fromisoformat(start_time.replace("Z", "+00:00"))
         end_dt = datetime.fromisoformat(end_time.replace("Z", "+00:00"))
     except ValueError as e:
-        return {
-            "error": f"Invalid datetime format: {e}. Use ISO format like '2024-01-15T10:00:00'"
-        }
+        return {"error": f"Invalid datetime format: {e}. Use ISO format like '2024-01-15T10:00:00'"}
 
     if end_dt <= start_dt:
         return {"error": "end_time must be after start_time"}

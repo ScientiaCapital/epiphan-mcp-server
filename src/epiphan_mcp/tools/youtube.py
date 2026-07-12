@@ -203,14 +203,16 @@ async def list_youtube_broadcasts(
             for b in broadcasts:
                 snippet = b.get("snippet", {})
                 status = b.get("status", {})
-                simplified.append({
-                    "id": b.get("id"),
-                    "title": snippet.get("title"),
-                    "scheduled_start": snippet.get("scheduledStartTime"),
-                    "actual_start": snippet.get("actualStartTime"),
-                    "status": status.get("lifeCycleStatus"),
-                    "privacy": status.get("privacyStatus"),
-                })
+                simplified.append(
+                    {
+                        "id": b.get("id"),
+                        "title": snippet.get("title"),
+                        "scheduled_start": snippet.get("scheduledStartTime"),
+                        "actual_start": snippet.get("actualStartTime"),
+                        "status": status.get("lifeCycleStatus"),
+                        "privacy": status.get("privacyStatus"),
+                    }
+                )
 
             return {
                 "broadcasts": simplified,

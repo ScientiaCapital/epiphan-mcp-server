@@ -64,10 +64,7 @@ async def discover_device(device_id: str = "default") -> dict[str, Any]:
                     {"id": r.id, "name": r.name, "type": r.type, "channel_id": r.channel_id}
                     for r in recorders
                 ],
-                "channels": [
-                    {"id": c.id, "name": c.name}
-                    for c in channels
-                ],
+                "channels": [{"id": c.id, "name": c.name} for c in channels],
                 "inputs": [
                     {"id": i.id, "name": i.name, "type": i.type, "connected": i.connected}
                     for i in inputs

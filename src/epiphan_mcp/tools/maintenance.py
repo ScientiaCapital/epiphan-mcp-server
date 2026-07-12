@@ -61,9 +61,7 @@ async def predict_storage_full(
             bytes_per_hour = bitrate_bps / 8 * 3600  # bits/sec -> bytes/hour
 
             # Calculate hours until full
-            hours_until_full = (
-                free_bytes / bytes_per_hour if bytes_per_hour > 0 else float("inf")
-            )
+            hours_until_full = free_bytes / bytes_per_hour if bytes_per_hour > 0 else float("inf")
 
             # Determine warning status (>= 90% used or < 2 hours remaining)
             storage_used_percent = storage_status.storage_used_percent or 0

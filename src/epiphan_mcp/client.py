@@ -237,9 +237,7 @@ class PearlClient:
             logger.error(f"Request error for PUT {path}: {e}")
             raise PearlAPIError(str(e)) from e
 
-    async def _delete_raw(
-        self, path: str, params: dict[str, Any] | None = None
-    ) -> dict[str, Any]:
+    async def _delete_raw(self, path: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
         """Make raw DELETE request without retry (internal use)."""
         response = await self.client.delete(path, params=params)
         return self._handle_response(response, path)
@@ -694,7 +692,11 @@ class PearlClient:
         )
 
     async def create_publisher(
-        self, channel_id: str, name: str, publisher_type: str, settings: dict[str, Any] | None = None
+        self,
+        channel_id: str,
+        name: str,
+        publisher_type: str,
+        settings: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """
         Create a new publisher (stream destination) for a channel.
@@ -759,9 +761,7 @@ class PearlClient:
         result: list[str] = data.get("result", [])
         return result
 
-    async def get_publisher_settings(
-        self, channel_id: str, publisher_id: str
-    ) -> dict[str, Any]:
+    async def get_publisher_settings(self, channel_id: str, publisher_id: str) -> dict[str, Any]:
         """
         Get settings for a specific publisher.
 
@@ -989,7 +989,9 @@ class PearlClient:
             OperationResult with status.
         """
         logger.info(f"Setting output {output_id} source to {source_channel_id or 'disabled'}")
-        settings: dict[str, str | None] = {"source": source_channel_id} if source_channel_id else {"source": None}
+        settings: dict[str, str | None] = (
+            {"source": source_channel_id} if source_channel_id else {"source": None}
+        )
         await self._put(f"/outputs/{output_id}/settings", json=settings)
         return OperationResult(
             success=True,

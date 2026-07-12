@@ -619,9 +619,7 @@ class TestSwitchLayout:
         with patch("epiphan_mcp.tools.device.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(mock_pearl_host)
 
-            result = await switch_layout.fn(
-                device_id="default", channel=1, layout_id=""
-            )
+            result = await switch_layout.fn(device_id="default", channel=1, layout_id="")
 
         assert result["success"] is False
         assert "layout_id is required" in result["error"]
@@ -1197,7 +1195,9 @@ class TestServerErrorBranches:
 
             with respx.mock(assert_all_called=False) as router:
                 router.get(f"{api_base}/recorders/recorder-1/status").mock(
-                    return_value=Response(200, json={"status": "error", "message": "Recorder not found"})
+                    return_value=Response(
+                        200, json={"status": "error", "message": "Recorder not found"}
+                    )
                 )
 
                 result = await get_recording_status.fn(device_id="default", recorder=1)
@@ -1227,7 +1227,9 @@ class TestServerErrorBranches:
 
             with respx.mock(assert_all_called=False) as router:
                 router.post(f"{api_base}/channels/channel-1/publishers/control/start").mock(
-                    return_value=Response(200, json={"status": "error", "message": "No publishers configured"})
+                    return_value=Response(
+                        200, json={"status": "error", "message": "No publishers configured"}
+                    )
                 )
 
                 result = await start_stream.fn(device_id="default", channel=1)
@@ -1287,10 +1289,14 @@ class TestServerErrorBranches:
 
             with respx.mock(assert_all_called=False) as router:
                 router.put(f"{api_base}/channels/channel-1/layouts/active").mock(
-                    return_value=Response(200, json={"status": "error", "message": "Layout not found"})
+                    return_value=Response(
+                        200, json={"status": "error", "message": "Layout not found"}
+                    )
                 )
 
-                result = await switch_layout.fn(device_id="default", channel=1, layout_id="bad-layout")
+                result = await switch_layout.fn(
+                    device_id="default", channel=1, layout_id="bad-layout"
+                )
 
         assert result["success"] is False
         assert "Layout not found" in result["error"]

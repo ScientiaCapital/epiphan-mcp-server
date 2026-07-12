@@ -69,10 +69,7 @@ async def with_retry(
             return await operation()
         except Exception as exc:
             # Check if this exception should be retried
-            should_retry = (
-                isinstance(exc, retryable_exceptions)
-                or _is_busy_api_error(exc)
-            )
+            should_retry = isinstance(exc, retryable_exceptions) or _is_busy_api_error(exc)
 
             if not should_retry:
                 # Non-retryable exception - propagate immediately
@@ -94,8 +91,7 @@ async def with_retry(
             else:
                 # All retries exhausted
                 logger.error(
-                    f"All {max_retries} retries exhausted. "
-                    f"Last error: {type(exc).__name__}: {exc}"
+                    f"All {max_retries} retries exhausted. Last error: {type(exc).__name__}: {exc}"
                 )
 
     # Should never reach here, but satisfy type checker

@@ -117,9 +117,7 @@ class TestCloudListDevices:
     @pytest.mark.asyncio
     async def test_list_devices_success(self):
         respx.get(f"{BASE_URL}/devices").mock(
-            return_value=Response(
-                200, json=[{"id": "d1", "name": "Pearl-1", "status": "online"}]
-            )
+            return_value=Response(200, json=[{"id": "d1", "name": "Pearl-1", "status": "online"}])
         )
         result = await cloud_list_devices()
         assert result["count"] == 1
@@ -160,9 +158,7 @@ class TestCloudGetDevice:
     @pytest.mark.asyncio
     async def test_get_device_success(self):
         respx.get(f"{BASE_URL}/devices/d1").mock(
-            return_value=Response(
-                200, json={"id": "d1", "name": "Pearl-1", "status": "online"}
-            )
+            return_value=Response(200, json={"id": "d1", "name": "Pearl-1", "status": "online"})
         )
         result = await cloud_get_device(device_id="d1")
         assert result["device"]["name"] == "Pearl-1"
@@ -226,9 +222,7 @@ class TestCloudUnpairDevice:
     @respx.mock
     @pytest.mark.asyncio
     async def test_unpair_device_success(self):
-        respx.post(f"{BASE_URL}/devices/d1/unpair").mock(
-            return_value=Response(200, json={})
-        )
+        respx.post(f"{BASE_URL}/devices/d1/unpair").mock(return_value=Response(200, json={}))
         result = await cloud_unpair_device(device_id="d1")
         assert "message" in result
         assert result["success"] is True
@@ -255,9 +249,7 @@ class TestCloudDeleteDevice:
     @respx.mock
     @pytest.mark.asyncio
     async def test_delete_device_success(self):
-        respx.delete(f"{BASE_URL}/devices/d1").mock(
-            return_value=Response(200, json={})
-        )
+        respx.delete(f"{BASE_URL}/devices/d1").mock(return_value=Response(200, json={}))
         result = await cloud_delete_device(device_id="d1")
         assert "message" in result
         assert result["success"] is True
@@ -284,9 +276,7 @@ class TestCloudRenameDevice:
     @respx.mock
     @pytest.mark.asyncio
     async def test_rename_device_success(self):
-        respx.post(f"{BASE_URL}/devices/d1/rename").mock(
-            return_value=Response(200, json={})
-        )
+        respx.post(f"{BASE_URL}/devices/d1/rename").mock(return_value=Response(200, json={}))
         result = await cloud_rename_device(device_id="d1", new_name="Pearl Room 2")
         assert "message" in result
         assert result["success"] is True
@@ -354,9 +344,7 @@ class TestCloudBatchCommand:
         respx.post(f"{BASE_URL}/devices/batch_task").mock(
             return_value=Response(200, json={"status": "ok", "results": []})
         )
-        result = await cloud_batch_command(
-            device_ids="d1,d2", command="recording.start"
-        )
+        result = await cloud_batch_command(device_ids="d1,d2", command="recording.start")
         assert result["result"]["status"] == "ok"
 
     @pytest.mark.asyncio
@@ -470,21 +458,15 @@ class TestCloudApplyPreset:
 
     @pytest.mark.asyncio
     async def test_apply_preset_missing_id(self):
-        result = await cloud_apply_preset(
-            device_id="", preset_name="Test", preset_type="cloud"
-        )
+        result = await cloud_apply_preset(device_id="", preset_name="Test", preset_type="cloud")
         assert "error" in result
 
     @pytest.mark.asyncio
     async def test_apply_preset_missing_name(self):
-        result = await cloud_apply_preset(
-            device_id="d1", preset_name="", preset_type="cloud"
-        )
+        result = await cloud_apply_preset(device_id="d1", preset_name="", preset_type="cloud")
         assert "error" in result
 
     @pytest.mark.asyncio
     async def test_apply_preset_invalid_type(self):
-        result = await cloud_apply_preset(
-            device_id="d1", preset_name="Test", preset_type="invalid"
-        )
+        result = await cloud_apply_preset(device_id="d1", preset_name="Test", preset_type="invalid")
         assert "error" in result

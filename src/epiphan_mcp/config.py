@@ -8,9 +8,7 @@ from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # RFC 1123 hostname pattern: alphanumeric + hyphens + dots, max 253 chars
-_HOSTNAME_RE = re.compile(
-    r"^(?!-)[A-Za-z0-9-]{1,63}(?<!-)(\.[A-Za-z0-9-]{1,63})*$"
-)
+_HOSTNAME_RE = re.compile(r"^(?!-)[A-Za-z0-9-]{1,63}(?<!-)(\.[A-Za-z0-9-]{1,63})*$")
 
 
 class Settings(BaseSettings):
@@ -178,17 +176,13 @@ class Settings(BaseSettings):
 
         # Reject dangerous patterns
         if any(c in device_id for c in ("@", " ", "\t", "\n", "\r")):
-            raise ValueError(
-                f"Invalid {device_type} identifier: contains forbidden characters"
-            )
+            raise ValueError(f"Invalid {device_type} identifier: contains forbidden characters")
         if "://" in device_id:
             raise ValueError(
                 f"Invalid {device_type} identifier: looks like a URL, expected hostname or IP"
             )
         if ".." in device_id:
-            raise ValueError(
-                f"Invalid {device_type} identifier: contains path traversal pattern"
-            )
+            raise ValueError(f"Invalid {device_type} identifier: contains path traversal pattern")
 
         # Try parsing as IP address (IPv4 or IPv6)
         try:
@@ -199,9 +193,7 @@ class Settings(BaseSettings):
 
         # Validate as hostname (RFC 1123)
         if len(device_id) > 253:
-            raise ValueError(
-                f"Invalid {device_type} hostname: exceeds 253 characters"
-            )
+            raise ValueError(f"Invalid {device_type} hostname: exceeds 253 characters")
         if not _HOSTNAME_RE.match(device_id):
             raise ValueError(
                 f"Invalid {device_type} identifier: '{device_id}' is not a valid IP or hostname"

@@ -70,6 +70,7 @@ def mock_analyzer():
     """Mock video analyzer with mock provider (isolated from env)."""
     with patch("epiphan_mcp.tools.ai_tools.get_analyzer") as mock:
         from epiphan_mcp.llm.analyzer import VideoAnalyzer
+
         analyzer = VideoAnalyzer(settings=LLMSettings(mock_mode=True, _env_file=None))
         mock.return_value = analyzer
         yield analyzer
@@ -127,9 +128,7 @@ class TestAnalyzeChannelScene:
         assert result["channel"] == "2"
 
     @pytest.mark.asyncio
-    async def test_includes_model_used(
-        self, mock_pearl_settings, mock_pearl_client, mock_analyzer
-    ):
+    async def test_includes_model_used(self, mock_pearl_settings, mock_pearl_client, mock_analyzer):
         """Should include model name in response."""
         result = await analyze_channel_scene(
             device_id="default",
@@ -257,9 +256,7 @@ class TestDetectLayoutChanges:
         assert result["success"] is True
 
     @pytest.mark.asyncio
-    async def test_includes_hash_info(
-        self, mock_pearl_settings, mock_pearl_client, mock_analyzer
-    ):
+    async def test_includes_hash_info(self, mock_pearl_settings, mock_pearl_client, mock_analyzer):
         """Should include hash information in response."""
         result = await detect_layout_changes(
             device_id="default",
@@ -292,9 +289,7 @@ class TestCheckVideoQuality:
         assert isinstance(result["quality_report"], str)
 
     @pytest.mark.asyncio
-    async def test_includes_model_used(
-        self, mock_pearl_settings, mock_pearl_client, mock_analyzer
-    ):
+    async def test_includes_model_used(self, mock_pearl_settings, mock_pearl_client, mock_analyzer):
         """Should include model name in response."""
         result = await check_video_quality(
             device_id="default",
@@ -359,13 +354,12 @@ class TestAIToolsIntegration:
             yield router
 
     @pytest.mark.asyncio
-    async def test_full_analysis_flow(
-        self, mock_pearl_api, mock_pearl_settings
-    ):
+    async def test_full_analysis_flow(self, mock_pearl_api, mock_pearl_settings):
         """Test complete flow from Pearl API to analysis result."""
         # Use mock LLM settings (isolated from env)
         with patch("epiphan_mcp.tools.ai_tools.get_analyzer") as mock_get:
             from epiphan_mcp.llm.analyzer import VideoAnalyzer
+
             mock_get.return_value = VideoAnalyzer(
                 settings=LLMSettings(mock_mode=True, _env_file=None)
             )

@@ -76,9 +76,7 @@ class TestListChannels:
             "epiphan_mcp.tools.streaming.get_client",
             return_value=AsyncMock(__aenter__=AsyncMock(return_value=mock_client)),
         ):
-            result = await list_channels(
-                device_id="default", include_publishers=True
-            )
+            result = await list_channels(device_id="default", include_publishers=True)
 
         assert result["success"] is True
         mock_client.get_channels.assert_called_once_with(
@@ -108,9 +106,7 @@ class TestListChannels:
             "epiphan_mcp.tools.streaming.get_client",
             return_value=AsyncMock(__aenter__=AsyncMock(return_value=mock_client)),
         ):
-            result = await list_channels(
-                device_id="default", include_layouts=True
-            )
+            result = await list_channels(device_id="default", include_layouts=True)
 
         assert result["success"] is True
         mock_client.get_channels.assert_called_once_with(
@@ -287,9 +283,7 @@ class TestGetChannelPreview:
             "epiphan_mcp.tools.streaming.get_client",
             return_value=AsyncMock(__aenter__=AsyncMock(return_value=mock_client)),
         ):
-            result = await get_channel_preview(
-                device_id="default", channel=1
-            )
+            result = await get_channel_preview(device_id="default", channel=1)
 
         assert result["success"] is True
         assert result["device"] == "192.168.1.100"
@@ -314,9 +308,7 @@ class TestGetChannelPreview:
             "epiphan_mcp.tools.streaming.get_client",
             return_value=AsyncMock(__aenter__=AsyncMock(return_value=mock_client)),
         ):
-            result = await get_channel_preview(
-                device_id="default", channel=1, format="png"
-            )
+            result = await get_channel_preview(device_id="default", channel=1, format="png")
 
         assert result["success"] is True
         assert result["format"] == "png"

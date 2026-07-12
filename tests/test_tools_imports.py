@@ -5,7 +5,6 @@ Following TDD: these tests are written FIRST, before implementing the modules.
 """
 
 
-
 class TestToolsDeviceImports:
     """Tests for device tool imports."""
 
@@ -374,10 +373,16 @@ class TestToolsInitImports:
         )
 
         ec20_tools = [
-            ec20_get_status, ec20_pan_tilt, ec20_zoom,
-            ec20_goto_preset, ec20_save_preset, ec20_home,
-            ec20_enable_tracking, ec20_disable_tracking,
-            ec20_list_presets, ec20_get_preview,
+            ec20_get_status,
+            ec20_pan_tilt,
+            ec20_zoom,
+            ec20_goto_preset,
+            ec20_save_preset,
+            ec20_home,
+            ec20_enable_tracking,
+            ec20_disable_tracking,
+            ec20_list_presets,
+            ec20_get_preview,
         ]
         for tool in ec20_tools:
             assert callable(tool)
@@ -394,9 +399,12 @@ class TestToolsInitImports:
         )
 
         ai_tools = [
-            analyze_channel_scene, check_video_quality,
-            clear_change_detection_cache, detect_layout_changes,
-            detect_recording_issues, extract_text_from_preview,
+            analyze_channel_scene,
+            check_video_quality,
+            clear_change_detection_cache,
+            detect_layout_changes,
+            detect_recording_issues,
+            extract_text_from_preview,
         ]
         for tool in ai_tools:
             assert callable(tool)
@@ -420,10 +428,19 @@ class TestToolsInitImports:
         )
 
         for tool in [
-            add_bookmark, batch_start_recording, batch_stop_recording,
-            cloud_apply_preset, cloud_list_devices, create_publisher,
-            delete_publisher, get_client, get_device_status,
-            get_fleet_status, list_devices, start_recording, stop_recording,
+            add_bookmark,
+            batch_start_recording,
+            batch_stop_recording,
+            cloud_apply_preset,
+            cloud_list_devices,
+            create_publisher,
+            delete_publisher,
+            get_client,
+            get_device_status,
+            get_fleet_status,
+            list_devices,
+            start_recording,
+            stop_recording,
         ]:
             assert callable(tool)
 

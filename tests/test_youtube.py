@@ -134,10 +134,13 @@ class TestYouTubeClientAuth:
     async def test_token_refresh_failure(self, youtube_config):
         """Test handling of token refresh failure."""
         respx.post("https://oauth2.googleapis.com/token").mock(
-            return_value=Response(400, json={
-                "error": "invalid_grant",
-                "error_description": "Token has been revoked",
-            })
+            return_value=Response(
+                400,
+                json={
+                    "error": "invalid_grant",
+                    "error_description": "Token has been revoked",
+                },
+            )
         )
 
         with pytest.raises(YouTubeAuthError, match="Token refresh failed"):
@@ -400,13 +403,16 @@ class TestYouTubeClientErrors:
             return_value=Response(200, json=mock_token_response)
         )
         respx.get("https://www.googleapis.com/youtube/v3/liveBroadcasts").mock(
-            return_value=Response(403, json={
-                "error": {
-                    "code": 403,
-                    "message": "Quota exceeded",
-                    "errors": [{"reason": "quotaExceeded"}],
-                }
-            })
+            return_value=Response(
+                403,
+                json={
+                    "error": {
+                        "code": 403,
+                        "message": "Quota exceeded",
+                        "errors": [{"reason": "quotaExceeded"}],
+                    }
+                },
+            )
         )
 
         async with YouTubeClient(**youtube_config) as client:
@@ -421,13 +427,16 @@ class TestYouTubeClientErrors:
             return_value=Response(200, json=mock_token_response)
         )
         respx.get("https://www.googleapis.com/youtube/v3/liveBroadcasts").mock(
-            return_value=Response(403, json={
-                "error": {
-                    "code": 403,
-                    "message": "Access forbidden",
-                    "errors": [{"reason": "forbidden"}],
-                }
-            })
+            return_value=Response(
+                403,
+                json={
+                    "error": {
+                        "code": 403,
+                        "message": "Access forbidden",
+                        "errors": [{"reason": "forbidden"}],
+                    }
+                },
+            )
         )
 
         async with YouTubeClient(**youtube_config) as client:
@@ -518,11 +527,14 @@ class TestMCPTools:
             return_value=Response(200, json=mock_broadcast)
         )
 
-        with patch.dict("os.environ", {
-            "YOUTUBE_CLIENT_ID": "test-id",
-            "YOUTUBE_CLIENT_SECRET": "test-secret",
-            "YOUTUBE_REFRESH_TOKEN": "test-token",
-        }):
+        with patch.dict(
+            "os.environ",
+            {
+                "YOUTUBE_CLIENT_ID": "test-id",
+                "YOUTUBE_CLIENT_SECRET": "test-secret",
+                "YOUTUBE_REFRESH_TOKEN": "test-token",
+            },
+        ):
             result = await create_youtube_broadcast(
                 title="Test Broadcast",
                 scheduled_start="2024-01-15T10:00:00Z",
@@ -556,11 +568,14 @@ class TestMCPTools:
             return_value=Response(200, json={"items": [mock_stream]})
         )
 
-        with patch.dict("os.environ", {
-            "YOUTUBE_CLIENT_ID": "test-id",
-            "YOUTUBE_CLIENT_SECRET": "test-secret",
-            "YOUTUBE_REFRESH_TOKEN": "test-token",
-        }):
+        with patch.dict(
+            "os.environ",
+            {
+                "YOUTUBE_CLIENT_ID": "test-id",
+                "YOUTUBE_CLIENT_SECRET": "test-secret",
+                "YOUTUBE_REFRESH_TOKEN": "test-token",
+            },
+        ):
             result = await get_youtube_broadcast_status("broadcast-123")
 
             assert "error" not in result
@@ -578,11 +593,14 @@ class TestMCPTools:
             return_value=Response(200, json={"items": [mock_broadcast]})
         )
 
-        with patch.dict("os.environ", {
-            "YOUTUBE_CLIENT_ID": "test-id",
-            "YOUTUBE_CLIENT_SECRET": "test-secret",
-            "YOUTUBE_REFRESH_TOKEN": "test-token",
-        }):
+        with patch.dict(
+            "os.environ",
+            {
+                "YOUTUBE_CLIENT_ID": "test-id",
+                "YOUTUBE_CLIENT_SECRET": "test-secret",
+                "YOUTUBE_REFRESH_TOKEN": "test-token",
+            },
+        ):
             result = await list_youtube_broadcasts(status_filter="upcoming")
 
             assert "error" not in result
@@ -608,11 +626,14 @@ class TestMCPTools:
             return_value=Response(200, json=mock_broadcast)
         )
 
-        with patch.dict("os.environ", {
-            "YOUTUBE_CLIENT_ID": "test-id",
-            "YOUTUBE_CLIENT_SECRET": "test-secret",
-            "YOUTUBE_REFRESH_TOKEN": "test-token",
-        }):
+        with patch.dict(
+            "os.environ",
+            {
+                "YOUTUBE_CLIENT_ID": "test-id",
+                "YOUTUBE_CLIENT_SECRET": "test-secret",
+                "YOUTUBE_REFRESH_TOKEN": "test-token",
+            },
+        ):
             result = await end_youtube_broadcast("broadcast-123")
 
             assert "error" not in result

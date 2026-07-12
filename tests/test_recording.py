@@ -524,9 +524,7 @@ class TestListArchiveFiles:
         assert result.recorder == "recorder-1"
         assert result.total_files == len(mock_files)
         assert len(result.files) == len(mock_files)
-        mock_client.get_archive_files.assert_called_once_with(
-            "recorder-1", from_index=0, limit=100
-        )
+        mock_client.get_archive_files.assert_called_once_with("recorder-1", from_index=0, limit=100)
 
     @pytest.mark.asyncio
     async def test_list_archive_files_with_pagination(self):
@@ -544,9 +542,7 @@ class TestListArchiveFiles:
             )
 
         assert result.success is True
-        mock_client.get_archive_files.assert_called_once_with(
-            "recorder-1", from_index=10, limit=25
-        )
+        mock_client.get_archive_files.assert_called_once_with("recorder-1", from_index=10, limit=25)
 
     @pytest.mark.asyncio
     async def test_list_archive_files_empty(self):
@@ -596,9 +592,7 @@ class TestListArchiveFiles:
 
         assert result.success is True
         assert result.recorder == "recorder-2"
-        mock_client.get_archive_files.assert_called_once_with(
-            "recorder-2", from_index=0, limit=100
-        )
+        mock_client.get_archive_files.assert_called_once_with("recorder-2", from_index=0, limit=100)
 
 
 class TestGetAllRecorderStatus:
@@ -694,9 +688,7 @@ class TestStartAllRecorders:
         from epiphan_mcp.client import PearlAPIError
 
         mock_client = AsyncMock()
-        mock_client.start_all_recorders = AsyncMock(
-            side_effect=PearlAPIError("Device busy")
-        )
+        mock_client.start_all_recorders = AsyncMock(side_effect=PearlAPIError("Device busy"))
 
         with patch(
             "epiphan_mcp.tools.recording.get_client",
@@ -741,9 +733,7 @@ class TestStopAllRecorders:
         from epiphan_mcp.client import PearlAPIError
 
         mock_client = AsyncMock()
-        mock_client.stop_all_recorders = AsyncMock(
-            side_effect=PearlAPIError("Not recording")
-        )
+        mock_client.stop_all_recorders = AsyncMock(side_effect=PearlAPIError("Not recording"))
 
         with patch(
             "epiphan_mcp.tools.recording.get_client",

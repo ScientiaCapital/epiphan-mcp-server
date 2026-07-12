@@ -35,7 +35,7 @@ def validate_image_size(image_data: bytes) -> None:
     if len(image_data) > MAX_IMAGE_SIZE_BYTES:
         raise ValueError(
             f"Image too large for LLM analysis: {len(image_data)} bytes "
-            f"(max: {MAX_IMAGE_SIZE_BYTES} bytes / {MAX_IMAGE_SIZE_BYTES // (1024*1024)}MB)"
+            f"(max: {MAX_IMAGE_SIZE_BYTES} bytes / {MAX_IMAGE_SIZE_BYTES // (1024 * 1024)}MB)"
         )
 
 
@@ -508,7 +508,12 @@ def _parse_quality_issues(quality_report: str) -> list[dict[str, Any]]:
     # Check for common issues mentioned in the report
     issue_patterns = [
         ("black", "Black frame detected", "critical", "Check camera power and signal connection"),
-        ("dark", "Poor lighting - too dark", "warning", "Increase lighting or adjust camera settings"),
+        (
+            "dark",
+            "Poor lighting - too dark",
+            "warning",
+            "Increase lighting or adjust camera settings",
+        ),
         ("overexposed", "Overexposure detected", "warning", "Reduce lighting or adjust exposure"),
         ("blur", "Focus issue - image is blurry", "warning", "Check camera focus settings"),
         ("frozen", "Video appears frozen", "critical", "Check signal source and cable connections"),
@@ -519,12 +524,14 @@ def _parse_quality_issues(quality_report: str) -> list[dict[str, Any]]:
 
     for keyword, description, severity, action in issue_patterns:
         if keyword in report_lower:
-            issues.append({
-                "type": keyword,
-                "description": description,
-                "severity": severity,
-                "action": action,
-            })
+            issues.append(
+                {
+                    "type": keyword,
+                    "description": description,
+                    "severity": severity,
+                    "action": action,
+                }
+            )
 
     return issues
 

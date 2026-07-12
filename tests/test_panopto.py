@@ -153,9 +153,7 @@ class TestPanoptoClientAuth:
     @respx.mock
     async def test_authentication_with_client_secret(self):
         """Test authentication includes client_secret when provided."""
-        route = respx.post(
-            "https://panopto.example.edu/Panopto/oauth2/connect/token"
-        ).mock(
+        route = respx.post("https://panopto.example.edu/Panopto/oauth2/connect/token").mock(
             return_value=httpx.Response(
                 200,
                 json={
@@ -458,9 +456,7 @@ class TestPanoptoClientUpload:
         )
         respx.get(
             "https://panopto.example.edu/Panopto/Services/PublicAPI/REST/sessionUpload/upload-123"
-        ).mock(
-            return_value=httpx.Response(200, json={"ID": "upload-123", "State": 3})
-        )
+        ).mock(return_value=httpx.Response(200, json={"ID": "upload-123", "State": 3}))
 
         async with PanoptoClient(
             host="panopto.example.edu",
@@ -483,9 +479,7 @@ class TestPanoptoClientUpload:
         )
         respx.put(
             "https://panopto.example.edu/Panopto/Services/PublicAPI/REST/sessionUpload/upload-123"
-        ).mock(
-            return_value=httpx.Response(200, json={"ID": "upload-123", "State": 2})
-        )
+        ).mock(return_value=httpx.Response(200, json={"ID": "upload-123", "State": 2}))
 
         async with PanoptoClient(
             host="panopto.example.edu",
@@ -594,9 +588,7 @@ class TestPanoptoTools:
             )
         )
         respx.get("https://panopto.example.edu/api/v1/folders").mock(
-            return_value=httpx.Response(
-                200, json={"Results": [{"Id": "f1", "Name": "Folder 1"}]}
-            )
+            return_value=httpx.Response(200, json={"Results": [{"Id": "f1", "Name": "Folder 1"}]})
         )
 
         result = await list_panopto_folders()

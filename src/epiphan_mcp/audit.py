@@ -47,9 +47,7 @@ def log_operation(
     if details:
         detail_str = " | " + ", ".join(f"{k}={v}" for k, v in details.items())
 
-    audit_logger.info(
-        f"[{status}] {operation} on {device} by {user}{detail_str}"
-    )
+    audit_logger.info(f"[{status}] {operation} on {device} by {user}{detail_str}")
 
     return None
 

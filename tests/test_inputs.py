@@ -304,9 +304,7 @@ class TestGetInputPreview:
             "epiphan_mcp.tools.inputs.get_client",
             return_value=AsyncMock(__aenter__=AsyncMock(return_value=mock_client)),
         ):
-            result = await get_input_preview(
-                device_id="default", input_id="hdmi-1"
-            )
+            result = await get_input_preview(device_id="default", input_id="hdmi-1")
 
         assert result["success"] is True
         assert result["device"] == "192.168.1.100"
@@ -331,9 +329,7 @@ class TestGetInputPreview:
             "epiphan_mcp.tools.inputs.get_client",
             return_value=AsyncMock(__aenter__=AsyncMock(return_value=mock_client)),
         ):
-            result = await get_input_preview(
-                device_id="default", input_id="hdmi-1", format="png"
-            )
+            result = await get_input_preview(device_id="default", input_id="hdmi-1", format="png")
 
         assert result["success"] is True
         assert result["format"] == "png"
@@ -366,9 +362,7 @@ class TestGetInputPreview:
         """Test preview fails without input_id."""
         from epiphan_mcp.tools.inputs import get_input_preview
 
-        result = await get_input_preview(
-            device_id="default", input_id=""
-        )
+        result = await get_input_preview(device_id="default", input_id="")
 
         assert result["success"] is False
         assert "input" in result["error"].lower()

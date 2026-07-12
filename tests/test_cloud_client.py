@@ -80,9 +80,7 @@ class TestCloudDevices:
             {"id": "dev1", "name": "Pearl Mini", "status": "online"},
             {"id": "dev2", "name": "Pearl Nano", "status": "offline"},
         ]
-        respx.get(f"{BASE_URL}/devices").mock(
-            return_value=Response(200, json=mock_devices)
-        )
+        respx.get(f"{BASE_URL}/devices").mock(return_value=Response(200, json=mock_devices))
 
         async with EpiphanCloudClient(token=MOCK_TOKEN, host=MOCK_HOST) as client:
             devices = await client.list_devices()
@@ -135,9 +133,7 @@ class TestCloudDevices:
     async def test_unpair_device(self):
         """Test unpairing a device."""
         device_id = "dev789"
-        respx.post(f"{BASE_URL}/devices/{device_id}/unpair").mock(
-            return_value=Response(204)
-        )
+        respx.post(f"{BASE_URL}/devices/{device_id}/unpair").mock(return_value=Response(204))
 
         async with EpiphanCloudClient(token=MOCK_TOKEN, host=MOCK_HOST) as client:
             result = await client.unpair_device(device_id)
@@ -149,9 +145,7 @@ class TestCloudDevices:
     async def test_delete_device(self):
         """Test deleting a device."""
         device_id = "dev999"
-        respx.delete(f"{BASE_URL}/devices/{device_id}").mock(
-            return_value=Response(204)
-        )
+        respx.delete(f"{BASE_URL}/devices/{device_id}").mock(return_value=Response(204))
 
         async with EpiphanCloudClient(token=MOCK_TOKEN, host=MOCK_HOST) as client:
             result = await client.delete_device(device_id)
@@ -309,7 +303,7 @@ class TestCloudContextManager:
         """Test that context manager properly creates and closes httpx client."""
         client = EpiphanCloudClient(token=MOCK_TOKEN, host=MOCK_HOST)
 
-        assert not hasattr(client, '_client') or client._client is None
+        assert not hasattr(client, "_client") or client._client is None
 
         async with client as c:
             assert c._client is not None

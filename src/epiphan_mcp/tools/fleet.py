@@ -306,9 +306,7 @@ async def get_fleet_status() -> FleetStatusResult:
             recording_count += 1
 
     # Calculate fleet-level health metrics
-    average_health = (
-        sum(health_scores) / len(health_scores) if health_scores else 0.0
-    )
+    average_health = sum(health_scores) / len(health_scores) if health_scores else 0.0
     unhealthy_count = len([s for s in health_scores if s < 60])
 
     return FleetStatusResult(
@@ -491,25 +489,31 @@ async def fleet_health_report() -> FleetHealthReportResult:
         host = device.get("host", "unknown")
 
         if not device.get("online", False):
-            attention_required.append({
-                "device": host,
-                "issue": "Device offline",
-                "action": "Check network connectivity and power",
-            })
+            attention_required.append(
+                {
+                    "device": host,
+                    "issue": "Device offline",
+                    "action": "Check network connectivity and power",
+                }
+            )
         elif device.get("health_score", 100) < 60:
             issues = device.get("health_issues", [])
             issue_str = issues[0] if issues else "Health score below threshold"
-            attention_required.append({
-                "device": host,
-                "issue": issue_str,
-                "action": _get_action_for_issue(issue_str),
-            })
+            attention_required.append(
+                {
+                    "device": host,
+                    "issue": issue_str,
+                    "action": _get_action_for_issue(issue_str),
+                }
+            )
         elif device.get("storage_percent", 0) > settings.storage_warning_percent:
-            attention_required.append({
-                "device": host,
-                "issue": f"Storage at {device.get('storage_percent', 0):.0f}%",
-                "action": "Archive or delete old recordings",
-            })
+            attention_required.append(
+                {
+                    "device": host,
+                    "issue": f"Storage at {device.get('storage_percent', 0):.0f}%",
+                    "action": "Archive or delete old recordings",
+                }
+            )
 
     # Build prompt for AI summary
     online = fleet_status.online_devices
@@ -727,7 +731,9 @@ async def suggest_maintenance_window(
     if activity_percent > 50:
         current_activity = f"High activity: {recording_devices}/{online_devices} devices recording"
     elif activity_percent > 0:
-        current_activity = f"Moderate activity: {recording_devices}/{online_devices} devices recording"
+        current_activity = (
+            f"Moderate activity: {recording_devices}/{online_devices} devices recording"
+        )
     else:
         current_activity = "Low activity: No devices currently recording"
 
@@ -735,7 +741,7 @@ async def suggest_maintenance_window(
     prompt = f"""Suggest an optimal maintenance window for an AV fleet.
 
 Current Status:
-- Time: {current_time.strftime('%H:%M')} on {day_of_week}
+- Time: {current_time.strftime("%H:%M")} on {day_of_week}
 - Total devices: {total_devices}
 - Online: {online_devices}
 - Currently recording: {recording_devices}
@@ -772,7 +778,9 @@ Keep response concise and actionable."""
         if recording_devices == 0:
             suggested_window = "Now - no active recordings"
             confidence = "high"
-            reasoning = "No devices are currently recording, making this an ideal time for maintenance."
+            reasoning = (
+                "No devices are currently recording, making this an ideal time for maintenance."
+            )
         elif hour_of_day >= 22 or hour_of_day < 6:
             suggested_window = "Current window (late night)"
             confidence = "medium"
@@ -807,11 +815,16 @@ def _parse_maintenance_suggestion(
     for line in lines:
         line_lower = line.lower()
         # Look for time-related suggestions
-        if any(word in line_lower for word in ["tonight", "tomorrow", "weekend", "am", "pm", "now"]) and suggested_window == "Review fleet status manually":
-                # Clean up the line
-                suggested_window = line.strip().lstrip("1234567890.-*) ")
-                if len(suggested_window) < 5:
-                    suggested_window = "Review fleet status manually"
+        if (
+            any(
+                word in line_lower for word in ["tonight", "tomorrow", "weekend", "am", "pm", "now"]
+            )
+            and suggested_window == "Review fleet status manually"
+        ):
+            # Clean up the line
+            suggested_window = line.strip().lstrip("1234567890.-*) ")
+            if len(suggested_window) < 5:
+                suggested_window = "Review fleet status manually"
 
         # Look for confidence indicators
         if "high" in line_lower and "confidence" in line_lower:
@@ -820,7 +833,9 @@ def _parse_maintenance_suggestion(
             confidence = "low"
 
     # Build reasoning from remaining content
-    reasoning_lines = [line.strip() for line in lines if len(line.strip()) > 20 and ":" not in line[:15]]
+    reasoning_lines = [
+        line.strip() for line in lines if len(line.strip()) > 20 and ":" not in line[:15]
+    ]
     if reasoning_lines:
         reasoning = " ".join(reasoning_lines[:2])
 
@@ -880,13 +895,15 @@ async def predict_fleet_issues(
         host = device.get("host", "unknown")
 
         if not device.get("online", False):
-            predictions.append({
-                "device": host,
-                "issue": "Device offline",
-                "timeframe": "Now",
-                "severity": "critical",
-                "action": "Check network connectivity and power immediately",
-            })
+            predictions.append(
+                {
+                    "device": host,
+                    "issue": "Device offline",
+                    "timeframe": "Now",
+                    "severity": "critical",
+                    "action": "Check network connectivity and power immediately",
+                }
+            )
             devices_at_risk += 1
             continue
 
@@ -903,34 +920,40 @@ async def predict_fleet_issues(
                 hours_to_full = (free_percent / 100) * 1000 / 3.6  # Rough estimate
                 if hours_to_full < hours_ahead:
                     severity = "critical" if hours_to_full < 4 else "warning"
-                    predictions.append({
-                        "device": host,
-                        "issue": f"Storage will be full in ~{hours_to_full:.0f} hours",
-                        "timeframe": f"Within {min(hours_to_full, hours_ahead):.0f} hours",
-                        "severity": severity,
-                        "action": "Archive or delete old recordings",
-                    })
+                    predictions.append(
+                        {
+                            "device": host,
+                            "issue": f"Storage will be full in ~{hours_to_full:.0f} hours",
+                            "timeframe": f"Within {min(hours_to_full, hours_ahead):.0f} hours",
+                            "severity": severity,
+                            "action": "Archive or delete old recordings",
+                        }
+                    )
                     devices_at_risk += 1
             elif storage_percent >= 75:
-                predictions.append({
-                    "device": host,
-                    "issue": f"Storage at {storage_percent:.0f}% - limited capacity for new recordings",
-                    "timeframe": "Before next recording session",
-                    "severity": "warning",
-                    "action": "Free up storage space",
-                })
+                predictions.append(
+                    {
+                        "device": host,
+                        "issue": f"Storage at {storage_percent:.0f}% - limited capacity for new recordings",
+                        "timeframe": "Before next recording session",
+                        "severity": "warning",
+                        "action": "Free up storage space",
+                    }
+                )
                 devices_at_risk += 1
 
         # Health score prediction
         health_score = device.get("health_score", 100)
         if health_score < 60:
-            predictions.append({
-                "device": host,
-                "issue": f"Health score degraded ({health_score}/100)",
-                "timeframe": f"Within {hours_ahead} hours if unaddressed",
-                "severity": "warning",
-                "action": "Review health issues and remediate",
-            })
+            predictions.append(
+                {
+                    "device": host,
+                    "issue": f"Health score degraded ({health_score}/100)",
+                    "timeframe": f"Within {hours_ahead} hours if unaddressed",
+                    "severity": "warning",
+                    "action": "Review health issues and remediate",
+                }
+            )
             if host not in [p["device"] for p in predictions[:-1]]:
                 devices_at_risk += 1
 
@@ -1069,24 +1092,30 @@ async def generate_shift_handoff(
         host = device.get("host", "unknown")
 
         if not device.get("online", False):
-            attention_required.append({
-                "device": host,
-                "issue": "Device offline",
-                "priority": "high",
-            })
+            attention_required.append(
+                {
+                    "device": host,
+                    "issue": "Device offline",
+                    "priority": "high",
+                }
+            )
         elif device.get("health_score", 100) < 60:
             issues = device.get("health_issues", [])
-            attention_required.append({
-                "device": host,
-                "issue": issues[0] if issues else "Health score below threshold",
-                "priority": "medium",
-            })
+            attention_required.append(
+                {
+                    "device": host,
+                    "issue": issues[0] if issues else "Health score below threshold",
+                    "priority": "medium",
+                }
+            )
         elif device.get("storage_percent", 0) > 85:
-            attention_required.append({
-                "device": host,
-                "issue": f"Storage at {device.get('storage_percent', 0):.0f}%",
-                "priority": "medium",
-            })
+            attention_required.append(
+                {
+                    "device": host,
+                    "issue": f"Storage at {device.get('storage_percent', 0):.0f}%",
+                    "priority": "medium",
+                }
+            )
 
     # Generate AI summary
     current_time = datetime.now()
@@ -1099,7 +1128,7 @@ async def generate_shift_handoff(
 
     prompt = f"""Generate a shift handoff summary for an AV operations team.
 
-Shift Period: {shift_start.strftime('%H:%M')} to {current_time.strftime('%H:%M')}
+Shift Period: {shift_start.strftime("%H:%M")} to {current_time.strftime("%H:%M")}
 Fleet: {settings.fleet_name}
 
 Current Status:

@@ -62,9 +62,7 @@ class TestRetryBasicBehavior:
 
     async def test_retry_exhausts_all_attempts(self):
         """All retries fail, raises last exception."""
-        operation = AsyncMock(
-            side_effect=httpx.ConnectError("Connection refused")
-        )
+        operation = AsyncMock(side_effect=httpx.ConnectError("Connection refused"))
 
         with patch("epiphan_mcp.retry.asyncio.sleep", new_callable=AsyncMock):
             with pytest.raises(httpx.ConnectError, match="Connection refused"):
@@ -127,9 +125,7 @@ class TestExponentialBackoff:
             sleep_times.append(seconds)
 
         with patch("epiphan_mcp.retry.asyncio.sleep", side_effect=mock_sleep):
-            result = await with_retry(
-                operation, max_retries=5, base_delay=1.0, max_delay=3.0
-            )
+            result = await with_retry(operation, max_retries=5, base_delay=1.0, max_delay=3.0)
 
         assert result == {"status": "ok", "result": "success"}
         # Delays would be 1, 2, 4, 8, 16 but capped at 3.0
@@ -262,9 +258,7 @@ class TestBusyAPIStatus:
     async def test_no_retry_on_api_error_status(self):
         """Do not retry on API 'error' status (non-transient)."""
         operation = AsyncMock(
-            side_effect=PearlAPIError(
-                "Invalid recorder ID", status_code=404, api_status="error"
-            )
+            side_effect=PearlAPIError("Invalid recorder ID", status_code=404, api_status="error")
         )
 
         with pytest.raises(PearlAPIError) as exc_info:
@@ -285,9 +279,7 @@ class TestCustomConfiguration:
 
     async def test_retry_with_zero_max_retries(self):
         """No retries when max_retries=0."""
-        operation = AsyncMock(
-            side_effect=httpx.ConnectError("Connection refused")
-        )
+        operation = AsyncMock(side_effect=httpx.ConnectError("Connection refused"))
 
         with pytest.raises(httpx.ConnectError):
             await with_retry(operation, max_retries=0)

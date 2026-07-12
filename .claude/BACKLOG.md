@@ -232,3 +232,9 @@ These methods exist in `PearlClient` but aren't MCP tools yet:
 
 **Document Owner**: Tim Kipper
 **Review Cadence**: Weekly
+
+## 2026-07-12 — End Day findings
+- [ ] Convert remaining 15 tool modules to typed schemas (recipe established; ~1-2h each): ai_tools, cloud, discovery, ec20, inputs, kaltura, layout, maintenance, opencast, panopto, publishers, qsys, schedule, streaming, youtube
+- [ ] Pin `fastmcp<3` in pyproject.toml before next PyPI release (FastMCP 3.0 breaking-change warning observed)
+- [ ] tests/ lint: 30 manual findings deferred (F841, SIM117, E402) — not CI-gated
+- [ ] Reply to Vadim: both critiques fixed, live-verified 5.1s vs 30.1s (5.9x) with offline devices

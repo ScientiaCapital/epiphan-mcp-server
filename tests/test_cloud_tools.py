@@ -46,24 +46,24 @@ class TestCloudConfigValidation:
         """Missing EPIPHAN_CLOUD_TOKEN returns error dict."""
         with patch.dict(os.environ, {}, clear=True):
             result = await cloud_list_devices()
-            assert "error" in result
-            assert "EPIPHAN_CLOUD_TOKEN" in result["error"]
+            assert result.error is not None
+            assert "EPIPHAN_CLOUD_TOKEN" in result.error
 
     @pytest.mark.asyncio
     async def test_missing_token_all_tools(self):
         """All tools return error when token is missing."""
         with patch.dict(os.environ, {}, clear=True):
             result = await cloud_get_user()
-            assert "error" in result
+            assert result.error is not None
 
             result = await cloud_get_device(device_id="d1")
-            assert "error" in result
+            assert result.error is not None
 
             result = await cloud_pair_device(pairing_code="ABC", name="Test")
-            assert "error" in result
+            assert result.error is not None
 
             result = await cloud_run_command(device_id="d1", command="recording.start")
-            assert "error" in result
+            assert result.error is not None
 
 
 # ============================================================================
@@ -86,8 +86,8 @@ class TestCloudGetUser:
             return_value=Response(200, json={"id": "u1", "email": "test@test.com"})
         )
         result = await cloud_get_user()
-        assert result["user"]["id"] == "u1"
-        assert result["user"]["email"] == "test@test.com"
+        assert result.user["id"] == "u1"
+        assert result.user["email"] == "test@test.com"
 
     @respx.mock
     @pytest.mark.asyncio
@@ -96,8 +96,8 @@ class TestCloudGetUser:
             return_value=Response(401, json={"error": "unauthorized"})
         )
         result = await cloud_get_user()
-        assert "error" in result
-        assert "Authentication" in result["error"]
+        assert result.error is not None
+        assert "Authentication" in result.error
 
 
 # ============================================================================
@@ -120,16 +120,16 @@ class TestCloudListDevices:
             return_value=Response(200, json=[{"id": "d1", "name": "Pearl-1", "status": "online"}])
         )
         result = await cloud_list_devices()
-        assert result["count"] == 1
-        assert result["devices"][0]["id"] == "d1"
+        assert result.count == 1
+        assert result.devices[0]["id"] == "d1"
 
     @respx.mock
     @pytest.mark.asyncio
     async def test_list_devices_empty(self):
         respx.get(f"{BASE_URL}/devices").mock(return_value=Response(200, json=[]))
         result = await cloud_list_devices()
-        assert result["count"] == 0
-        assert result["devices"] == []
+        assert result.count == 0
+        assert result.devices == []
 
     @respx.mock
     @pytest.mark.asyncio
@@ -138,7 +138,7 @@ class TestCloudListDevices:
             return_value=Response(500, json={"error": "internal"})
         )
         result = await cloud_list_devices()
-        assert "error" in result
+        assert result.error is not None
 
 
 # ============================================================================
@@ -161,13 +161,13 @@ class TestCloudGetDevice:
             return_value=Response(200, json={"id": "d1", "name": "Pearl-1", "status": "online"})
         )
         result = await cloud_get_device(device_id="d1")
-        assert result["device"]["name"] == "Pearl-1"
+        assert result.device["name"] == "Pearl-1"
 
     @pytest.mark.asyncio
     async def test_get_device_missing_id(self):
         result = await cloud_get_device(device_id="")
-        assert "error" in result
-        assert "device_id" in result["error"]
+        assert result.error is not None
+        assert "device_id" in result.error
 
 
 # ============================================================================
@@ -190,20 +190,20 @@ class TestCloudPairDevice:
             return_value=Response(200, json={"id": "d-new", "name": "New Pearl"})
         )
         result = await cloud_pair_device(pairing_code="ABC123", name="New Pearl")
-        assert result["device"]["id"] == "d-new"
-        assert "message" in result
+        assert result.device["id"] == "d-new"
+        assert result.message is not None
 
     @pytest.mark.asyncio
     async def test_pair_device_missing_code(self):
         result = await cloud_pair_device(pairing_code="", name="Test")
-        assert "error" in result
-        assert "pairing_code" in result["error"]
+        assert result.error is not None
+        assert "pairing_code" in result.error
 
     @pytest.mark.asyncio
     async def test_pair_device_missing_name(self):
         result = await cloud_pair_device(pairing_code="ABC", name="")
-        assert "error" in result
-        assert "name" in result["error"]
+        assert result.error is not None
+        assert "name" in result.error
 
 
 # ============================================================================
@@ -224,13 +224,13 @@ class TestCloudUnpairDevice:
     async def test_unpair_device_success(self):
         respx.post(f"{BASE_URL}/devices/d1/unpair").mock(return_value=Response(200, json={}))
         result = await cloud_unpair_device(device_id="d1")
-        assert "message" in result
-        assert result["success"] is True
+        assert result.message is not None
+        assert result.success is True
 
     @pytest.mark.asyncio
     async def test_unpair_device_missing_id(self):
         result = await cloud_unpair_device(device_id="")
-        assert "error" in result
+        assert result.error is not None
 
 
 # ============================================================================
@@ -251,13 +251,13 @@ class TestCloudDeleteDevice:
     async def test_delete_device_success(self):
         respx.delete(f"{BASE_URL}/devices/d1").mock(return_value=Response(200, json={}))
         result = await cloud_delete_device(device_id="d1")
-        assert "message" in result
-        assert result["success"] is True
+        assert result.message is not None
+        assert result.success is True
 
     @pytest.mark.asyncio
     async def test_delete_device_missing_id(self):
         result = await cloud_delete_device(device_id="")
-        assert "error" in result
+        assert result.error is not None
 
 
 # ============================================================================
@@ -278,18 +278,18 @@ class TestCloudRenameDevice:
     async def test_rename_device_success(self):
         respx.post(f"{BASE_URL}/devices/d1/rename").mock(return_value=Response(200, json={}))
         result = await cloud_rename_device(device_id="d1", new_name="Pearl Room 2")
-        assert "message" in result
-        assert result["success"] is True
+        assert result.message is not None
+        assert result.success is True
 
     @pytest.mark.asyncio
     async def test_rename_device_missing_id(self):
         result = await cloud_rename_device(device_id="", new_name="Test")
-        assert "error" in result
+        assert result.error is not None
 
     @pytest.mark.asyncio
     async def test_rename_device_missing_name(self):
         result = await cloud_rename_device(device_id="d1", new_name="")
-        assert "error" in result
+        assert result.error is not None
 
 
 # ============================================================================
@@ -312,17 +312,17 @@ class TestCloudRunCommand:
             return_value=Response(200, json={"status": "ok"})
         )
         result = await cloud_run_command(device_id="d1", command="recording.start")
-        assert result["result"]["status"] == "ok"
+        assert result.result["status"] == "ok"
 
     @pytest.mark.asyncio
     async def test_run_command_missing_id(self):
         result = await cloud_run_command(device_id="", command="recording.start")
-        assert "error" in result
+        assert result.error is not None
 
     @pytest.mark.asyncio
     async def test_run_command_missing_command(self):
         result = await cloud_run_command(device_id="d1", command="")
-        assert "error" in result
+        assert result.error is not None
 
 
 # ============================================================================
@@ -345,17 +345,17 @@ class TestCloudBatchCommand:
             return_value=Response(200, json={"status": "ok", "results": []})
         )
         result = await cloud_batch_command(device_ids="d1,d2", command="recording.start")
-        assert result["result"]["status"] == "ok"
+        assert result.result["status"] == "ok"
 
     @pytest.mark.asyncio
     async def test_batch_command_missing_ids(self):
         result = await cloud_batch_command(device_ids="", command="recording.start")
-        assert "error" in result
+        assert result.error is not None
 
     @pytest.mark.asyncio
     async def test_batch_command_missing_command(self):
         result = await cloud_batch_command(device_ids="d1,d2", command="")
-        assert "error" in result
+        assert result.error is not None
 
 
 # ============================================================================
@@ -379,12 +379,12 @@ class TestCloudGetSettings:
             return_value=Response(200, json=settings_data)
         )
         result = await cloud_get_settings(device_id="d1")
-        assert "video" in result["settings"]
+        assert "video" in result.settings
 
     @pytest.mark.asyncio
     async def test_get_settings_missing_id(self):
         result = await cloud_get_settings(device_id="")
-        assert "error" in result
+        assert result.error is not None
 
 
 # ============================================================================
@@ -411,13 +411,13 @@ class TestCloudGetPreview:
             )
         )
         result = await cloud_get_preview(device_id="d1")
-        assert "image_base64" in result
-        assert result["content_type"] == "image/jpeg"
+        assert result.image_base64 is not None
+        assert result.content_type == "image/jpeg"
 
     @pytest.mark.asyncio
     async def test_get_preview_missing_id(self):
         result = await cloud_get_preview(device_id="")
-        assert "error" in result
+        assert result.error is not None
 
 
 # ============================================================================
@@ -443,7 +443,7 @@ class TestCloudApplyPreset:
             device_id="d1", preset_name="HD Recording", preset_type="cloud"
         )
         assert "error" not in result
-        assert "message" in result
+        assert result.message is not None
 
     @respx.mock
     @pytest.mark.asyncio
@@ -459,14 +459,14 @@ class TestCloudApplyPreset:
     @pytest.mark.asyncio
     async def test_apply_preset_missing_id(self):
         result = await cloud_apply_preset(device_id="", preset_name="Test", preset_type="cloud")
-        assert "error" in result
+        assert result.error is not None
 
     @pytest.mark.asyncio
     async def test_apply_preset_missing_name(self):
         result = await cloud_apply_preset(device_id="d1", preset_name="", preset_type="cloud")
-        assert "error" in result
+        assert result.error is not None
 
     @pytest.mark.asyncio
     async def test_apply_preset_invalid_type(self):
         result = await cloud_apply_preset(device_id="d1", preset_name="Test", preset_type="invalid")
-        assert "error" in result
+        assert result.error is not None

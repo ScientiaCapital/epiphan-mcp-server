@@ -1382,6 +1382,108 @@ class RecordingIssuesResult(BaseModel):
 
 
 # ============================================================
+# Epiphan Cloud Tool Response Models
+# ============================================================
+#
+# Cloud tools follow the integration convention: most carry no ``success``
+# key (the unpair/delete/rename trio is the exception) and error paths
+# return a bare ``error``. Models mirror each tool's actual dict shape.
+
+
+class CloudUserResult(BaseModel):
+    """Return type of ``cloud_get_user``."""
+
+    user: dict[str, Any] | None = Field(
+        default=None, description="Epiphan Cloud user profile for the API token."
+    )
+    error: str | None = Field(default=None, description="Error message on failure.")
+
+
+class CloudDeviceListResult(BaseModel):
+    """Return type of ``cloud_list_devices``."""
+
+    devices: list[dict[str, Any]] = Field(
+        default_factory=list,
+        description="Paired devices with names, IDs, online status, and firmware.",
+    )
+    count: int | None = Field(default=None, description="Number of devices returned")
+    error: str | None = Field(default=None, description="Error message on failure.")
+
+
+class CloudDeviceResult(BaseModel):
+    """Return type of ``cloud_get_device``."""
+
+    device: dict[str, Any] | None = Field(
+        default=None, description="Device details including telemetry and status."
+    )
+    error: str | None = Field(default=None, description="Error message on failure.")
+
+
+class CloudPairResult(BaseModel):
+    """Return type of ``cloud_pair_device``."""
+
+    device: dict[str, Any] | None = Field(
+        default=None, description="Newly paired device details."
+    )
+    message: str | None = Field(default=None, description="Human-readable confirmation message")
+    error: str | None = Field(default=None, description="Error message on failure.")
+
+
+class CloudOperationResult(BaseModel):
+    """Return type of ``cloud_unpair_device`` / ``cloud_delete_device`` /
+    ``cloud_rename_device``."""
+
+    success: bool | None = Field(
+        default=None, description="True when the operation succeeded; null on failure."
+    )
+    message: str | None = Field(default=None, description="Human-readable confirmation message")
+    error: str | None = Field(default=None, description="Error message on failure.")
+
+
+class CloudCommandResult(BaseModel):
+    """Return type of ``cloud_run_command`` / ``cloud_apply_preset``."""
+
+    result: dict[str, Any] | None = Field(
+        default=None, description="Raw execution result from Epiphan Cloud."
+    )
+    message: str | None = Field(default=None, description="Human-readable confirmation message")
+    error: str | None = Field(default=None, description="Error message on failure.")
+
+
+class CloudBatchCommandResult(BaseModel):
+    """Return type of ``cloud_batch_command``."""
+
+    result: dict[str, Any] | None = Field(
+        default=None, description="Raw batch execution result from Epiphan Cloud."
+    )
+    message: str | None = Field(default=None, description="Human-readable confirmation message")
+    device_count: int | None = Field(default=None, description="Number of devices targeted")
+    error: str | None = Field(default=None, description="Error message on failure.")
+
+
+class CloudSettingsResult(BaseModel):
+    """Return type of ``cloud_get_settings``."""
+
+    settings: dict[str, Any] | None = Field(
+        default=None, description="Device settings: video, audio, and network configuration."
+    )
+    device_id: str | None = Field(default=None, description="Cloud device queried")
+    error: str | None = Field(default=None, description="Error message on failure.")
+
+
+class CloudPreviewResult(BaseModel):
+    """Return type of ``cloud_get_preview``."""
+
+    image_base64: str | None = Field(
+        default=None, description="Preview image bytes, base64-encoded (ASCII)."
+    )
+    content_type: str | None = Field(default=None, description="Image MIME type (image/jpeg)")
+    size_bytes: int | None = Field(default=None, description="Decoded image size in bytes")
+    device_id: str | None = Field(default=None, description="Cloud device previewed")
+    error: str | None = Field(default=None, description="Error message on failure.")
+
+
+# ============================================================
 # Q-SYS Integration Tool Response Models
 # ============================================================
 #

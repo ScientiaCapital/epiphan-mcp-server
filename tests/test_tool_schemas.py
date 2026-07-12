@@ -39,7 +39,6 @@ from .fixtures.responses import (
 # Tool modules not yet converted to typed params + typed returns.
 # Remove a module from this set in the same commit that converts it.
 NOT_YET_CONVERTED = {
-    "cloud",
     "ec20",
 }
 
@@ -324,6 +323,18 @@ _MODEL_MUST_KEEP_FIELDS = {
     "RecordingIssuesResult": {
         "success", "issues_detected", "issues", "quality_score", "recommendation",
         "model_used", "timestamp", "device_id", "channel", "error",
+    },
+    # cloud (integration convention: only unpair/delete/rename carry `success`)
+    "CloudUserResult": {"user", "error"},
+    "CloudDeviceListResult": {"devices", "count", "error"},
+    "CloudDeviceResult": {"device", "error"},
+    "CloudPairResult": {"device", "message", "error"},
+    "CloudOperationResult": {"success", "message", "error"},
+    "CloudCommandResult": {"result", "message", "error"},
+    "CloudBatchCommandResult": {"result", "message", "device_count", "error"},
+    "CloudSettingsResult": {"settings", "device_id", "error"},
+    "CloudPreviewResult": {
+        "image_base64", "content_type", "size_bytes", "device_id", "error",
     },
     # qsys (integration convention: list/status tools carry no `success` key)
     "QSysComponentListResult": {"components", "count", "filter", "qsys_host", "error"},

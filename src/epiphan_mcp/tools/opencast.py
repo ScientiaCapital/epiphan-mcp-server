@@ -18,15 +18,54 @@ Environment Variables Required:
 import os
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import Annotated, Any
 
 from fastmcp import FastMCP
+from pydantic import Field
 
 from epiphan_mcp.integrations.opencast import (
     OpencastAPIError,
     OpencastAuthError,
     OpencastClient,
 )
+from epiphan_mcp.models import (
+    OpencastDeleteResult,
+    OpencastEventListResult,
+    OpencastEventResult,
+    OpencastIngestResult,
+    OpencastIngestStatusResult,
+    OpencastScheduleResult,
+    OpencastSeriesListResult,
+    OpencastSeriesResult,
+)
+
+_FilterText = Annotated[str, Field(description="Filter series by title (partial match).")]
+_Limit = Annotated[int, Field(description="Maximum number of results (default 50).")]
+_Offset = Annotated[int, Field(description="Pagination offset for paging through results.")]
+_SeriesId = Annotated[str, Field(description="Series UUID.")]
+_SeriesIdFilter = Annotated[str, Field(description="Filter events by series UUID (optional).")]
+_EventStatus = Annotated[
+    str, Field(description="Filter by status, e.g. 'PROCESSED' or 'PROCESSING' (optional).")
+]
+_EventId = Annotated[str, Field(description="Event UUID.")]
+_Title = Annotated[str, Field(description="Title of the series/recording/event.")]
+_Description = Annotated[str, Field(description="Description text.")]
+_Creator = Annotated[str, Field(description="Creator / presenter / instructor name.")]
+_Subject = Annotated[str, Field(description="Subject or topic.")]
+_Language = Annotated[str, Field(description="Language code (default 'en').")]
+_FilePath = Annotated[str, Field(description="Local path to the video file to ingest.")]
+_Spatial = Annotated[str, Field(description="Location / room name.")]
+_Workflow = Annotated[str, Field(description="Processing workflow ID (default 'fast').")]
+_WorkflowId = Annotated[str, Field(description="Workflow instance ID returned by ingest.")]
+_StartTime = Annotated[
+    str, Field(description="Start time in ISO format (e.g. '2024-01-15T10:00:00').")
+]
+_EndTime = Annotated[
+    str, Field(description="End time in ISO format (e.g. '2024-01-15T11:00:00').")
+]
+_CaptureAgent = Annotated[
+    str, Field(description="Capture agent ID (the Pearl device identifier).")
+]
 
 
 def _get_opencast_config() -> dict[str, Any]:
@@ -58,10 +97,10 @@ def _get_opencast_config() -> dict[str, Any]:
 
 
 async def list_opencast_series(
-    filter_text: str = "",
-    limit: int = 50,
-    offset: int = 0,
-) -> dict[str, Any]:
+    filter_text: _FilterText = "",
+    limit: _Limit = 50,
+    offset: _Offset = 0,
+) -> OpencastSeriesListResult:
     """List series (courses/channels) in Opencast.
 
     Retrieves series accessible to the configured admin account.
@@ -83,7 +122,7 @@ async def list_opencast_series(
     try:
         config = _get_opencast_config()
     except ValueError as e:
-        return {"error": str(e), "series": []}
+        return OpencastSeriesListResult(error=str(e), series=[])
 
     try:
         async with OpencastClient(**config) as client:
@@ -92,19 +131,19 @@ async def list_opencast_series(
                 limit=limit,
                 offset=offset,
             )
-            return {
-                "series": series,
-                "count": len(series),
-                "filter": filter_text or None,
-                "offset": offset,
-            }
+            return OpencastSeriesListResult(
+                series=series,
+                count=len(series),
+                filter=filter_text or None,
+                offset=offset,
+            )
     except OpencastAuthError as e:
-        return {"error": f"Authentication failed: {e}", "series": []}
+        return OpencastSeriesListResult(error=f"Authentication failed: {e}", series=[])
     except OpencastAPIError as e:
-        return {"error": f"API error: {e}", "series": []}
+        return OpencastSeriesListResult(error=f"API error: {e}", series=[])
 
 
-async def get_opencast_series(series_id: str) -> dict[str, Any]:
+async def get_opencast_series(series_id: _SeriesId) -> OpencastSeriesResult:
     """Get details of a specific Opencast series.
 
     Args:
@@ -117,30 +156,30 @@ async def get_opencast_series(series_id: str) -> dict[str, Any]:
         "Get details of Opencast series abc-123"
     """
     if not series_id:
-        return {"error": "series_id is required"}
+        return OpencastSeriesResult(error="series_id is required")
 
     try:
         config = _get_opencast_config()
     except ValueError as e:
-        return {"error": str(e)}
+        return OpencastSeriesResult(error=str(e))
 
     try:
         async with OpencastClient(**config) as client:
             series = await client.get_series(series_id)
-            return {"series": series}
+            return OpencastSeriesResult(series=series)
     except OpencastAuthError as e:
-        return {"error": f"Authentication failed: {e}"}
+        return OpencastSeriesResult(error=f"Authentication failed: {e}")
     except OpencastAPIError as e:
-        return {"error": f"API error: {e}"}
+        return OpencastSeriesResult(error=f"API error: {e}")
 
 
 async def create_opencast_series(
-    title: str,
-    description: str = "",
-    creator: str = "",
-    subject: str = "",
-    language: str = "en",
-) -> dict[str, Any]:
+    title: _Title,
+    description: _Description = "",
+    creator: _Creator = "",
+    subject: _Subject = "",
+    language: _Language = "en",
+) -> OpencastSeriesResult:
     """Create a new series in Opencast.
 
     Series are containers for organizing recordings by course or topic.
@@ -160,12 +199,12 @@ async def create_opencast_series(
         "Create a series for Dr. Smith's lectures"
     """
     if not title:
-        return {"error": "title is required"}
+        return OpencastSeriesResult(error="title is required")
 
     try:
         config = _get_opencast_config()
     except ValueError as e:
-        return {"error": str(e)}
+        return OpencastSeriesResult(error=str(e))
 
     try:
         async with OpencastClient(**config) as client:
@@ -176,22 +215,22 @@ async def create_opencast_series(
                 subject=subject,
                 language=language,
             )
-            return {
-                "series": series,
-                "message": f"Created series '{title}'",
-            }
+            return OpencastSeriesResult(
+                series=series,
+                message=f"Created series '{title}'",
+            )
     except OpencastAuthError as e:
-        return {"error": f"Authentication failed: {e}"}
+        return OpencastSeriesResult(error=f"Authentication failed: {e}")
     except OpencastAPIError as e:
-        return {"error": f"API error: {e}"}
+        return OpencastSeriesResult(error=f"API error: {e}")
 
 
 async def list_opencast_events(
-    series_id: str = "",
-    status: str = "",
-    limit: int = 50,
-    offset: int = 0,
-) -> dict[str, Any]:
+    series_id: _SeriesIdFilter = "",
+    status: _EventStatus = "",
+    limit: _Limit = 50,
+    offset: _Offset = 0,
+) -> OpencastEventListResult:
     """List events (recordings) in Opencast.
 
     Args:
@@ -211,7 +250,7 @@ async def list_opencast_events(
     try:
         config = _get_opencast_config()
     except ValueError as e:
-        return {"error": str(e), "events": []}
+        return OpencastEventListResult(error=str(e), events=[])
 
     try:
         async with OpencastClient(**config) as client:
@@ -221,20 +260,20 @@ async def list_opencast_events(
                 limit=limit,
                 offset=offset,
             )
-            return {
-                "events": events,
-                "count": len(events),
-                "series_id": series_id or "all",
-                "status": status or "all",
-                "offset": offset,
-            }
+            return OpencastEventListResult(
+                events=events,
+                count=len(events),
+                series_id=series_id or "all",
+                status=status or "all",
+                offset=offset,
+            )
     except OpencastAuthError as e:
-        return {"error": f"Authentication failed: {e}", "events": []}
+        return OpencastEventListResult(error=f"Authentication failed: {e}", events=[])
     except OpencastAPIError as e:
-        return {"error": f"API error: {e}", "events": []}
+        return OpencastEventListResult(error=f"API error: {e}", events=[])
 
 
-async def get_opencast_event(event_id: str) -> dict[str, Any]:
+async def get_opencast_event(event_id: _EventId) -> OpencastEventResult:
     """Get details of a specific Opencast event (recording).
 
     Args:
@@ -247,32 +286,32 @@ async def get_opencast_event(event_id: str) -> dict[str, Any]:
         "Get details of Opencast event xyz-789"
     """
     if not event_id:
-        return {"error": "event_id is required"}
+        return OpencastEventResult(error="event_id is required")
 
     try:
         config = _get_opencast_config()
     except ValueError as e:
-        return {"error": str(e)}
+        return OpencastEventResult(error=str(e))
 
     try:
         async with OpencastClient(**config) as client:
             event = await client.get_event(event_id)
-            return {"event": event}
+            return OpencastEventResult(event=event)
     except OpencastAuthError as e:
-        return {"error": f"Authentication failed: {e}"}
+        return OpencastEventResult(error=f"Authentication failed: {e}")
     except OpencastAPIError as e:
-        return {"error": f"API error: {e}"}
+        return OpencastEventResult(error=f"API error: {e}")
 
 
 async def ingest_to_opencast(
-    file_path: str,
-    title: str,
-    series_id: str = "",
-    creator: str = "",
-    description: str = "",
-    spatial: str = "",
-    workflow: str = "fast",
-) -> dict[str, Any]:
+    file_path: _FilePath,
+    title: _Title,
+    series_id: _SeriesIdFilter = "",
+    creator: _Creator = "",
+    description: _Description = "",
+    spatial: _Spatial = "",
+    workflow: _Workflow = "fast",
+) -> OpencastIngestResult:
     """Ingest a video recording to Opencast.
 
     Uploads a video file and starts the processing workflow.
@@ -295,18 +334,18 @@ async def ingest_to_opencast(
         "Ingest the recording to Opencast as 'Physics Lecture 5'"
     """
     if not file_path:
-        return {"error": "file_path is required"}
+        return OpencastIngestResult(error="file_path is required")
     if not title:
-        return {"error": "title is required"}
+        return OpencastIngestResult(error="title is required")
 
     path = Path(file_path)
     if not path.exists():
-        return {"error": f"File not found: {file_path}"}
+        return OpencastIngestResult(error=f"File not found: {file_path}")
 
     try:
         config = _get_opencast_config()
     except ValueError as e:
-        return {"error": str(e)}
+        return OpencastIngestResult(error=str(e))
 
     try:
         async with OpencastClient(**config) as client:
@@ -319,18 +358,18 @@ async def ingest_to_opencast(
                 spatial=spatial,
                 workflow=workflow,
             )
-            return {
-                "result": result,
-                "message": f"Ingested '{title}' to Opencast",
-                "file_size": path.stat().st_size,
-            }
+            return OpencastIngestResult(
+                result=result,
+                message=f"Ingested '{title}' to Opencast",
+                file_size=path.stat().st_size,
+            )
     except OpencastAuthError as e:
-        return {"error": f"Authentication failed: {e}"}
+        return OpencastIngestResult(error=f"Authentication failed: {e}")
     except OpencastAPIError as e:
-        return {"error": f"API error: {e}"}
+        return OpencastIngestResult(error=f"API error: {e}")
 
 
-async def get_opencast_ingest_status(workflow_id: str) -> dict[str, Any]:
+async def get_opencast_ingest_status(workflow_id: _WorkflowId) -> OpencastIngestStatusResult:
     """Check the status of an Opencast ingest workflow.
 
     Args:
@@ -343,33 +382,33 @@ async def get_opencast_ingest_status(workflow_id: str) -> dict[str, Any]:
         "Check status of Opencast ingest workflow 12345"
     """
     if not workflow_id:
-        return {"error": "workflow_id is required"}
+        return OpencastIngestStatusResult(error="workflow_id is required")
 
     try:
         config = _get_opencast_config()
     except ValueError as e:
-        return {"error": str(e)}
+        return OpencastIngestStatusResult(error=str(e))
 
     try:
         async with OpencastClient(**config) as client:
             status = await client.get_ingest_status(workflow_id)
-            return {"status": status}
+            return OpencastIngestStatusResult(status=status)
     except OpencastAuthError as e:
-        return {"error": f"Authentication failed: {e}"}
+        return OpencastIngestStatusResult(error=f"Authentication failed: {e}")
     except OpencastAPIError as e:
-        return {"error": f"API error: {e}"}
+        return OpencastIngestStatusResult(error=f"API error: {e}")
 
 
 async def schedule_opencast_capture(
-    title: str,
-    start_time: str,
-    end_time: str,
-    capture_agent: str,
-    series_id: str = "",
-    creator: str = "",
-    description: str = "",
-    spatial: str = "",
-) -> dict[str, Any]:
+    title: _Title,
+    start_time: _StartTime,
+    end_time: _EndTime,
+    capture_agent: _CaptureAgent,
+    series_id: _SeriesIdFilter = "",
+    creator: _Creator = "",
+    description: _Description = "",
+    spatial: _Spatial = "",
+) -> OpencastScheduleResult:
     """Schedule a capture event in Opencast for Pearl auto-record.
 
     Creates a scheduled event that Pearl devices (registered as capture agents)
@@ -393,27 +432,29 @@ async def schedule_opencast_capture(
         "Schedule capture for 'Physics Lecture' tomorrow at 2pm"
     """
     if not title:
-        return {"error": "title is required"}
+        return OpencastScheduleResult(error="title is required")
     if not start_time:
-        return {"error": "start_time is required"}
+        return OpencastScheduleResult(error="start_time is required")
     if not end_time:
-        return {"error": "end_time is required"}
+        return OpencastScheduleResult(error="end_time is required")
     if not capture_agent:
-        return {"error": "capture_agent is required"}
+        return OpencastScheduleResult(error="capture_agent is required")
 
     try:
         start_dt = datetime.fromisoformat(start_time.replace("Z", "+00:00"))
         end_dt = datetime.fromisoformat(end_time.replace("Z", "+00:00"))
     except ValueError as e:
-        return {"error": f"Invalid datetime format: {e}. Use ISO format like '2024-01-15T10:00:00'"}
+        return OpencastScheduleResult(
+            error=f"Invalid datetime format: {e}. Use ISO format like '2024-01-15T10:00:00'"
+        )
 
     if end_dt <= start_dt:
-        return {"error": "end_time must be after start_time"}
+        return OpencastScheduleResult(error="end_time must be after start_time")
 
     try:
         config = _get_opencast_config()
     except ValueError as e:
-        return {"error": str(e)}
+        return OpencastScheduleResult(error=str(e))
 
     try:
         async with OpencastClient(**config) as client:
@@ -427,19 +468,19 @@ async def schedule_opencast_capture(
                 description=description,
                 spatial=spatial,
             )
-            return {
-                "event": event,
-                "message": f"Scheduled capture '{title}' on {capture_agent}",
-                "start_time": start_time,
-                "end_time": end_time,
-            }
+            return OpencastScheduleResult(
+                event=event,
+                message=f"Scheduled capture '{title}' on {capture_agent}",
+                start_time=start_time,
+                end_time=end_time,
+            )
     except OpencastAuthError as e:
-        return {"error": f"Authentication failed: {e}"}
+        return OpencastScheduleResult(error=f"Authentication failed: {e}")
     except OpencastAPIError as e:
-        return {"error": f"API error: {e}"}
+        return OpencastScheduleResult(error=f"API error: {e}")
 
 
-async def delete_opencast_event(event_id: str) -> dict[str, Any]:
+async def delete_opencast_event(event_id: _EventId) -> OpencastDeleteResult:
     """Delete an event from Opencast.
 
     Permanently removes an event/recording. Use with caution.
@@ -454,25 +495,25 @@ async def delete_opencast_event(event_id: str) -> dict[str, Any]:
         "Delete Opencast event xyz-789"
     """
     if not event_id:
-        return {"error": "event_id is required"}
+        return OpencastDeleteResult(error="event_id is required")
 
     try:
         config = _get_opencast_config()
     except ValueError as e:
-        return {"error": str(e)}
+        return OpencastDeleteResult(error=str(e))
 
     try:
         async with OpencastClient(**config) as client:
             await client.delete_event(event_id)
-            return {
-                "success": True,
-                "message": f"Deleted event {event_id}",
-                "event_id": event_id,
-            }
+            return OpencastDeleteResult(
+                success=True,
+                message=f"Deleted event {event_id}",
+                event_id=event_id,
+            )
     except OpencastAuthError as e:
-        return {"error": f"Authentication failed: {e}"}
+        return OpencastDeleteResult(error=f"Authentication failed: {e}")
     except OpencastAPIError as e:
-        return {"error": f"API error: {e}"}
+        return OpencastDeleteResult(error=f"API error: {e}")
 
 
 # Tool registry for MCP server registration

@@ -572,8 +572,8 @@ class TestOpencastTools:
 
         with patch.dict(os.environ, {}, clear=True):
             result = await list_opencast_series()
-            assert "error" in result
-            assert "Missing Opencast configuration" in result["error"]
+            assert result.error is not None
+            assert "Missing Opencast configuration" in result.error
 
     @pytest.mark.asyncio
     @respx.mock
@@ -589,8 +589,8 @@ class TestOpencastTools:
         )
 
         result = await list_opencast_series()
-        assert result["count"] == 1
-        assert result["series"][0]["title"] == "Series 1"
+        assert result.count == 1
+        assert result.series[0]["title"] == "Series 1"
 
     @pytest.mark.asyncio
     @respx.mock
@@ -603,7 +603,7 @@ class TestOpencastTools:
         )
 
         result = await get_opencast_series("series-123")
-        assert result["series"]["identifier"] == "series-123"
+        assert result.series["identifier"] == "series-123"
 
     @pytest.mark.asyncio
     async def test_get_opencast_series_missing_id(self):
@@ -611,7 +611,7 @@ class TestOpencastTools:
         from epiphan_mcp.tools.opencast import get_opencast_series
 
         result = await get_opencast_series("")
-        assert "series_id is required" in result["error"]
+        assert "series_id is required" in result.error
 
     @pytest.mark.asyncio
     @respx.mock
@@ -624,8 +624,8 @@ class TestOpencastTools:
         )
 
         result = await create_opencast_series("New Series")
-        assert "series" in result
-        assert "Created series" in result["message"]
+        assert result.series is not None
+        assert "Created series" in result.message
 
     @pytest.mark.asyncio
     async def test_create_opencast_series_missing_title(self):
@@ -633,7 +633,7 @@ class TestOpencastTools:
         from epiphan_mcp.tools.opencast import create_opencast_series
 
         result = await create_opencast_series("")
-        assert "title is required" in result["error"]
+        assert "title is required" in result.error
 
     @pytest.mark.asyncio
     @respx.mock
@@ -649,7 +649,7 @@ class TestOpencastTools:
         )
 
         result = await list_opencast_events()
-        assert result["count"] == 1
+        assert result.count == 1
 
     @pytest.mark.asyncio
     @respx.mock
@@ -662,7 +662,7 @@ class TestOpencastTools:
         )
 
         result = await get_opencast_event("event-123")
-        assert result["event"]["identifier"] == "event-123"
+        assert result.event["identifier"] == "event-123"
 
     @pytest.mark.asyncio
     async def test_ingest_to_opencast_missing_params(self):
@@ -670,10 +670,10 @@ class TestOpencastTools:
         from epiphan_mcp.tools.opencast import ingest_to_opencast
 
         result = await ingest_to_opencast("", "Title")
-        assert "file_path is required" in result["error"]
+        assert "file_path is required" in result.error
 
         result = await ingest_to_opencast("/path/to/file.mp4", "")
-        assert "title is required" in result["error"]
+        assert "title is required" in result.error
 
     @pytest.mark.asyncio
     async def test_ingest_to_opencast_file_not_found(self):
@@ -681,7 +681,7 @@ class TestOpencastTools:
         from epiphan_mcp.tools.opencast import ingest_to_opencast
 
         result = await ingest_to_opencast("/nonexistent/file.mp4", "Title")
-        assert "File not found" in result["error"]
+        assert "File not found" in result.error
 
     @pytest.mark.asyncio
     @respx.mock
@@ -699,8 +699,8 @@ class TestOpencastTools:
             end_time="2024-01-15T11:00:00",
             capture_agent="pearl-101",
         )
-        assert "event" in result
-        assert "Scheduled capture" in result["message"]
+        assert result.event is not None
+        assert "Scheduled capture" in result.message
 
     @pytest.mark.asyncio
     async def test_schedule_opencast_capture_missing_params(self):
@@ -710,18 +710,18 @@ class TestOpencastTools:
         result = await schedule_opencast_capture(
             "", "2024-01-15T10:00:00", "2024-01-15T11:00:00", "agent"
         )
-        assert "title is required" in result["error"]
+        assert "title is required" in result.error
 
         result = await schedule_opencast_capture("Title", "", "2024-01-15T11:00:00", "agent")
-        assert "start_time is required" in result["error"]
+        assert "start_time is required" in result.error
 
         result = await schedule_opencast_capture("Title", "2024-01-15T10:00:00", "", "agent")
-        assert "end_time is required" in result["error"]
+        assert "end_time is required" in result.error
 
         result = await schedule_opencast_capture(
             "Title", "2024-01-15T10:00:00", "2024-01-15T11:00:00", ""
         )
-        assert "capture_agent is required" in result["error"]
+        assert "capture_agent is required" in result.error
 
     @pytest.mark.asyncio
     async def test_schedule_opencast_capture_invalid_datetime(self):
@@ -731,7 +731,7 @@ class TestOpencastTools:
         result = await schedule_opencast_capture(
             "Title", "not-a-date", "2024-01-15T11:00:00", "agent"
         )
-        assert "Invalid datetime format" in result["error"]
+        assert "Invalid datetime format" in result.error
 
     @pytest.mark.asyncio
     async def test_schedule_opencast_capture_end_before_start(self):
@@ -744,7 +744,7 @@ class TestOpencastTools:
             "2024-01-15T11:00:00",
             "agent",
         )
-        assert "end_time must be after start_time" in result["error"]
+        assert "end_time must be after start_time" in result.error
 
     @pytest.mark.asyncio
     @respx.mock
@@ -757,7 +757,7 @@ class TestOpencastTools:
         )
 
         result = await delete_opencast_event("event-123")
-        assert result["success"] is True
+        assert result.success is True
 
     @pytest.mark.asyncio
     async def test_delete_opencast_event_missing_id(self):
@@ -765,7 +765,7 @@ class TestOpencastTools:
         from epiphan_mcp.tools.opencast import delete_opencast_event
 
         result = await delete_opencast_event("")
-        assert "event_id is required" in result["error"]
+        assert "event_id is required" in result.error
 
 
 class TestOpencastToolsAuthErrors:
@@ -793,5 +793,5 @@ class TestOpencastToolsAuthErrors:
         respx.get("https://opencast.example.edu/api/info/me").mock(return_value=httpx.Response(401))
 
         result = await list_opencast_series()
-        assert "error" in result
-        assert "Authentication failed" in result["error"]
+        assert result.error is not None
+        assert "Authentication failed" in result.error

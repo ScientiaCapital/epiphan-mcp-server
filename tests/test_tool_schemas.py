@@ -43,7 +43,6 @@ NOT_YET_CONVERTED = {
     "cloud",
     "ec20",
     "kaltura",
-    "opencast",
     "panopto",
     "publishers",
     "schedule",
@@ -238,10 +237,11 @@ async def test_wire_compat_batch_start_no_devices(monkeypatch):
 #
 # This is equivalent to the runtime check because these result models declare
 # no serialization aliases (verified by ``test_result_models_have_no_aliases``
-# below) and every field has a default — so FastMCP always serialises the full
-# field set into ``structured_content``, making "field present on the model"
-# and "key present on the wire" the same statement. It is far lighter than a
-# per-tool respx fixture, so it scales to every converted tool.
+# below), so every declared field serialises into ``structured_content`` on
+# every return path (required fields like ``success`` are always set; optional
+# ones default to null) — making "field present on the model" and "key present
+# on the wire" the same statement. It is far lighter than a per-tool respx
+# fixture, so it scales to every converted tool.
 #
 # Keys were read off the ORIGINAL dict-returning code at the pre-conversion
 # commit (top-level return-dict keys only; nested list/dict item keys excluded).
@@ -306,6 +306,15 @@ _MODEL_MUST_KEEP_FIELDS = {
     "YouTubeBroadcastStatusResult": {"status", "error"},
     "YouTubeBroadcastListResult": {"broadcasts", "count", "filter", "error"},
     "YouTubeBroadcastEndResult": {"success", "broadcast_id", "new_status", "message", "error"},
+    # opencast (integration convention: list/get/create/ingest carry no `success` key)
+    "OpencastSeriesListResult": {"series", "count", "filter", "offset", "error"},
+    "OpencastSeriesResult": {"series", "message", "error"},
+    "OpencastEventListResult": {"events", "count", "series_id", "status", "offset", "error"},
+    "OpencastEventResult": {"event", "error"},
+    "OpencastIngestResult": {"result", "message", "file_size", "error"},
+    "OpencastIngestStatusResult": {"status", "error"},
+    "OpencastScheduleResult": {"event", "message", "start_time", "end_time", "error"},
+    "OpencastDeleteResult": {"success", "message", "event_id", "error"},
 }
 
 

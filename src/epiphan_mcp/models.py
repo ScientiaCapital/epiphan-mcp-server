@@ -1268,3 +1268,102 @@ class YouTubeBroadcastEndResult(BaseModel):
     )
     message: str | None = Field(default=None, description="Human-readable confirmation message")
     error: str | None = Field(default=None, description="Error message on failure.")
+
+
+# ============================================================
+# Opencast Integration Tool Response Models
+# ============================================================
+#
+# Same integration convention: list/get/create/ingest tools carry no
+# ``success`` key on their success path; errors return a bare ``error``.
+
+
+class OpencastSeriesListResult(BaseModel):
+    """Return type of ``list_opencast_series``."""
+
+    series: list[dict[str, Any]] = Field(
+        default_factory=list, description="Series (courses/channels), each with identifier + title."
+    )
+    count: int | None = Field(default=None, description="Number of series returned")
+    filter: str | None = Field(default=None, description="Title filter applied, or null")
+    offset: int | None = Field(default=None, description="Pagination offset used")
+    error: str | None = Field(default=None, description="Error message on failure.")
+
+
+class OpencastSeriesResult(BaseModel):
+    """Return type of ``get_opencast_series`` / ``create_opencast_series``."""
+
+    series: dict[str, Any] | None = Field(
+        default=None, description="Series detail (identifier, title, description, creator)."
+    )
+    message: str | None = Field(
+        default=None, description="Confirmation message (create only)."
+    )
+    error: str | None = Field(default=None, description="Error message on failure.")
+
+
+class OpencastEventListResult(BaseModel):
+    """Return type of ``list_opencast_events``."""
+
+    events: list[dict[str, Any]] = Field(
+        default_factory=list, description="Events (recordings), each with identifier + title."
+    )
+    count: int | None = Field(default=None, description="Number of events returned")
+    series_id: str | None = Field(
+        default=None, description="Series filter applied ('all' when unfiltered)"
+    )
+    status: str | None = Field(
+        default=None, description="Status filter applied ('all' when unfiltered)"
+    )
+    offset: int | None = Field(default=None, description="Pagination offset used")
+    error: str | None = Field(default=None, description="Error message on failure.")
+
+
+class OpencastEventResult(BaseModel):
+    """Return type of ``get_opencast_event``."""
+
+    event: dict[str, Any] | None = Field(
+        default=None, description="Event detail (title, duration, status, publications)."
+    )
+    error: str | None = Field(default=None, description="Error message on failure.")
+
+
+class OpencastIngestResult(BaseModel):
+    """Return type of ``ingest_to_opencast``."""
+
+    result: dict[str, Any] | None = Field(
+        default=None, description="Ingest result (success flag, workflow instance ID)."
+    )
+    message: str | None = Field(default=None, description="Human-readable confirmation message")
+    file_size: int | None = Field(default=None, description="Size of the ingested file in bytes")
+    error: str | None = Field(default=None, description="Error message on failure.")
+
+
+class OpencastIngestStatusResult(BaseModel):
+    """Return type of ``get_opencast_ingest_status``."""
+
+    status: dict[str, Any] | None = Field(
+        default=None, description="Workflow status (state + per-operation progress)."
+    )
+    error: str | None = Field(default=None, description="Error message on failure.")
+
+
+class OpencastScheduleResult(BaseModel):
+    """Return type of ``schedule_opencast_capture``."""
+
+    event: dict[str, Any] | None = Field(
+        default=None, description="Created scheduled event detail."
+    )
+    message: str | None = Field(default=None, description="Human-readable confirmation message")
+    start_time: str | None = Field(default=None, description="Scheduled start (ISO 8601)")
+    end_time: str | None = Field(default=None, description="Scheduled end (ISO 8601)")
+    error: str | None = Field(default=None, description="Error message on failure.")
+
+
+class OpencastDeleteResult(BaseModel):
+    """Return type of ``delete_opencast_event``."""
+
+    success: bool | None = Field(default=None, description="Whether the event was deleted")
+    message: str | None = Field(default=None, description="Human-readable confirmation message")
+    event_id: str | None = Field(default=None, description="Event ID that was deleted")
+    error: str | None = Field(default=None, description="Error message on failure.")

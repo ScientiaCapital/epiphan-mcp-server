@@ -2,18 +2,42 @@
 
 import base64
 import logging
-from typing import Any
+from typing import Annotated
 
 from fastmcp import FastMCP
+from pydantic import BaseModel, Field
 
 from ..client import PearlAPIError
+from ..models import (
+    ChannelListResult,
+    ChannelPreviewResult,
+    PublisherListResult,
+    StreamControlResult,
+    StreamStatusResult,
+)
 from .device import get_client
 from .discovery import get_default_channel
+from .params import ChannelNum, DeviceId, ImageFormat, PreviewResolution
 
 logger = logging.getLogger(__name__)
 
+_PublisherId = Annotated[
+    str,
+    Field(description="Publisher ID to query (e.g. 'publisher-1')."),
+]
+_IncludePublishers = Annotated[
+    bool,
+    Field(description="Include publisher (stream) details for each channel."),
+]
+_IncludeLayouts = Annotated[
+    bool,
+    Field(description="Include layout details for each channel."),
+]
 
-async def start_stream(device_id: str = "default", channel: int | None = None) -> dict[str, Any]:
+
+async def start_stream(
+    device_id: DeviceId = "default", channel: ChannelNum = None
+) -> StreamControlResult:
     """
     Start streaming on an Epiphan Pearl device.
 
@@ -34,23 +58,25 @@ async def start_stream(device_id: str = "default", channel: int | None = None) -
         async with get_client(device_id) as client:
             channel_id = f"channel-{channel}" if isinstance(channel, int) else str(channel)
             result = await client.start_all_publishers(channel_id)
-            return result.model_dump()
+            return StreamControlResult(**result.model_dump())
     except PearlAPIError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "device": device_id,
-            "channel": channel,
-        }
+        return StreamControlResult(
+            success=False,
+            error=str(e),
+            device=device_id,
+            channel=channel,
+        )
     except ValueError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "device": device_id,
-        }
+        return StreamControlResult(
+            success=False,
+            error=str(e),
+            device=device_id,
+        )
 
 
-async def stop_stream(device_id: str = "default", channel: int | None = None) -> dict[str, Any]:
+async def stop_stream(
+    device_id: DeviceId = "default", channel: ChannelNum = None
+) -> StreamControlResult:
     """
     Stop streaming on an Epiphan Pearl device.
 
@@ -69,25 +95,27 @@ async def stop_stream(device_id: str = "default", channel: int | None = None) ->
         async with get_client(device_id) as client:
             channel_id = f"channel-{channel}" if isinstance(channel, int) else str(channel)
             result = await client.stop_all_publishers(channel_id)
-            return result.model_dump()
+            return StreamControlResult(**result.model_dump())
     except PearlAPIError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "device": device_id,
-            "channel": channel,
-        }
+        return StreamControlResult(
+            success=False,
+            error=str(e),
+            device=device_id,
+            channel=channel,
+        )
     except ValueError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "device": device_id,
-        }
+        return StreamControlResult(
+            success=False,
+            error=str(e),
+            device=device_id,
+        )
 
 
 async def get_stream_status(
-    device_id: str = "default", channel: int | None = None, publisher: str = "publisher-1"
-) -> dict[str, Any]:
+    device_id: DeviceId = "default",
+    channel: ChannelNum = None,
+    publisher: _PublisherId = "publisher-1",
+) -> StreamStatusResult:
     """
     Get the status of a specific stream/publisher on an Epiphan Pearl device.
 
@@ -112,38 +140,38 @@ async def get_stream_status(
         async with get_client(device_id) as client:
             channel_id = f"channel-{channel}" if isinstance(channel, int) else str(channel)
             status = await client.get_publisher_status(channel_id, publisher)
-            return {
-                "success": True,
-                "device": client.host,
-                "channel": channel_id,
-                "publisher": publisher,
-                "state": status.state.value,
-                "duration_seconds": status.duration_seconds,
-                "bitrate_bps": status.bitrate_actual or 0,
-                "bytes_sent": status.bytes_sent or 0,
-                "destination": status.destination or "",
-            }
+            return StreamStatusResult(
+                success=True,
+                device=client.host,
+                channel=channel_id,
+                publisher=publisher,
+                state=status.state.value,
+                duration_seconds=status.duration_seconds,
+                bitrate_bps=status.bitrate_actual or 0,
+                bytes_sent=status.bytes_sent or 0,
+                destination=status.destination or "",
+            )
     except PearlAPIError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "device": device_id,
-            "channel": channel,
-            "publisher": publisher,
-        }
+        return StreamStatusResult(
+            success=False,
+            error=str(e),
+            device=device_id,
+            channel=channel,
+            publisher=publisher,
+        )
     except ValueError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "device": device_id,
-        }
+        return StreamStatusResult(
+            success=False,
+            error=str(e),
+            device=device_id,
+        )
 
 
 async def list_channels(
-    device_id: str = "default",
-    include_publishers: bool = False,
-    include_layouts: bool = False,
-) -> dict[str, Any]:
+    device_id: DeviceId = "default",
+    include_publishers: _IncludePublishers = False,
+    include_layouts: _IncludeLayouts = False,
+) -> ChannelListResult:
     """
     List all channels on an Epiphan Pearl device.
 
@@ -164,30 +192,33 @@ async def list_channels(
                 include_publishers=include_publishers,
                 include_layouts=include_layouts,
             )
-            return {
-                "success": True,
-                "device": client.host,
-                "total_channels": len(channels),
-                "channels": channels,
-            }
+            channel_dicts = [
+                c.model_dump() if isinstance(c, BaseModel) else c for c in channels
+            ]
+            return ChannelListResult(
+                success=True,
+                device=client.host,
+                total_channels=len(channel_dicts),
+                channels=channel_dicts,
+            )
     except PearlAPIError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "device": device_id,
-        }
+        return ChannelListResult(
+            success=False,
+            error=str(e),
+            device=device_id,
+        )
     except ValueError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "device": device_id,
-        }
+        return ChannelListResult(
+            success=False,
+            error=str(e),
+            device=device_id,
+        )
 
 
 async def list_publishers(
-    device_id: str = "default",
-    channel: int | None = None,
-) -> dict[str, Any]:
+    device_id: DeviceId = "default",
+    channel: ChannelNum = None,
+) -> PublisherListResult:
     """
     List all publishers (stream destinations) on a channel.
 
@@ -207,34 +238,34 @@ async def list_publishers(
         async with get_client(device_id) as client:
             channel_id = f"channel-{channel}" if isinstance(channel, int) else str(channel)
             publishers = await client.get_publishers(channel_id)
-            return {
-                "success": True,
-                "device": client.host,
-                "channel": channel_id,
-                "total_publishers": len(publishers),
-                "publishers": publishers,
-            }
+            return PublisherListResult(
+                success=True,
+                device=client.host,
+                channel=channel_id,
+                total_publishers=len(publishers),
+                publishers=publishers,
+            )
     except PearlAPIError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "device": device_id,
-            "channel": channel,
-        }
+        return PublisherListResult(
+            success=False,
+            error=str(e),
+            device=device_id,
+            channel=channel,
+        )
     except ValueError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "device": device_id,
-        }
+        return PublisherListResult(
+            success=False,
+            error=str(e),
+            device=device_id,
+        )
 
 
 async def get_channel_preview(
-    device_id: str = "default",
-    channel: int | None = None,
-    resolution: str | None = None,
-    format: str = "jpg",
-) -> dict[str, Any]:
+    device_id: DeviceId = "default",
+    channel: ChannelNum = None,
+    resolution: PreviewResolution = None,
+    format: ImageFormat = "jpg",
+) -> ChannelPreviewResult:
     """
     Get a live preview image from a channel.
 
@@ -262,30 +293,28 @@ async def get_channel_preview(
                 format=format,
             )
             preview_b64 = base64.b64encode(image_bytes).decode("ascii")
-            result: dict[str, Any] = {
-                "success": True,
-                "device": client.host,
-                "channel": channel_id,
-                "format": format,
-                "preview_base64": preview_b64,
-                "size_bytes": len(image_bytes),
-            }
-            if resolution:
-                result["resolution"] = resolution
-            return result
+            return ChannelPreviewResult(
+                success=True,
+                device=client.host,
+                channel=channel_id,
+                format=format,
+                preview_base64=preview_b64,
+                size_bytes=len(image_bytes),
+                resolution=resolution,
+            )
     except PearlAPIError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "device": device_id,
-            "channel": channel,
-        }
+        return ChannelPreviewResult(
+            success=False,
+            error=str(e),
+            device=device_id,
+            channel=channel,
+        )
     except ValueError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "device": device_id,
-        }
+        return ChannelPreviewResult(
+            success=False,
+            error=str(e),
+            device=device_id,
+        )
 
 
 def register(server: FastMCP) -> None:

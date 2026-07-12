@@ -337,7 +337,7 @@ class TestStartStream:
 
                 result = await start_stream.fn(device_id="default", channel=1)
 
-        assert result["success"] is True
+        assert result.success is True
 
 
 class TestStopStream:
@@ -359,7 +359,7 @@ class TestStopStream:
 
                 result = await stop_stream.fn(device_id="default", channel=1)
 
-        assert result["success"] is True
+        assert result.success is True
 
 
 class TestGetStreamStatus:
@@ -383,11 +383,11 @@ class TestGetStreamStatus:
                     device_id="default", channel=1, publisher="publisher-1"
                 )
 
-        assert result["success"] is True
-        assert result["state"] == "streaming"
-        assert result["duration_seconds"] == 1800
-        assert result["bitrate_bps"] == 6000000
-        assert result["bytes_sent"] == 1350000000
+        assert result.success is True
+        assert result.state == "streaming"
+        assert result.duration_seconds == 1800
+        assert result.bitrate_bps == 6000000
+        assert result.bytes_sent == 1350000000
 
     async def test_get_stream_status_stopped(self, mock_pearl_host: str):
         """Test getting status of stopped stream."""
@@ -407,9 +407,9 @@ class TestGetStreamStatus:
                     device_id="default", channel=1, publisher="publisher-1"
                 )
 
-        assert result["success"] is True
-        assert result["state"] == "stopped"
-        assert result["duration_seconds"] == 0
+        assert result.success is True
+        assert result.state == "stopped"
+        assert result.duration_seconds == 0
 
     async def test_get_stream_status_api_error(self, mock_pearl_host: str):
         """Test stream status with API error."""
@@ -429,8 +429,8 @@ class TestGetStreamStatus:
                     device_id="default", channel=1, publisher="publisher-1"
                 )
 
-        assert result["success"] is False
-        assert "error" in result
+        assert result.success is False
+        assert result.error is not None
 
     async def test_get_stream_status_invalid_device(self):
         """Test stream status with invalid device ID."""
@@ -443,8 +443,8 @@ class TestGetStreamStatus:
                 device_id="nonexistent", channel=1, publisher="publisher-1"
             )
 
-        assert result["success"] is False
-        assert "error" in result
+        assert result.success is False
+        assert result.error is not None
 
 
 # ============================================================
@@ -1234,8 +1234,8 @@ class TestServerErrorBranches:
 
                 result = await start_stream.fn(device_id="default", channel=1)
 
-        assert result["success"] is False
-        assert "No publishers configured" in result["error"]
+        assert result.success is False
+        assert "No publishers configured" in result.error
 
     async def test_start_stream_value_error(self):
         """Test start_stream handles ValueError."""
@@ -1245,8 +1245,8 @@ class TestServerErrorBranches:
             mock_settings.return_value = create_test_settings(devices="")
             result = await start_stream.fn(device_id="default", channel=1)
 
-        assert result["success"] is False
-        assert "No default device" in result["error"]
+        assert result.success is False
+        assert "No default device" in result.error
 
     async def test_stop_stream_api_error(self, mock_pearl_host: str):
         """Test stop_stream handles PearlAPIError."""
@@ -1264,8 +1264,8 @@ class TestServerErrorBranches:
 
                 result = await stop_stream.fn(device_id="default", channel=1)
 
-        assert result["success"] is False
-        assert "Not streaming" in result["error"]
+        assert result.success is False
+        assert "Not streaming" in result.error
 
     async def test_stop_stream_value_error(self):
         """Test stop_stream handles ValueError."""
@@ -1275,8 +1275,8 @@ class TestServerErrorBranches:
             mock_settings.return_value = create_test_settings(devices="")
             result = await stop_stream.fn(device_id="default", channel=1)
 
-        assert result["success"] is False
-        assert "No default device" in result["error"]
+        assert result.success is False
+        assert "No default device" in result.error
 
     async def test_switch_layout_api_error(self, mock_pearl_host: str):
         """Test switch_layout handles PearlAPIError."""

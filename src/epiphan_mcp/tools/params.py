@@ -60,3 +60,20 @@ ChannelNum = Annotated[
         )
     ),
 ]
+
+# Preview image parameters -----------------------------------------------
+
+PreviewResolution = Annotated[
+    str | None,
+    Field(
+        description=(
+            "Preview image resolution, e.g. '1920x1080' or '640x360'. If omitted, "
+            "defaults to 640x360."
+        )
+    ),
+]
+
+ImageFormat = Annotated[
+    str,
+    Field(description="Preview image format: 'jpg' (default) or 'png'."),
+]

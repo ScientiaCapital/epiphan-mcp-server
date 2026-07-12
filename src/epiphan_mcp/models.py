@@ -975,3 +975,92 @@ class DeviceHealthResult(BaseModel):
         default=None, description="Suggested action based on the score"
     )
     error: str | None = Field(default=None, description="Error message on failure.")
+
+
+# ============================================================
+# Streaming Tool Response Models
+# ============================================================
+
+
+class StreamControlResult(BaseModel):
+    """Return type of ``start_stream`` / ``stop_stream``."""
+
+    model_config = ConfigDict(extra="allow")
+
+    success: bool = Field(description="Whether the stream control action succeeded")
+    message: str | None = Field(default=None, description="Human-readable confirmation message")
+    device: str = Field(default="", description="Device host, or the requested device_id on error")
+    details: dict[str, Any] | None = Field(default=None, description="Operation details")
+    channel: int | str | None = Field(default=None, description="Channel targeted (on error paths)")
+    error: str | None = Field(default=None, description="Error message on failure.")
+
+
+class StreamStatusResult(BaseModel):
+    """Return type of ``get_stream_status``."""
+
+    success: bool = Field(description="Whether the stream status was retrieved")
+    device: str = Field(default="", description="Device host, or the requested device_id on error")
+    channel: int | str | None = Field(
+        default=None, description="Channel queried (channel-N id on success, number on error)"
+    )
+    publisher: str | None = Field(default=None, description="Publisher ID queried")
+    state: str | None = Field(
+        default=None, description="Stream state: streaming, stopped, connecting, error"
+    )
+    duration_seconds: int | None = Field(
+        default=None, description="How long the stream has been active, in seconds"
+    )
+    bitrate_bps: int | None = Field(default=None, description="Current bitrate in bits per second")
+    bytes_sent: int | None = Field(
+        default=None, description="Total bytes sent since the stream started"
+    )
+    destination: str | None = Field(default=None, description="Stream destination URL")
+    error: str | None = Field(default=None, description="Error message on failure.")
+
+
+class ChannelListResult(BaseModel):
+    """Return type of ``list_channels``."""
+
+    success: bool = Field(description="Whether the channels were retrieved")
+    device: str = Field(default="", description="Device host, or the requested device_id on error")
+    total_channels: int = Field(default=0, description="Number of channels returned")
+    channels: list[dict[str, Any]] = Field(
+        default_factory=list,
+        description="Channels, each with id and name (plus publishers/layouts when requested).",
+    )
+    error: str | None = Field(default=None, description="Error message on failure.")
+
+
+class PublisherListResult(BaseModel):
+    """Return type of ``list_publishers``."""
+
+    success: bool = Field(description="Whether the publishers were retrieved")
+    device: str = Field(default="", description="Device host, or the requested device_id on error")
+    channel: int | str | None = Field(
+        default=None, description="Channel queried (channel-N id on success, number on error)"
+    )
+    total_publishers: int = Field(default=0, description="Number of publishers returned")
+    publishers: list[dict[str, Any]] = Field(
+        default_factory=list,
+        description="Publishers, each with id, name, type, and enabled status.",
+    )
+    error: str | None = Field(default=None, description="Error message on failure.")
+
+
+class ChannelPreviewResult(BaseModel):
+    """Return type of ``get_channel_preview``."""
+
+    success: bool = Field(description="Whether the preview was captured")
+    device: str = Field(default="", description="Device host, or the requested device_id on error")
+    channel: int | str | None = Field(
+        default=None, description="Channel previewed (channel-N id on success, number on error)"
+    )
+    format: str | None = Field(default=None, description="Image format: 'jpg' or 'png'")
+    preview_base64: str | None = Field(
+        default=None, description="Preview image bytes, base64-encoded (ASCII)."
+    )
+    size_bytes: int | None = Field(default=None, description="Decoded image size in bytes")
+    resolution: str | None = Field(
+        default=None, description="Requested resolution (present only when explicitly specified)"
+    )
+    error: str | None = Field(default=None, description="Error message on failure.")

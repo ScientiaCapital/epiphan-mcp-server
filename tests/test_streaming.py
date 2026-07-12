@@ -47,11 +47,11 @@ class TestListChannels:
         ):
             result = await list_channels(device_id="default")
 
-        assert result["success"] is True
-        assert result["device"] == "192.168.1.100"
-        assert result["total_channels"] == 2
-        assert len(result["channels"]) == 2
-        assert result["channels"][0]["id"] == "channel-1"
+        assert result.success is True
+        assert result.device == "192.168.1.100"
+        assert result.total_channels == 2
+        assert len(result.channels) == 2
+        assert result.channels[0]["id"] == "channel-1"
 
     @pytest.mark.asyncio
     async def test_list_channels_with_publishers(self):
@@ -78,7 +78,7 @@ class TestListChannels:
         ):
             result = await list_channels(device_id="default", include_publishers=True)
 
-        assert result["success"] is True
+        assert result.success is True
         mock_client.get_channels.assert_called_once_with(
             include_publishers=True, include_layouts=False
         )
@@ -108,7 +108,7 @@ class TestListChannels:
         ):
             result = await list_channels(device_id="default", include_layouts=True)
 
-        assert result["success"] is True
+        assert result.success is True
         mock_client.get_channels.assert_called_once_with(
             include_publishers=False, include_layouts=True
         )
@@ -128,8 +128,8 @@ class TestListChannels:
         ):
             result = await list_channels(device_id="default")
 
-        assert result["success"] is True
-        assert result["total_channels"] == 0
+        assert result.success is True
+        assert result.total_channels == 0
 
     @pytest.mark.asyncio
     async def test_list_channels_connection_error(self):
@@ -144,8 +144,8 @@ class TestListChannels:
         ):
             result = await list_channels(device_id="default")
 
-        assert result["success"] is False
-        assert "error" in result
+        assert result.success is False
+        assert result.error is not None
 
     @pytest.mark.asyncio
     async def test_list_channels_invalid_device(self):
@@ -158,8 +158,8 @@ class TestListChannels:
         ):
             result = await list_channels(device_id="default")
 
-        assert result["success"] is False
-        assert "No default device configured" in result["error"]
+        assert result.success is False
+        assert "No default device configured" in result.error
 
 
 # ============================================================
@@ -200,12 +200,12 @@ class TestListPublishers:
         ):
             result = await list_publishers(device_id="default", channel=1)
 
-        assert result["success"] is True
-        assert result["device"] == "192.168.1.100"
-        assert result["channel"] == "channel-1"
-        assert result["total_publishers"] == 2
-        assert len(result["publishers"]) == 2
-        assert result["publishers"][0]["id"] == "publisher-1"
+        assert result.success is True
+        assert result.device == "192.168.1.100"
+        assert result.channel == "channel-1"
+        assert result.total_publishers == 2
+        assert len(result.publishers) == 2
+        assert result.publishers[0]["id"] == "publisher-1"
 
     @pytest.mark.asyncio
     async def test_list_publishers_empty(self):
@@ -222,9 +222,9 @@ class TestListPublishers:
         ):
             result = await list_publishers(device_id="default", channel=1)
 
-        assert result["success"] is True
-        assert result["total_publishers"] == 0
-        assert result["publishers"] == []
+        assert result.success is True
+        assert result.total_publishers == 0
+        assert result.publishers == []
 
     @pytest.mark.asyncio
     async def test_list_publishers_connection_error(self):
@@ -239,8 +239,8 @@ class TestListPublishers:
         ):
             result = await list_publishers(device_id="default", channel=1)
 
-        assert result["success"] is False
-        assert "error" in result
+        assert result.success is False
+        assert result.error is not None
 
     @pytest.mark.asyncio
     async def test_list_publishers_channel_2(self):
@@ -257,7 +257,7 @@ class TestListPublishers:
         ):
             result = await list_publishers(device_id="default", channel=2)
 
-        assert result["channel"] == "channel-2"
+        assert result.channel == "channel-2"
         mock_client.get_publishers.assert_called_once_with("channel-2")
 
 
@@ -285,13 +285,13 @@ class TestGetChannelPreview:
         ):
             result = await get_channel_preview(device_id="default", channel=1)
 
-        assert result["success"] is True
-        assert result["device"] == "192.168.1.100"
-        assert result["channel"] == "channel-1"
-        assert result["format"] == "jpg"
+        assert result.success is True
+        assert result.device == "192.168.1.100"
+        assert result.channel == "channel-1"
+        assert result.format == "jpg"
         # Verify base64 encoding
-        assert "preview_base64" in result
-        decoded = base64.b64decode(result["preview_base64"])
+        assert result.preview_base64 is not None
+        decoded = base64.b64decode(result.preview_base64)
         assert decoded == fake_jpg
 
     @pytest.mark.asyncio
@@ -310,8 +310,8 @@ class TestGetChannelPreview:
         ):
             result = await get_channel_preview(device_id="default", channel=1, format="png")
 
-        assert result["success"] is True
-        assert result["format"] == "png"
+        assert result.success is True
+        assert result.format == "png"
 
     @pytest.mark.asyncio
     async def test_get_channel_preview_custom_resolution(self):
@@ -330,8 +330,8 @@ class TestGetChannelPreview:
                 device_id="default", channel=1, resolution="1920x1080"
             )
 
-        assert result["success"] is True
-        assert result["resolution"] == "1920x1080"
+        assert result.success is True
+        assert result.resolution == "1920x1080"
         mock_client.get_channel_preview.assert_called_once_with(
             "channel-1", resolution="1920x1080", format="jpg"
         )
@@ -349,5 +349,5 @@ class TestGetChannelPreview:
         ):
             result = await get_channel_preview(device_id="default", channel=1)
 
-        assert result["success"] is False
-        assert "error" in result
+        assert result.success is False
+        assert result.error is not None

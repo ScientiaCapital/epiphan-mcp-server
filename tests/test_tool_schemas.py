@@ -43,7 +43,6 @@ NOT_YET_CONVERTED = {
     "cloud",
     "ec20",
     "kaltura",
-    "panopto",
     "publishers",
     "schedule",
 }
@@ -315,6 +314,14 @@ _MODEL_MUST_KEEP_FIELDS = {
     "OpencastIngestStatusResult": {"status", "error"},
     "OpencastScheduleResult": {"event", "message", "start_time", "end_time", "error"},
     "OpencastDeleteResult": {"success", "message", "event_id", "error"},
+    # panopto (integration convention: list/get/create/upload carry no `success` key)
+    "PanoptoFolderListResult": {"folders", "count", "parent_folder_id", "error"},
+    "PanoptoFolderResult": {"folder", "message", "error"},
+    "PanoptoSessionListResult": {"sessions", "count", "folder_id", "error"},
+    "PanoptoSessionResult": {"session", "message", "error"},
+    "PanoptoUploadResult": {"upload", "message", "file_size", "error"},
+    "PanoptoUploadStatusResult": {"upload_id", "state", "state_code", "details", "error"},
+    "PanoptoDeleteResult": {"success", "message", "error"},
 }
 
 

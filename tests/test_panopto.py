@@ -572,8 +572,8 @@ class TestPanoptoTools:
 
         with patch.dict(os.environ, {}, clear=True):
             result = await list_panopto_folders()
-            assert "error" in result
-            assert "Missing Panopto configuration" in result["error"]
+            assert result.error is not None
+            assert "Missing Panopto configuration" in result.error
 
     @pytest.mark.asyncio
     @respx.mock
@@ -592,8 +592,8 @@ class TestPanoptoTools:
         )
 
         result = await list_panopto_folders()
-        assert result["count"] == 1
-        assert result["folders"][0]["Name"] == "Folder 1"
+        assert result.count == 1
+        assert result.folders[0]["Name"] == "Folder 1"
 
     @pytest.mark.asyncio
     @respx.mock
@@ -612,7 +612,7 @@ class TestPanoptoTools:
         )
 
         result = await get_panopto_folder("folder-123")
-        assert result["folder"]["Id"] == "folder-123"
+        assert result.folder["Id"] == "folder-123"
 
     @pytest.mark.asyncio
     async def test_get_panopto_folder_missing_id(self):
@@ -620,8 +620,8 @@ class TestPanoptoTools:
         from epiphan_mcp.tools.panopto import get_panopto_folder
 
         result = await get_panopto_folder("")
-        assert "error" in result
-        assert "folder_id is required" in result["error"]
+        assert result.error is not None
+        assert "folder_id is required" in result.error
 
     @pytest.mark.asyncio
     @respx.mock
@@ -640,8 +640,8 @@ class TestPanoptoTools:
         )
 
         result = await create_panopto_folder("New Folder")
-        assert "folder" in result
-        assert result["message"] == "Created folder 'New Folder'"
+        assert result.folder is not None
+        assert result.message == "Created folder 'New Folder'"
 
     @pytest.mark.asyncio
     async def test_create_panopto_folder_missing_name(self):
@@ -649,8 +649,8 @@ class TestPanoptoTools:
         from epiphan_mcp.tools.panopto import create_panopto_folder
 
         result = await create_panopto_folder("")
-        assert "error" in result
-        assert "name is required" in result["error"]
+        assert result.error is not None
+        assert "name is required" in result.error
 
     @pytest.mark.asyncio
     @respx.mock
@@ -672,7 +672,7 @@ class TestPanoptoTools:
         )
 
         result = await list_panopto_sessions()
-        assert result["count"] == 1
+        assert result.count == 1
 
     @pytest.mark.asyncio
     @respx.mock
@@ -691,7 +691,7 @@ class TestPanoptoTools:
         )
 
         result = await get_panopto_session("session-123")
-        assert result["session"]["Id"] == "session-123"
+        assert result.session["Id"] == "session-123"
 
     @pytest.mark.asyncio
     @respx.mock
@@ -710,7 +710,7 @@ class TestPanoptoTools:
         )
 
         result = await create_panopto_session("folder-123", "Recording")
-        assert result["message"] == "Created session 'Recording'"
+        assert result.message == "Created session 'Recording'"
 
     @pytest.mark.asyncio
     async def test_create_panopto_session_missing_params(self):
@@ -718,10 +718,10 @@ class TestPanoptoTools:
         from epiphan_mcp.tools.panopto import create_panopto_session
 
         result = await create_panopto_session("", "Name")
-        assert "folder_id is required" in result["error"]
+        assert "folder_id is required" in result.error
 
         result = await create_panopto_session("folder-123", "")
-        assert "name is required" in result["error"]
+        assert "name is required" in result.error
 
     @pytest.mark.asyncio
     @respx.mock
@@ -740,8 +740,8 @@ class TestPanoptoTools:
         )
 
         result = await delete_panopto_session("session-123")
-        assert result["success"] is True
-        assert "Deleted session" in result["message"]
+        assert result.success is True
+        assert "Deleted session" in result.message
 
     @pytest.mark.asyncio
     @respx.mock
@@ -760,8 +760,8 @@ class TestPanoptoTools:
         ).mock(return_value=httpx.Response(200, json={"ID": "upload-123", "State": 4}))
 
         result = await get_panopto_upload_status("upload-123")
-        assert result["state"] == "Complete"
-        assert result["state_code"] == 4
+        assert result.state == "Complete"
+        assert result.state_code == 4
 
     @pytest.mark.asyncio
     async def test_upload_to_panopto_missing_file(self):
@@ -769,8 +769,8 @@ class TestPanoptoTools:
         from epiphan_mcp.tools.panopto import upload_to_panopto
 
         result = await upload_to_panopto("folder-123", "/nonexistent/file.mp4")
-        assert "error" in result
-        assert "File not found" in result["error"]
+        assert result.error is not None
+        assert "File not found" in result.error
 
     @pytest.mark.asyncio
     async def test_upload_to_panopto_missing_params(self):
@@ -778,10 +778,10 @@ class TestPanoptoTools:
         from epiphan_mcp.tools.panopto import upload_to_panopto
 
         result = await upload_to_panopto("", "/some/file.mp4")
-        assert "folder_id is required" in result["error"]
+        assert "folder_id is required" in result.error
 
         result = await upload_to_panopto("folder-123", "")
-        assert "file_path is required" in result["error"]
+        assert "file_path is required" in result.error
 
     @pytest.mark.asyncio
     @respx.mock
@@ -824,8 +824,8 @@ class TestPanoptoTools:
             return_value=True,
         ):
             result = await upload_to_panopto("folder-123", str(test_file))
-            assert "upload" in result
-            assert "test_video.mp4" in result["message"]
+            assert result.upload is not None
+            assert "test_video.mp4" in result.message
 
 
 class TestPanoptoToolsAuthErrors:
@@ -856,5 +856,5 @@ class TestPanoptoToolsAuthErrors:
         )
 
         result = await list_panopto_folders()
-        assert "error" in result
-        assert "Authentication failed" in result["error"]
+        assert result.error is not None
+        assert "Authentication failed" in result.error

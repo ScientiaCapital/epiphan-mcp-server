@@ -1367,3 +1367,90 @@ class OpencastDeleteResult(BaseModel):
     message: str | None = Field(default=None, description="Human-readable confirmation message")
     event_id: str | None = Field(default=None, description="Event ID that was deleted")
     error: str | None = Field(default=None, description="Error message on failure.")
+
+
+# ============================================================
+# Panopto Integration Tool Response Models
+# ============================================================
+#
+# Same integration convention: list/get/create/upload tools carry no
+# ``success`` key on their success path; errors return a bare ``error``.
+
+
+class PanoptoFolderListResult(BaseModel):
+    """Return type of ``list_panopto_folders``."""
+
+    folders: list[dict[str, Any]] = Field(
+        default_factory=list, description="Folders, each with Id, Name, description, parent."
+    )
+    count: int | None = Field(default=None, description="Number of folders returned")
+    parent_folder_id: str | None = Field(
+        default=None, description="Parent folder queried ('root' when unspecified)"
+    )
+    error: str | None = Field(default=None, description="Error message on failure.")
+
+
+class PanoptoFolderResult(BaseModel):
+    """Return type of ``get_panopto_folder`` / ``create_panopto_folder``."""
+
+    folder: dict[str, Any] | None = Field(
+        default=None, description="Folder detail (Id, Name, description, parent)."
+    )
+    message: str | None = Field(default=None, description="Confirmation message (create only).")
+    error: str | None = Field(default=None, description="Error message on failure.")
+
+
+class PanoptoSessionListResult(BaseModel):
+    """Return type of ``list_panopto_sessions``."""
+
+    sessions: list[dict[str, Any]] = Field(
+        default_factory=list, description="Sessions (recordings), each with Id, name, duration."
+    )
+    count: int | None = Field(default=None, description="Number of sessions returned")
+    folder_id: str | None = Field(
+        default=None, description="Folder filter applied ('all' when unfiltered)"
+    )
+    error: str | None = Field(default=None, description="Error message on failure.")
+
+
+class PanoptoSessionResult(BaseModel):
+    """Return type of ``get_panopto_session`` / ``create_panopto_session``."""
+
+    session: dict[str, Any] | None = Field(
+        default=None, description="Session detail (Id, name, duration, folder, streams)."
+    )
+    message: str | None = Field(default=None, description="Confirmation message (create only).")
+    error: str | None = Field(default=None, description="Error message on failure.")
+
+
+class PanoptoUploadResult(BaseModel):
+    """Return type of ``upload_to_panopto``."""
+
+    upload: dict[str, Any] | None = Field(
+        default=None, description="Upload result (session ID, upload target, status)."
+    )
+    message: str | None = Field(default=None, description="Human-readable confirmation message")
+    file_size: int | None = Field(default=None, description="Size of the uploaded file in bytes")
+    error: str | None = Field(default=None, description="Error message on failure.")
+
+
+class PanoptoUploadStatusResult(BaseModel):
+    """Return type of ``get_panopto_upload_status``."""
+
+    upload_id: str | None = Field(default=None, description="Upload session ID queried")
+    state: str | None = Field(
+        default=None,
+        description="Readable state: Created, Uploading, UploadComplete, Processing, "
+        "Complete, Error.",
+    )
+    state_code: int | None = Field(default=None, description="Raw numeric state code")
+    details: dict[str, Any] | None = Field(default=None, description="Full raw upload status.")
+    error: str | None = Field(default=None, description="Error message on failure.")
+
+
+class PanoptoDeleteResult(BaseModel):
+    """Return type of ``delete_panopto_session``."""
+
+    success: bool | None = Field(default=None, description="Whether the session was deleted")
+    message: str | None = Field(default=None, description="Human-readable confirmation message")
+    error: str | None = Field(default=None, description="Error message on failure.")

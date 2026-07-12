@@ -35,4 +35,6 @@ Python 3.11+ | FastMCP | httpx (async) | Pydantic v2 | pydantic-settings | pytes
 
 ---
 
-_Updated at 21/21 + YuJa milestone. 2026-07-12._
+Tomorrow: GTM Canvas-breach Higher-Ed pull via gtm-brain-skill + HubSpot/Apollo MCP | main session, no builders | Est: 2-3h, keep spend well under today's | Observer notes: YuJa list/channels endpoints unvalidated against a live instance (top unresolved flag, backlogged MEDIUM)
+
+_Updated at end-of-day close. 2026-07-12._

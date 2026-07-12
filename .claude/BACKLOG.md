@@ -6,19 +6,35 @@
 > ⚠️ **Stale (flagged 2026-07-12):** counts below ("101 tools", P0 launch items) pre-date
 > current reality (115 tools; CI format/lint gates exist). Needs a cleanup pass.
 
-## Active: Typed-Schema Conversion (2026-07-12)
-Converting all tool modules from `dict[str, Any]` returns to typed Pydantic
-params + return models (enforced by `tests/test_tool_schemas.py` `NOT_YET_CONVERTED`
-ratchet + a model-field wire-compat guard). **Done (16/21):** fleet, device, system,
-recording, storage, discovery, layout, maintenance, streaming, inputs, qsys, youtube,
-opencast, panopto, kaltura. **Remaining (5):** ai_tools, cloud, ec20, publishers,
-schedule. Recipe + YuJa/Echo360 integration plan in PROJECT_CONTEXT "Tomorrow" handoff.
+## ✅ DONE: Typed-Schema Conversion — 21/21 (completed 2026-07-12 PM)
+All tool modules converted to typed Pydantic params + return models.
+`NOT_YET_CONVERTED` is empty; the schema contract meta-tests now enforce fully
+described input/output schemas server-wide, and every converted model's wire
+keys are pinned in `_MODEL_MUST_KEEP_FIELDS`. 124 tools, 1246 tests green.
 
-## Active: New video-CMS integrations (researched 2026-07-12)
-Build order: **YuJa first** (static token, 2-step signed-URL upload, live Epiphan
-partnership), then **Echo360** (GA summer 2026, dual OAuth2+Basic auth). Canvas/Moodle
-= lighter publish-to-LMS tools later. Mirror the `integrations/panopto.py` pattern.
+## ✅ DONE: YuJa integration (shipped 2026-07-12 PM)
+`integrations/yuja.py` + `tools/yuja.py` (6 tools, born typed): static
+authToken auth, signed-URL 2-step S3 upload, audit-logged upload/delete.
+Follow-up below re: live-instance endpoint validation.
+
+## Active: New video-CMS integrations — next up Echo360
+**Echo360** (GA summer 2026, dual OAuth2+Basic auth) — confirm internal API
+spec/sandbox first. Canvas/Moodle = lighter publish-to-LMS tools later.
 Open Qs: internal Echo360 API spec/sandbox? Canvas Studio vs Files? Moodle version targeting?
+
+## Follow-ups (from 2026-07-12 observers + sprint)
+- **[MEDIUM]** Validate YuJa list/channels endpoint paths against a live instance
+  (upload flow matches YuJa's published examples; list endpoints designed from
+  public docs — help-center pages are fetch-blocked). Effort: 1h with a YuJa
+  sandbox token. Owner: Tim.
+- **[LOW]** Sanity-check Panopto upload against a live instance post-fix
+  (sync-file → async-stream change in `upload_file_to_s3`, 2026-07-12).
+  Effort: 30min. Owner: Tim.
+- **[LOW]** Process note (ARCH observer): features ship without a
+  `.claude/contracts/` artifact; de-facto contract is `tests/test_tool_schemas.py`.
+  Decide whether to formalize contracts for Echo360 or retire the convention.
+- **[LOW]** Test-layout consistency: `layout.py`/`maintenance.py` coverage lives
+  in `test_server.py` instead of dedicated files. Nicety, not urgent.
 
 ## Active: GTM LMS-migration wedge (time-sensitive)
 May-2026 Canvas breach + Anthology/Blackboard fallout → LMS-migration wave. Pull

@@ -871,3 +871,53 @@ class CacheClearResult(BaseModel):
         default="", description="The device_id cleared, or 'all' when clearing every device"
     )
     entries_removed: int = Field(default=0, description="Number of cache entries removed")
+
+
+# ============================================================
+# Layout Tool Response Models
+# ============================================================
+
+
+class LayoutListResult(BaseModel):
+    """Return type of ``list_layouts``."""
+
+    success: bool = Field(description="Whether the layouts were retrieved")
+    device: str = Field(default="", description="Device host, or the requested device_id on error")
+    channel: int | str | None = Field(
+        default=None, description="Channel queried (channel-N id on success, number on error)"
+    )
+    total_layouts: int = Field(default=0, description="Number of layouts returned")
+    layouts: list[dict[str, Any]] = Field(
+        default_factory=list,
+        description="Layouts, each with id, name, and active flag.",
+    )
+    active_layout: str | None = Field(
+        default=None, description="ID of the currently active layout, if any."
+    )
+    error: str | None = Field(default=None, description="Error message on failure.")
+
+
+class LayoutSwitchResult(BaseModel):
+    """Return type of ``switch_layout``."""
+
+    model_config = ConfigDict(extra="allow")
+
+    success: bool = Field(description="Whether the layout switch succeeded")
+    message: str | None = Field(default=None, description="Human-readable confirmation message")
+    device: str = Field(default="", description="Device host, or the requested device_id on error")
+    details: dict[str, Any] | None = Field(default=None, description="Operation details")
+    channel: int | str | None = Field(default=None, description="Channel targeted (on error paths)")
+    error: str | None = Field(default=None, description="Error message on failure.")
+
+
+class BookmarkResult(BaseModel):
+    """Return type of ``add_bookmark``."""
+
+    success: bool = Field(description="Whether the bookmark was added")
+    device: str = Field(default="", description="Device host, or the requested device_id on error")
+    channel: int | str | None = Field(
+        default=None, description="Channel targeted (channel-N id on success, number on error)"
+    )
+    text: str = Field(default="", description="Bookmark text/label that was added")
+    message: str | None = Field(default=None, description="Human-readable confirmation message")
+    error: str | None = Field(default=None, description="Error message on failure.")

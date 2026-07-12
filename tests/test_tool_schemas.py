@@ -43,7 +43,6 @@ NOT_YET_CONVERTED = {
     "ec20",
     "inputs",
     "kaltura",
-    "layout",
     "maintenance",
     "opencast",
     "panopto",

@@ -1,18 +1,32 @@
 """Layout and bookmark tools for Epiphan Pearl devices."""
 
 import logging
-from typing import Any
+from typing import Annotated
 
 from fastmcp import FastMCP
+from pydantic import Field
 
 from ..client import PearlAPIError
+from ..models import BookmarkResult, LayoutListResult, LayoutSwitchResult
 from .device import get_client
 from .discovery import get_default_channel
+from .params import ChannelNum, DeviceId
 
 logger = logging.getLogger(__name__)
 
+_LayoutId = Annotated[
+    str,
+    Field(description="Layout identifier to switch to (from list_layouts, e.g. 'layout-1')."),
+]
+_BookmarkText = Annotated[
+    str,
+    Field(description="Optional bookmark text/label to attach to the recording."),
+]
 
-async def list_layouts(device_id: str = "default", channel: int | None = None) -> dict[str, Any]:
+
+async def list_layouts(
+    device_id: DeviceId = "default", channel: ChannelNum = None
+) -> LayoutListResult:
     """
     List available layouts for a channel on an Epiphan Pearl device.
 
@@ -37,32 +51,32 @@ async def list_layouts(device_id: str = "default", channel: int | None = None) -
             active_layout = next(
                 (layout["id"] for layout in layouts if layout.get("is_active")), None
             )
-            return {
-                "success": True,
-                "device": client.host,
-                "channel": channel_id,
-                "total_layouts": len(layouts),
-                "layouts": layouts,
-                "active_layout": active_layout,
-            }
+            return LayoutListResult(
+                success=True,
+                device=client.host,
+                channel=channel_id,
+                total_layouts=len(layouts),
+                layouts=layouts,
+                active_layout=active_layout,
+            )
     except PearlAPIError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "device": device_id,
-            "channel": channel,
-        }
+        return LayoutListResult(
+            success=False,
+            error=str(e),
+            device=device_id,
+            channel=channel,
+        )
     except ValueError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "device": device_id,
-        }
+        return LayoutListResult(
+            success=False,
+            error=str(e),
+            device=device_id,
+        )
 
 
 async def switch_layout(
-    device_id: str = "default", channel: int | None = None, layout_id: str = ""
-) -> dict[str, Any]:
+    device_id: DeviceId = "default", channel: ChannelNum = None, layout_id: _LayoutId = ""
+) -> LayoutSwitchResult:
     """
     Switch the active layout/scene on an Epiphan Pearl channel.
 
@@ -79,36 +93,36 @@ async def switch_layout(
     if channel is None:
         channel = await get_default_channel(device_id)
     if not layout_id:
-        return {
-            "success": False,
-            "error": "layout_id is required",
-            "device": device_id,
-            "channel": channel,
-        }
+        return LayoutSwitchResult(
+            success=False,
+            error="layout_id is required",
+            device=device_id,
+            channel=channel,
+        )
 
     try:
         async with get_client(device_id) as client:
             channel_id = f"channel-{channel}" if isinstance(channel, int) else str(channel)
             result = await client.switch_layout(channel_id, layout_id)
-            return result.model_dump()
+            return LayoutSwitchResult(**result.model_dump())
     except PearlAPIError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "device": device_id,
-            "channel": channel,
-        }
+        return LayoutSwitchResult(
+            success=False,
+            error=str(e),
+            device=device_id,
+            channel=channel,
+        )
     except ValueError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "device": device_id,
-        }
+        return LayoutSwitchResult(
+            success=False,
+            error=str(e),
+            device=device_id,
+        )
 
 
 async def add_bookmark(
-    device_id: str = "default", channel: int | None = None, text: str = ""
-) -> dict[str, Any]:
+    device_id: DeviceId = "default", channel: ChannelNum = None, text: _BookmarkText = ""
+) -> BookmarkResult:
     """
     Add a bookmark to an active recording on an Epiphan Pearl device.
 
@@ -128,26 +142,26 @@ async def add_bookmark(
         async with get_client(device_id) as client:
             channel_id = f"channel-{channel}" if isinstance(channel, int) else str(channel)
             result = await client.add_bookmark(channel_id, text)
-            return {
-                "success": True,
-                "device": client.host,
-                "channel": channel_id,
-                "text": text,
-                "message": result.message,
-            }
+            return BookmarkResult(
+                success=True,
+                device=client.host,
+                channel=channel_id,
+                text=text,
+                message=result.message,
+            )
     except PearlAPIError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "device": device_id,
-            "channel": channel,
-        }
+        return BookmarkResult(
+            success=False,
+            error=str(e),
+            device=device_id,
+            channel=channel,
+        )
     except ValueError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "device": device_id,
-        }
+        return BookmarkResult(
+            success=False,
+            error=str(e),
+            device=device_id,
+        )
 
 
 def register(server: FastMCP) -> None:

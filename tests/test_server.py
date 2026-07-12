@@ -473,9 +473,9 @@ class TestAddBookmark:
                     device_id="default", channel=1, text="Important moment"
                 )
 
-        assert result["success"] is True
-        assert result["channel"] == "channel-1"
-        assert result["text"] == "Important moment"
+        assert result.success is True
+        assert result.channel == "channel-1"
+        assert result.text == "Important moment"
 
     async def test_add_bookmark_no_text(self, mock_pearl_host: str):
         """Test bookmark without text."""
@@ -493,7 +493,7 @@ class TestAddBookmark:
 
                 result = await add_bookmark.fn(device_id="default", channel=1)
 
-        assert result["success"] is True
+        assert result.success is True
 
     async def test_add_bookmark_api_error(self, mock_pearl_host: str):
         """Test bookmark with API error."""
@@ -511,8 +511,8 @@ class TestAddBookmark:
 
                 result = await add_bookmark.fn(device_id="default", channel=1)
 
-        assert result["success"] is False
-        assert "error" in result
+        assert result.success is False
+        assert result.error is not None
 
     async def test_add_bookmark_invalid_device(self):
         """Test bookmark with invalid device."""
@@ -523,8 +523,8 @@ class TestAddBookmark:
 
             result = await add_bookmark.fn(device_id="nonexistent", channel=1)
 
-        assert result["success"] is False
-        assert "error" in result
+        assert result.success is False
+        assert result.error is not None
 
 
 # ============================================================
@@ -551,11 +551,11 @@ class TestListLayouts:
 
                 result = await list_layouts.fn(device_id="default", channel=1)
 
-        assert result["success"] is True
-        assert result["total_layouts"] == 3
-        assert len(result["layouts"]) == 3
-        assert result["layouts"][0]["name"] == "Full Screen"
-        assert result["active_layout"] == "layout-1"
+        assert result.success is True
+        assert result.total_layouts == 3
+        assert len(result.layouts) == 3
+        assert result.layouts[0]["name"] == "Full Screen"
+        assert result.active_layout == "layout-1"
 
     async def test_list_layouts_api_error(self, mock_pearl_host: str):
         """Test layout listing with API error."""
@@ -573,8 +573,8 @@ class TestListLayouts:
 
                 result = await list_layouts.fn(device_id="default", channel=1)
 
-        assert result["success"] is False
-        assert "error" in result
+        assert result.success is False
+        assert result.error is not None
 
     async def test_list_layouts_invalid_device(self):
         """Test layout listing with invalid device."""
@@ -585,8 +585,8 @@ class TestListLayouts:
 
             result = await list_layouts.fn(device_id="nonexistent", channel=1)
 
-        assert result["success"] is False
-        assert "error" in result
+        assert result.success is False
+        assert result.error is not None
 
 
 class TestSwitchLayout:
@@ -610,7 +610,7 @@ class TestSwitchLayout:
                     device_id="default", channel=1, layout_id="layout-2"
                 )
 
-        assert result["success"] is True
+        assert result.success is True
 
     async def test_switch_layout_missing_layout_id(self, mock_pearl_host: str):
         """Test layout switch with missing layout_id."""
@@ -621,8 +621,8 @@ class TestSwitchLayout:
 
             result = await switch_layout.fn(device_id="default", channel=1, layout_id="")
 
-        assert result["success"] is False
-        assert "layout_id is required" in result["error"]
+        assert result.success is False
+        assert "layout_id is required" in result.error
 
 
 # ============================================================
@@ -1298,8 +1298,8 @@ class TestServerErrorBranches:
                     device_id="default", channel=1, layout_id="bad-layout"
                 )
 
-        assert result["success"] is False
-        assert "Layout not found" in result["error"]
+        assert result.success is False
+        assert "Layout not found" in result.error
 
     async def test_switch_layout_value_error(self):
         """Test switch_layout handles ValueError."""
@@ -1309,8 +1309,8 @@ class TestServerErrorBranches:
             mock_settings.return_value = create_test_settings(devices="")
             result = await switch_layout.fn(device_id="default", channel=1, layout_id="layout-1")
 
-        assert result["success"] is False
-        assert "No default device" in result["error"]
+        assert result.success is False
+        assert "No default device" in result.error
 
     async def test_batch_stop_recording_partial_failure(self):
         """Test batch_stop_recording with partial failure."""

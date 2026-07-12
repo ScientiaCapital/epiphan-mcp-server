@@ -1454,3 +1454,100 @@ class PanoptoDeleteResult(BaseModel):
     success: bool | None = Field(default=None, description="Whether the session was deleted")
     message: str | None = Field(default=None, description="Human-readable confirmation message")
     error: str | None = Field(default=None, description="Error message on failure.")
+
+
+# ============================================================
+# Kaltura Integration Tool Response Models
+# ============================================================
+#
+# Same integration convention: list/get/create/upload tools carry no
+# ``success`` key on their success path; errors return a bare ``error``.
+
+
+class KalturaCategoryListResult(BaseModel):
+    """Return type of ``list_kaltura_categories``."""
+
+    categories: list[dict[str, Any]] = Field(
+        default_factory=list, description="Categories (folders), each with id, name, parent."
+    )
+    count: int | None = Field(default=None, description="Number of categories returned")
+    parent_id: int | str | None = Field(
+        default=None, description="Parent category queried ('root' when unspecified)"
+    )
+    page: int | None = Field(default=None, description="1-based page index returned")
+    error: str | None = Field(default=None, description="Error message on failure.")
+
+
+class KalturaCategoryResult(BaseModel):
+    """Return type of ``get_kaltura_category`` / ``create_kaltura_category``."""
+
+    category: dict[str, Any] | None = Field(
+        default=None, description="Category detail (name, description, parent, entry count)."
+    )
+    message: str | None = Field(default=None, description="Confirmation message (create only).")
+    error: str | None = Field(default=None, description="Error message on failure.")
+
+
+class KalturaMediaListResult(BaseModel):
+    """Return type of ``list_kaltura_media``."""
+
+    media: list[dict[str, Any]] = Field(
+        default_factory=list, description="Media entries (videos), each with id, name, status."
+    )
+    count: int | None = Field(default=None, description="Number of media entries returned")
+    category_ids: str | None = Field(
+        default=None, description="Category filter applied ('all' when unfiltered)"
+    )
+    search_text: str | None = Field(default=None, description="Search text applied, or null")
+    page: int | None = Field(default=None, description="1-based page index returned")
+    error: str | None = Field(default=None, description="Error message on failure.")
+
+
+class KalturaMediaResult(BaseModel):
+    """Return type of ``get_kaltura_media`` / ``create_kaltura_media``."""
+
+    media: dict[str, Any] | None = Field(
+        default=None,
+        description="Media entry detail (name, duration, status + status_name, thumbnails).",
+    )
+    message: str | None = Field(default=None, description="Confirmation message (create only).")
+    error: str | None = Field(default=None, description="Error message on failure.")
+
+
+class KalturaUploadResult(BaseModel):
+    """Return type of ``upload_to_kaltura``."""
+
+    media: dict[str, Any] | None = Field(
+        default=None, description="Created media entry detail after upload."
+    )
+    message: str | None = Field(default=None, description="Human-readable confirmation message")
+    file_size: int | None = Field(default=None, description="Size of the uploaded file in bytes")
+    entry_id: str | None = Field(default=None, description="Kaltura entry ID of the upload")
+    error: str | None = Field(default=None, description="Error message on failure.")
+
+
+class KalturaScheduleResult(BaseModel):
+    """Return type of ``schedule_kaltura_event``."""
+
+    event: dict[str, Any] | None = Field(
+        default=None, description="Created schedule event detail."
+    )
+    message: str | None = Field(default=None, description="Human-readable confirmation message")
+    start_time: str | None = Field(default=None, description="Scheduled start (ISO 8601)")
+    end_time: str | None = Field(default=None, description="Scheduled end (ISO 8601)")
+    error: str | None = Field(default=None, description="Error message on failure.")
+
+
+class KalturaUploadStatusResult(BaseModel):
+    """Return type of ``get_kaltura_upload_status``."""
+
+    upload_token_id: str | None = Field(default=None, description="Upload token ID queried")
+    status: str | None = Field(
+        default=None,
+        description="Readable status: Pending, PartialUpload, FullUpload, Closed, "
+        "TimedOut, Deleted.",
+    )
+    status_code: int | None = Field(default=None, description="Raw numeric status code")
+    uploaded_bytes: int | None = Field(default=None, description="Bytes uploaded so far")
+    details: dict[str, Any] | None = Field(default=None, description="Full raw upload status.")
+    error: str | None = Field(default=None, description="Error message on failure.")

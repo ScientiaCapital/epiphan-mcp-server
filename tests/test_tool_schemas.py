@@ -42,7 +42,6 @@ NOT_YET_CONVERTED = {
     "ai_tools",
     "cloud",
     "ec20",
-    "kaltura",
     "publishers",
     "schedule",
 }
@@ -322,6 +321,18 @@ _MODEL_MUST_KEEP_FIELDS = {
     "PanoptoUploadResult": {"upload", "message", "file_size", "error"},
     "PanoptoUploadStatusResult": {"upload_id", "state", "state_code", "details", "error"},
     "PanoptoDeleteResult": {"success", "message", "error"},
+    # kaltura (integration convention: list/get/create/upload carry no `success` key)
+    "KalturaCategoryListResult": {"categories", "count", "parent_id", "page", "error"},
+    "KalturaCategoryResult": {"category", "message", "error"},
+    "KalturaMediaListResult": {
+        "media", "count", "category_ids", "search_text", "page", "error",
+    },
+    "KalturaMediaResult": {"media", "message", "error"},
+    "KalturaUploadResult": {"media", "message", "file_size", "entry_id", "error"},
+    "KalturaScheduleResult": {"event", "message", "start_time", "end_time", "error"},
+    "KalturaUploadStatusResult": {
+        "upload_token_id", "status", "status_code", "uploaded_bytes", "details", "error",
+    },
 }
 
 

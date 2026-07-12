@@ -618,8 +618,8 @@ class TestKalturaTools:
 
         with patch.dict(os.environ, {}, clear=True):
             result = await list_kaltura_categories()
-            assert "error" in result
-            assert "Missing Kaltura configuration" in result["error"]
+            assert result.error is not None
+            assert "Missing Kaltura configuration" in result.error
 
     @pytest.mark.asyncio
     @respx.mock
@@ -635,8 +635,8 @@ class TestKalturaTools:
         )
 
         result = await list_kaltura_categories()
-        assert result["count"] == 1
-        assert result["categories"][0]["name"] == "Category 1"
+        assert result.count == 1
+        assert result.categories[0]["name"] == "Category 1"
 
     @pytest.mark.asyncio
     @respx.mock
@@ -649,7 +649,7 @@ class TestKalturaTools:
         )
 
         result = await get_kaltura_category(123)
-        assert result["category"]["id"] == 123
+        assert result.category["id"] == 123
 
     @pytest.mark.asyncio
     async def test_get_kaltura_category_missing_id(self):
@@ -657,7 +657,7 @@ class TestKalturaTools:
         from epiphan_mcp.tools.kaltura import get_kaltura_category
 
         result = await get_kaltura_category(0)  # type: ignore
-        assert "error" in result
+        assert result.error is not None
 
     @pytest.mark.asyncio
     @respx.mock
@@ -670,8 +670,8 @@ class TestKalturaTools:
         )
 
         result = await create_kaltura_category("New Folder")
-        assert "category" in result
-        assert result["message"] == "Created category 'New Folder'"
+        assert result.category is not None
+        assert result.message == "Created category 'New Folder'"
 
     @pytest.mark.asyncio
     async def test_create_kaltura_category_missing_name(self):
@@ -679,8 +679,8 @@ class TestKalturaTools:
         from epiphan_mcp.tools.kaltura import create_kaltura_category
 
         result = await create_kaltura_category("")
-        assert "error" in result
-        assert "name is required" in result["error"]
+        assert result.error is not None
+        assert "name is required" in result.error
 
     @pytest.mark.asyncio
     @respx.mock
@@ -696,7 +696,7 @@ class TestKalturaTools:
         )
 
         result = await list_kaltura_media()
-        assert result["count"] == 1
+        assert result.count == 1
 
     @pytest.mark.asyncio
     @respx.mock
@@ -712,8 +712,8 @@ class TestKalturaTools:
         )
 
         result = await get_kaltura_media("0_abc123")
-        assert result["media"]["id"] == "0_abc123"
-        assert result["media"]["status_name"] == "Ready"
+        assert result.media["id"] == "0_abc123"
+        assert result.media["status_name"] == "Ready"
 
     @pytest.mark.asyncio
     @respx.mock
@@ -726,7 +726,7 @@ class TestKalturaTools:
         )
 
         result = await create_kaltura_media("Recording")
-        assert result["message"] == "Created media entry 'Recording'"
+        assert result.message == "Created media entry 'Recording'"
 
     @pytest.mark.asyncio
     async def test_create_kaltura_media_missing_name(self):
@@ -734,7 +734,7 @@ class TestKalturaTools:
         from epiphan_mcp.tools.kaltura import create_kaltura_media
 
         result = await create_kaltura_media("")
-        assert "name is required" in result["error"]
+        assert "name is required" in result.error
 
     @pytest.mark.asyncio
     async def test_upload_to_kaltura_missing_file(self):
@@ -742,8 +742,8 @@ class TestKalturaTools:
         from epiphan_mcp.tools.kaltura import upload_to_kaltura
 
         result = await upload_to_kaltura("/nonexistent/file.mp4")
-        assert "error" in result
-        assert "File not found" in result["error"]
+        assert result.error is not None
+        assert "File not found" in result.error
 
     @pytest.mark.asyncio
     async def test_upload_to_kaltura_missing_params(self):
@@ -751,7 +751,7 @@ class TestKalturaTools:
         from epiphan_mcp.tools.kaltura import upload_to_kaltura
 
         result = await upload_to_kaltura("")
-        assert "file_path is required" in result["error"]
+        assert "file_path is required" in result.error
 
     @pytest.mark.asyncio
     @respx.mock
@@ -771,7 +771,7 @@ class TestKalturaTools:
             start_time="2024-01-15T10:00:00",
             end_time="2024-01-15T11:00:00",
         )
-        assert result["message"] == "Scheduled event 'Physics 101'"
+        assert result.message == "Scheduled event 'Physics 101'"
 
     @pytest.mark.asyncio
     async def test_schedule_kaltura_event_missing_params(self):
@@ -779,13 +779,13 @@ class TestKalturaTools:
         from epiphan_mcp.tools.kaltura import schedule_kaltura_event
 
         result = await schedule_kaltura_event("", "2024-01-15T10:00:00", "2024-01-15T11:00:00")
-        assert "name is required" in result["error"]
+        assert "name is required" in result.error
 
         result = await schedule_kaltura_event("Test", "", "2024-01-15T11:00:00")
-        assert "start_time is required" in result["error"]
+        assert "start_time is required" in result.error
 
         result = await schedule_kaltura_event("Test", "2024-01-15T10:00:00", "")
-        assert "end_time is required" in result["error"]
+        assert "end_time is required" in result.error
 
     @pytest.mark.asyncio
     async def test_schedule_kaltura_event_invalid_datetime(self):
@@ -793,7 +793,7 @@ class TestKalturaTools:
         from epiphan_mcp.tools.kaltura import schedule_kaltura_event
 
         result = await schedule_kaltura_event("Test", "not-a-date", "2024-01-15T11:00:00")
-        assert "Invalid datetime format" in result["error"]
+        assert "Invalid datetime format" in result.error
 
     @pytest.mark.asyncio
     async def test_schedule_kaltura_event_end_before_start(self):
@@ -805,7 +805,7 @@ class TestKalturaTools:
             "2024-01-15T12:00:00",
             "2024-01-15T11:00:00",
         )
-        assert "end_time must be after start_time" in result["error"]
+        assert "end_time must be after start_time" in result.error
 
     @pytest.mark.asyncio
     @respx.mock
@@ -821,8 +821,8 @@ class TestKalturaTools:
         )
 
         result = await get_kaltura_upload_status("0_upload123")
-        assert result["status"] == "FullUpload"
-        assert result["uploaded_bytes"] == 1024000
+        assert result.status == "FullUpload"
+        assert result.uploaded_bytes == 1024000
 
     @pytest.mark.asyncio
     async def test_get_kaltura_upload_status_missing_id(self):
@@ -830,7 +830,7 @@ class TestKalturaTools:
         from epiphan_mcp.tools.kaltura import get_kaltura_upload_status
 
         result = await get_kaltura_upload_status("")
-        assert "upload_token_id is required" in result["error"]
+        assert "upload_token_id is required" in result.error
 
 
 class TestKalturaToolsAuthErrors:
@@ -860,8 +860,8 @@ class TestKalturaToolsAuthErrors:
         )
 
         result = await list_kaltura_categories()
-        assert "error" in result
-        assert "Authentication failed" in result["error"]
+        assert result.error is not None
+        assert "Authentication failed" in result.error
 
 
 class TestKalturaToolsInvalidPartnerID:
@@ -886,5 +886,5 @@ class TestKalturaToolsInvalidPartnerID:
         from epiphan_mcp.tools.kaltura import list_kaltura_categories
 
         result = await list_kaltura_categories()
-        assert "error" in result
-        assert "must be a valid integer" in result["error"]
+        assert result.error is not None
+        assert "must be a valid integer" in result.error

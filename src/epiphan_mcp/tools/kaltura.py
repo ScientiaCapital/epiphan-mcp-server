@@ -19,15 +19,68 @@ Environment Variables Required:
 import os
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import Annotated
 
 from fastmcp import FastMCP
+from pydantic import Field
 
 from epiphan_mcp.integrations.kaltura import (
     KalturaAPIError,
     KalturaAuthError,
     KalturaClient,
 )
+from epiphan_mcp.models import (
+    KalturaCategoryListResult,
+    KalturaCategoryResult,
+    KalturaMediaListResult,
+    KalturaMediaResult,
+    KalturaScheduleResult,
+    KalturaUploadResult,
+    KalturaUploadStatusResult,
+)
+
+_ParentId = Annotated[
+    int | None, Field(description="Parent category ID to list children of (None = all).")
+]
+_PageSize = Annotated[int, Field(description="Results per page (default 50, max 500).")]
+_PageIndex = Annotated[int, Field(description="Page number, 1-based (default 1).")]
+_CategoryId = Annotated[int, Field(description="Category ID (numeric).")]
+_CategoryName = Annotated[str, Field(description="Category name.")]
+_ParentIdOpt = Annotated[
+    int | None, Field(description="Parent category ID (None = root level).")
+]
+_Description = Annotated[str, Field(description="Optional description.")]
+_CategoryIdsFilter = Annotated[
+    str, Field(description="Comma-separated category IDs to filter by (optional).")
+]
+_SearchText = Annotated[
+    str, Field(description="Search term for name, description, tags (optional).")
+]
+_EntryId = Annotated[
+    str, Field(description="Media entry ID (alphanumeric, starts with 0_ or 1_).")
+]
+_MediaName = Annotated[str, Field(description="Media entry name/title.")]
+_Tags = Annotated[str, Field(description="Optional comma-separated tags.")]
+_CategoryIdsAssign = Annotated[
+    str, Field(description="Comma-separated category IDs to assign (optional).")
+]
+_FilePath = Annotated[str, Field(description="Local path to the video file to upload.")]
+_EntryName = Annotated[str, Field(description="Entry name (defaults to filename if empty).")]
+_WaitForReady = Annotated[
+    bool, Field(description="Wait for transcoding to complete before returning (default False).")
+]
+_EventName = Annotated[str, Field(description="Event name/title.")]
+_StartTime = Annotated[
+    str, Field(description="Start time in ISO format (e.g. '2024-01-15T10:00:00').")
+]
+_EndTime = Annotated[
+    str, Field(description="End time in ISO format (e.g. '2024-01-15T11:00:00').")
+]
+_EventEntryId = Annotated[
+    str, Field(description="Existing media entry ID to associate (optional).")
+]
+_ResourceId = Annotated[str, Field(description="Recording resource/room ID (optional).")]
+_UploadTokenId = Annotated[str, Field(description="Upload token ID from the upload workflow.")]
 
 
 def _get_kaltura_config() -> dict[str, str | int]:
@@ -64,10 +117,10 @@ def _get_kaltura_config() -> dict[str, str | int]:
 
 
 async def list_kaltura_categories(
-    parent_id: int | None = None,
-    page_size: int = 50,
-    page_index: int = 1,
-) -> dict[str, Any]:
+    parent_id: _ParentId = None,
+    page_size: _PageSize = 50,
+    page_index: _PageIndex = 1,
+) -> KalturaCategoryListResult:
     """List categories (folders) in Kaltura.
 
     Retrieves categories accessible to the configured service account.
@@ -89,7 +142,7 @@ async def list_kaltura_categories(
     try:
         config = _get_kaltura_config()
     except ValueError as e:
-        return {"error": str(e), "categories": []}
+        return KalturaCategoryListResult(error=str(e), categories=[])
 
     try:
         async with KalturaClient(**config) as client:  # type: ignore
@@ -98,19 +151,19 @@ async def list_kaltura_categories(
                 page_size=page_size,
                 page_index=page_index,
             )
-            return {
-                "categories": categories,
-                "count": len(categories),
-                "parent_id": parent_id if parent_id else "root",
-                "page": page_index,
-            }
+            return KalturaCategoryListResult(
+                categories=categories,
+                count=len(categories),
+                parent_id=parent_id if parent_id else "root",
+                page=page_index,
+            )
     except KalturaAuthError as e:
-        return {"error": f"Authentication failed: {e}", "categories": []}
+        return KalturaCategoryListResult(error=f"Authentication failed: {e}", categories=[])
     except KalturaAPIError as e:
-        return {"error": f"API error: {e}", "categories": []}
+        return KalturaCategoryListResult(error=f"API error: {e}", categories=[])
 
 
-async def get_kaltura_category(category_id: int) -> dict[str, Any]:
+async def get_kaltura_category(category_id: _CategoryId) -> KalturaCategoryResult:
     """Get details of a specific Kaltura category.
 
     Args:
@@ -123,28 +176,28 @@ async def get_kaltura_category(category_id: int) -> dict[str, Any]:
         "Get details of Kaltura category 12345"
     """
     if not category_id:
-        return {"error": "category_id is required"}
+        return KalturaCategoryResult(error="category_id is required")
 
     try:
         config = _get_kaltura_config()
     except ValueError as e:
-        return {"error": str(e)}
+        return KalturaCategoryResult(error=str(e))
 
     try:
         async with KalturaClient(**config) as client:  # type: ignore
             category = await client.get_category(category_id)
-            return {"category": category}
+            return KalturaCategoryResult(category=category)
     except KalturaAuthError as e:
-        return {"error": f"Authentication failed: {e}"}
+        return KalturaCategoryResult(error=f"Authentication failed: {e}")
     except KalturaAPIError as e:
-        return {"error": f"API error: {e}"}
+        return KalturaCategoryResult(error=f"API error: {e}")
 
 
 async def create_kaltura_category(
-    name: str,
-    parent_id: int | None = None,
-    description: str = "",
-) -> dict[str, Any]:
+    name: _CategoryName,
+    parent_id: _ParentIdOpt = None,
+    description: _Description = "",
+) -> KalturaCategoryResult:
     """Create a new category in Kaltura.
 
     Args:
@@ -160,12 +213,12 @@ async def create_kaltura_category(
         "Create a subcategory 'Week 1' under category 12345"
     """
     if not name:
-        return {"error": "name is required"}
+        return KalturaCategoryResult(error="name is required")
 
     try:
         config = _get_kaltura_config()
     except ValueError as e:
-        return {"error": str(e)}
+        return KalturaCategoryResult(error=str(e))
 
     try:
         async with KalturaClient(**config) as client:  # type: ignore
@@ -174,19 +227,21 @@ async def create_kaltura_category(
                 parent_id=parent_id,
                 description=description,
             )
-            return {"category": category, "message": f"Created category '{name}'"}
+            return KalturaCategoryResult(
+                category=category, message=f"Created category '{name}'"
+            )
     except KalturaAuthError as e:
-        return {"error": f"Authentication failed: {e}"}
+        return KalturaCategoryResult(error=f"Authentication failed: {e}")
     except KalturaAPIError as e:
-        return {"error": f"API error: {e}"}
+        return KalturaCategoryResult(error=f"API error: {e}")
 
 
 async def list_kaltura_media(
-    category_ids: str = "",
-    search_text: str = "",
-    page_size: int = 50,
-    page_index: int = 1,
-) -> dict[str, Any]:
+    category_ids: _CategoryIdsFilter = "",
+    search_text: _SearchText = "",
+    page_size: _PageSize = 50,
+    page_index: _PageIndex = 1,
+) -> KalturaMediaListResult:
     """List media entries (videos) in Kaltura.
 
     Args:
@@ -206,7 +261,7 @@ async def list_kaltura_media(
     try:
         config = _get_kaltura_config()
     except ValueError as e:
-        return {"error": str(e), "media": []}
+        return KalturaMediaListResult(error=str(e), media=[])
 
     # Parse category IDs
     cat_ids: list[int] | None = None
@@ -214,7 +269,9 @@ async def list_kaltura_media(
         try:
             cat_ids = [int(cid.strip()) for cid in category_ids.split(",")]
         except ValueError:
-            return {"error": "category_ids must be comma-separated integers", "media": []}
+            return KalturaMediaListResult(
+                error="category_ids must be comma-separated integers", media=[]
+            )
 
     try:
         async with KalturaClient(**config) as client:  # type: ignore
@@ -224,20 +281,20 @@ async def list_kaltura_media(
                 page_size=page_size,
                 page_index=page_index,
             )
-            return {
-                "media": media,
-                "count": len(media),
-                "category_ids": category_ids or "all",
-                "search_text": search_text or None,
-                "page": page_index,
-            }
+            return KalturaMediaListResult(
+                media=media,
+                count=len(media),
+                category_ids=category_ids or "all",
+                search_text=search_text or None,
+                page=page_index,
+            )
     except KalturaAuthError as e:
-        return {"error": f"Authentication failed: {e}", "media": []}
+        return KalturaMediaListResult(error=f"Authentication failed: {e}", media=[])
     except KalturaAPIError as e:
-        return {"error": f"API error: {e}", "media": []}
+        return KalturaMediaListResult(error=f"API error: {e}", media=[])
 
 
-async def get_kaltura_media(entry_id: str) -> dict[str, Any]:
+async def get_kaltura_media(entry_id: _EntryId) -> KalturaMediaResult:
     """Get details of a specific Kaltura media entry.
 
     Args:
@@ -250,12 +307,12 @@ async def get_kaltura_media(entry_id: str) -> dict[str, Any]:
         "Get details of Kaltura video 0_abc123"
     """
     if not entry_id:
-        return {"error": "entry_id is required"}
+        return KalturaMediaResult(error="entry_id is required")
 
     try:
         config = _get_kaltura_config()
     except ValueError as e:
-        return {"error": str(e)}
+        return KalturaMediaResult(error=str(e))
 
     try:
         async with KalturaClient(**config) as client:  # type: ignore
@@ -277,19 +334,19 @@ async def get_kaltura_media(entry_id: str) -> dict[str, Any]:
             status_code = media.get("status", -1)
             media["status_name"] = status_names.get(status_code, f"Unknown ({status_code})")
 
-            return {"media": media}
+            return KalturaMediaResult(media=media)
     except KalturaAuthError as e:
-        return {"error": f"Authentication failed: {e}"}
+        return KalturaMediaResult(error=f"Authentication failed: {e}")
     except KalturaAPIError as e:
-        return {"error": f"API error: {e}"}
+        return KalturaMediaResult(error=f"API error: {e}")
 
 
 async def create_kaltura_media(
-    name: str,
-    description: str = "",
-    tags: str = "",
-    category_ids: str = "",
-) -> dict[str, Any]:
+    name: _MediaName,
+    description: _Description = "",
+    tags: _Tags = "",
+    category_ids: _CategoryIdsAssign = "",
+) -> KalturaMediaResult:
     """Create a new media entry (video placeholder) in Kaltura.
 
     Creates an empty media entry that can receive uploaded video content.
@@ -309,12 +366,12 @@ async def create_kaltura_media(
         "Create a video placeholder in category 12345"
     """
     if not name:
-        return {"error": "name is required"}
+        return KalturaMediaResult(error="name is required")
 
     try:
         config = _get_kaltura_config()
     except ValueError as e:
-        return {"error": str(e)}
+        return KalturaMediaResult(error=str(e))
 
     # Parse category IDs
     cat_ids: list[int] | None = None
@@ -322,7 +379,7 @@ async def create_kaltura_media(
         try:
             cat_ids = [int(cid.strip()) for cid in category_ids.split(",")]
         except ValueError:
-            return {"error": "category_ids must be comma-separated integers"}
+            return KalturaMediaResult(error="category_ids must be comma-separated integers")
 
     try:
         async with KalturaClient(**config) as client:  # type: ignore
@@ -332,20 +389,20 @@ async def create_kaltura_media(
                 tags=tags,
                 category_ids=cat_ids,
             )
-            return {"media": media, "message": f"Created media entry '{name}'"}
+            return KalturaMediaResult(media=media, message=f"Created media entry '{name}'")
     except KalturaAuthError as e:
-        return {"error": f"Authentication failed: {e}"}
+        return KalturaMediaResult(error=f"Authentication failed: {e}")
     except KalturaAPIError as e:
-        return {"error": f"API error: {e}"}
+        return KalturaMediaResult(error=f"API error: {e}")
 
 
 async def upload_to_kaltura(
-    file_path: str,
-    entry_name: str = "",
-    description: str = "",
-    category_ids: str = "",
-    wait_for_ready: bool = False,
-) -> dict[str, Any]:
+    file_path: _FilePath,
+    entry_name: _EntryName = "",
+    description: _Description = "",
+    category_ids: _CategoryIdsAssign = "",
+    wait_for_ready: _WaitForReady = False,
+) -> KalturaUploadResult:
     """Upload a video file to Kaltura.
 
     Handles the complete upload workflow:
@@ -370,16 +427,16 @@ async def upload_to_kaltura(
         "Upload the video to Kaltura category 12345 and wait for processing"
     """
     if not file_path:
-        return {"error": "file_path is required"}
+        return KalturaUploadResult(error="file_path is required")
 
     path = Path(file_path)
     if not path.exists():
-        return {"error": f"File not found: {file_path}"}
+        return KalturaUploadResult(error=f"File not found: {file_path}")
 
     try:
         config = _get_kaltura_config()
     except ValueError as e:
-        return {"error": str(e)}
+        return KalturaUploadResult(error=str(e))
 
     # Parse category IDs
     cat_ids: list[int] | None = None
@@ -387,7 +444,7 @@ async def upload_to_kaltura(
         try:
             cat_ids = [int(cid.strip()) for cid in category_ids.split(",")]
         except ValueError:
-            return {"error": "category_ids must be comma-separated integers"}
+            return KalturaUploadResult(error="category_ids must be comma-separated integers")
 
     try:
         async with KalturaClient(**config) as client:  # type: ignore
@@ -398,26 +455,26 @@ async def upload_to_kaltura(
                 category_ids=cat_ids,
                 wait_for_ready=wait_for_ready,
             )
-            return {
-                "media": result,
-                "message": f"Uploaded {path.name} to Kaltura",
-                "file_size": path.stat().st_size,
-                "entry_id": result.get("id"),
-            }
+            return KalturaUploadResult(
+                media=result,
+                message=f"Uploaded {path.name} to Kaltura",
+                file_size=path.stat().st_size,
+                entry_id=result.get("id"),
+            )
     except KalturaAuthError as e:
-        return {"error": f"Authentication failed: {e}"}
+        return KalturaUploadResult(error=f"Authentication failed: {e}")
     except KalturaAPIError as e:
-        return {"error": f"API error: {e}"}
+        return KalturaUploadResult(error=f"API error: {e}")
 
 
 async def schedule_kaltura_event(
-    name: str,
-    start_time: str,
-    end_time: str,
-    entry_id: str = "",
-    resource_id: str = "",
-    description: str = "",
-) -> dict[str, Any]:
+    name: _EventName,
+    start_time: _StartTime,
+    end_time: _EndTime,
+    entry_id: _EventEntryId = "",
+    resource_id: _ResourceId = "",
+    description: _Description = "",
+) -> KalturaScheduleResult:
     """Schedule a recording event in Kaltura for Pearl auto-record.
 
     Creates a scheduled event that Pearl devices synced with Kaltura
@@ -439,25 +496,27 @@ async def schedule_kaltura_event(
         "Create a scheduled event for tomorrow at 2pm"
     """
     if not name:
-        return {"error": "name is required"}
+        return KalturaScheduleResult(error="name is required")
     if not start_time:
-        return {"error": "start_time is required"}
+        return KalturaScheduleResult(error="start_time is required")
     if not end_time:
-        return {"error": "end_time is required"}
+        return KalturaScheduleResult(error="end_time is required")
 
     try:
         start_dt = datetime.fromisoformat(start_time.replace("Z", "+00:00"))
         end_dt = datetime.fromisoformat(end_time.replace("Z", "+00:00"))
     except ValueError as e:
-        return {"error": f"Invalid datetime format: {e}. Use ISO format like '2024-01-15T10:00:00'"}
+        return KalturaScheduleResult(
+            error=f"Invalid datetime format: {e}. Use ISO format like '2024-01-15T10:00:00'"
+        )
 
     if end_dt <= start_dt:
-        return {"error": "end_time must be after start_time"}
+        return KalturaScheduleResult(error="end_time must be after start_time")
 
     try:
         config = _get_kaltura_config()
     except ValueError as e:
-        return {"error": str(e)}
+        return KalturaScheduleResult(error=str(e))
 
     try:
         async with KalturaClient(**config) as client:  # type: ignore
@@ -469,19 +528,19 @@ async def schedule_kaltura_event(
                 resource_id=resource_id or None,
                 description=description,
             )
-            return {
-                "event": event,
-                "message": f"Scheduled event '{name}'",
-                "start_time": start_time,
-                "end_time": end_time,
-            }
+            return KalturaScheduleResult(
+                event=event,
+                message=f"Scheduled event '{name}'",
+                start_time=start_time,
+                end_time=end_time,
+            )
     except KalturaAuthError as e:
-        return {"error": f"Authentication failed: {e}"}
+        return KalturaScheduleResult(error=f"Authentication failed: {e}")
     except KalturaAPIError as e:
-        return {"error": f"API error: {e}"}
+        return KalturaScheduleResult(error=f"API error: {e}")
 
 
-async def get_kaltura_upload_status(upload_token_id: str) -> dict[str, Any]:
+async def get_kaltura_upload_status(upload_token_id: _UploadTokenId) -> KalturaUploadStatusResult:
     """Check the status of a Kaltura upload.
 
     Args:
@@ -494,12 +553,12 @@ async def get_kaltura_upload_status(upload_token_id: str) -> dict[str, Any]:
         "Check status of Kaltura upload 0_abc123"
     """
     if not upload_token_id:
-        return {"error": "upload_token_id is required"}
+        return KalturaUploadStatusResult(error="upload_token_id is required")
 
     try:
         config = _get_kaltura_config()
     except ValueError as e:
-        return {"error": str(e)}
+        return KalturaUploadStatusResult(error=str(e))
 
     try:
         async with KalturaClient(**config) as client:  # type: ignore
@@ -517,17 +576,17 @@ async def get_kaltura_upload_status(upload_token_id: str) -> dict[str, Any]:
             status_code = status.get("status", -1)
             status_name = status_names.get(status_code, f"Unknown ({status_code})")
 
-            return {
-                "upload_token_id": upload_token_id,
-                "status": status_name,
-                "status_code": status_code,
-                "uploaded_bytes": status.get("uploadedFileSize", 0),
-                "details": status,
-            }
+            return KalturaUploadStatusResult(
+                upload_token_id=upload_token_id,
+                status=status_name,
+                status_code=status_code,
+                uploaded_bytes=status.get("uploadedFileSize", 0),
+                details=status,
+            )
     except KalturaAuthError as e:
-        return {"error": f"Authentication failed: {e}"}
+        return KalturaUploadStatusResult(error=f"Authentication failed: {e}")
     except KalturaAPIError as e:
-        return {"error": f"API error: {e}"}
+        return KalturaUploadStatusResult(error=f"API error: {e}")
 
 
 # Tool registry for MCP server registration

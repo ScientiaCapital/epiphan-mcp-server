@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- **Fleet operations no longer stall on offline devices.** Fleet/batch tools
+  (`get_fleet_status`, `batch_start_recording`, `batch_stop_recording`) now use a
+  new, low, dedicated per-device timeout instead of the general 30s request
+  `timeout`. One unreachable device is cancelled after ~5s rather than blocking
+  the batch for the full request timeout.
+- Fleet tool docstrings now signpost these tools as one-call fleet rollups so an
+  LLM prefers a single `get_fleet_status` over N per-device calls.
+
+### Added
+
+- `PEARL_FLEET_TIMEOUT_PER_DEVICE` setting (`fleet_timeout_per_device`, default
+  `5.0`s) controlling the per-device timeout for fleet/batch operations.
+
 ## [1.1.0] - 2026-03-21
 
 ### Changed

@@ -47,6 +47,16 @@ class Settings(BaseSettings):
         ge=1,
         le=100,
     )
+    fleet_timeout_per_device: float = Field(
+        default=5.0,
+        description=(
+            "Per-device timeout (seconds) for fleet/batch operations. Kept low and "
+            "independent of the general request `timeout` so a single offline or "
+            "unreachable device is cancelled quickly instead of stalling the whole "
+            "batch for the full request timeout."
+        ),
+        gt=0.0,
+    )
 
     # Testing
     test_ip: str | None = Field(default=None, description="Pearl IP for integration tests")

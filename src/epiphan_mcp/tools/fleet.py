@@ -186,10 +186,12 @@ async def _execute_on_fleet(
 
 async def get_fleet_status() -> dict[str, Any]:
     """
-    Get status of all configured Epiphan Pearl devices.
+    Get status of ALL configured Epiphan Pearl devices in one parallel call.
 
-    This provides a fleet-wide view of device health and activity.
-    Operations are executed in parallel for improved performance.
+    Use this instead of calling get_device_status once per device: it queries
+    every configured device concurrently and returns a single fleet-wide rollup
+    of health and activity. Offline devices are cancelled after
+    fleet_timeout_per_device seconds so they don't stall the whole call.
 
     Returns:
         Summary of fleet status including:
@@ -269,7 +271,7 @@ async def get_fleet_status() -> dict[str, Any]:
         hosts=devices,
         operation=_get_device_status,
         settings=settings,
-        timeout_per_device=settings.timeout,
+        timeout_per_device=settings.fleet_timeout_per_device,
     )
 
     # Aggregate results
@@ -320,9 +322,11 @@ async def get_fleet_status() -> dict[str, Any]:
 
 async def batch_start_recording(device_ids: str = "all") -> dict[str, Any]:
     """
-    Start recording on multiple Epiphan Pearl devices.
+    Start recording on ALL (or several) Epiphan Pearl devices in one parallel call.
 
-    Operations are executed in parallel for improved performance.
+    Use this instead of calling start_recording once per device: it fans out to
+    every target device concurrently and returns one batch result. Offline
+    devices are cancelled after fleet_timeout_per_device seconds.
 
     Args:
         device_ids: Comma-separated list of device IDs, or "all" for all devices.
@@ -358,7 +362,7 @@ async def batch_start_recording(device_ids: str = "all") -> dict[str, Any]:
         hosts=hosts,
         operation=_start_recording,
         settings=settings,
-        timeout_per_device=settings.timeout,
+        timeout_per_device=settings.fleet_timeout_per_device,
     )
 
     # Count successes
@@ -375,9 +379,11 @@ async def batch_start_recording(device_ids: str = "all") -> dict[str, Any]:
 
 async def batch_stop_recording(device_ids: str = "all") -> dict[str, Any]:
     """
-    Stop recording on multiple Epiphan Pearl devices.
+    Stop recording on ALL (or several) Epiphan Pearl devices in one parallel call.
 
-    Operations are executed in parallel for improved performance.
+    Use this instead of calling stop_recording once per device: it fans out to
+    every target device concurrently and returns one batch result. Offline
+    devices are cancelled after fleet_timeout_per_device seconds.
 
     Args:
         device_ids: Comma-separated list of device IDs, or "all" for all devices.
@@ -413,7 +419,7 @@ async def batch_stop_recording(device_ids: str = "all") -> dict[str, Any]:
         hosts=hosts,
         operation=_stop_recording,
         settings=settings,
-        timeout_per_device=settings.timeout,
+        timeout_per_device=settings.fleet_timeout_per_device,
     )
 
     # Count successes

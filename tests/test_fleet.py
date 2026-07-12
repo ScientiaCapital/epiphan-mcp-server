@@ -8,6 +8,8 @@ import asyncio
 import time
 from unittest.mock import AsyncMock, patch
 
+import pytest
+
 import respx
 from httpx import ConnectError, Response
 
@@ -800,6 +802,62 @@ class TestFleetHealthReport:
         assert "summary" in result
         assert len(result["summary"]) > 0
         assert "recommendations" in result
+
+
+# ============================================================
+# Fleet Timeout (Phase 0)
+# ============================================================
+
+
+class TestFleetTimeoutPerDevice:
+    """Fleet/batch tools must use the low fleet timeout, not the 30s request timeout.
+
+    A single offline device should cost ~fleet_timeout_per_device seconds, not
+    the full per-request ``timeout``, so one unreachable device can't stall the
+    whole batch.
+    """
+
+    @staticmethod
+    def _settings_with_distinct_timeouts() -> Settings:
+        """Settings where fleet timeout (5s) differs from request timeout (30s)."""
+        return Settings(
+            devices="192.168.1.100,192.168.1.101",
+            username="admin",
+            password="testpass",
+            use_https=False,
+            timeout=30.0,
+            fleet_timeout_per_device=5.0,
+            verify_ssl=False,
+            fleet_name="timeout-test",
+        )
+
+    @pytest.mark.parametrize(
+        "tool_name",
+        ["get_fleet_status", "batch_start_recording", "batch_stop_recording"],
+    )
+    async def test_fleet_tools_pass_fleet_timeout(self, tool_name: str):
+        """Each fleet tool passes fleet_timeout_per_device into _execute_on_fleet."""
+        import epiphan_mcp.server as server
+
+        settings = self._settings_with_distinct_timeouts()
+        tool = getattr(server, tool_name)
+
+        captured: dict[str, float] = {}
+
+        async def fake_execute(*args, **kwargs):
+            captured["timeout_per_device"] = kwargs["timeout_per_device"]
+            return []
+
+        with patch("epiphan_mcp.tools.fleet.get_settings", return_value=settings):
+            with patch(
+                "epiphan_mcp.tools.fleet._execute_on_fleet",
+                side_effect=fake_execute,
+            ):
+                await tool.fn()
+
+        assert captured["timeout_per_device"] == settings.fleet_timeout_per_device
+        # Guard against the old behaviour of reusing the 30s request timeout.
+        assert captured["timeout_per_device"] != settings.timeout
 
 
 # ============================================================

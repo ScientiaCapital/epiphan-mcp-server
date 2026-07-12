@@ -88,7 +88,10 @@ async def list_devices() -> dict[str, Any]:
     Returns the list of devices configured in the PEARL_DEVICES environment variable.
 
     Returns:
-        List of device hostnames/IPs with their indices.
+        List of device hostnames/IPs with their indices. To check the status of
+        every device at once, use the fleet tools (get_fleet_status,
+        batch_start_recording, batch_stop_recording) rather than calling the
+        per-device tools in a loop.
     """
     settings = get_settings()
     devices = settings.get_device_list()

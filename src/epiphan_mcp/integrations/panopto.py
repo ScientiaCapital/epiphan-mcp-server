@@ -514,15 +514,21 @@ class PanoptoClient:
         file_size = file_path.stat().st_size
         logger.info(f"Uploading {file_path.name} ({file_size} bytes) to Panopto S3")
 
-        with open(file_path, "rb") as f:
-            response = await self._client.put(
-                upload_target,
-                content=f,
-                headers={
-                    "Content-Type": content_type,
-                    "Content-Length": str(file_size),
-                },
-            )
+        # httpx.AsyncClient requires an async byte stream — a plain file
+        # object is a sync iterable and raises at request time.
+        async def _stream(chunk_size: int = 1024 * 1024) -> Any:
+            with open(file_path, "rb") as f:
+                while chunk := f.read(chunk_size):
+                    yield chunk
+
+        response = await self._client.put(
+            upload_target,
+            content=_stream(),
+            headers={
+                "Content-Type": content_type,
+                "Content-Length": str(file_size),
+            },
+        )
 
         if response.status_code not in (200, 201):
             raise PanoptoAPIError(

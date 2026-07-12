@@ -490,6 +490,37 @@ class TestPanoptoClientUpload:
             result = await client.complete_upload("upload-123")
             assert result["State"] == 2
 
+    @pytest.mark.asyncio
+    @respx.mock
+    async def test_upload_file_to_s3_streams_through_async_client(self, tmp_path):
+        """The S3 PUT must go through the real async transport.
+
+        Regression test: passing a sync file object as ``content`` to
+        httpx.AsyncClient raises RuntimeError at request time; the client
+        must stream the file as an async byte iterator instead.
+        """
+        respx.post("https://panopto.example.edu/Panopto/oauth2/connect/token").mock(
+            return_value=httpx.Response(
+                200,
+                json={"access_token": "token", "token_type": "Bearer", "expires_in": 3600},
+            )
+        )
+        respx.put("https://s3.amazonaws.com/bucket/key").mock(
+            return_value=httpx.Response(200)
+        )
+
+        video = tmp_path / "lecture.mp4"
+        video.write_bytes(b"fake video content")
+
+        async with PanoptoClient(
+            host="panopto.example.edu",
+            client_id="test-client",
+            username="user",
+            password="pass",
+        ) as client:
+            ok = await client.upload_file_to_s3("https://s3.amazonaws.com/bucket/key", video)
+        assert ok is True
+
 
 class TestPanoptoClientErrors:
     """Tests for PanoptoClient error handling."""

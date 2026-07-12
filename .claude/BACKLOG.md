@@ -9,10 +9,21 @@
 ## Active: Typed-Schema Conversion (2026-07-12)
 Converting all tool modules from `dict[str, Any]` returns to typed Pydantic
 params + return models (enforced by `tests/test_tool_schemas.py` `NOT_YET_CONVERTED`
-ratchet). **Done (11/21):** fleet, device, system, recording, storage, discovery,
-layout, maintenance, streaming, inputs (+ fleet phase-1). **Remaining (10):**
-ai_tools, cloud, ec20, kaltura, opencast, panopto, publishers, qsys, schedule, youtube.
-Recipe documented in PROJECT_CONTEXT "Tomorrow" handoff.
+ratchet + a model-field wire-compat guard). **Done (16/21):** fleet, device, system,
+recording, storage, discovery, layout, maintenance, streaming, inputs, qsys, youtube,
+opencast, panopto, kaltura. **Remaining (5):** ai_tools, cloud, ec20, publishers,
+schedule. Recipe + YuJa/Echo360 integration plan in PROJECT_CONTEXT "Tomorrow" handoff.
+
+## Active: New video-CMS integrations (researched 2026-07-12)
+Build order: **YuJa first** (static token, 2-step signed-URL upload, live Epiphan
+partnership), then **Echo360** (GA summer 2026, dual OAuth2+Basic auth). Canvas/Moodle
+= lighter publish-to-LMS tools later. Mirror the `integrations/panopto.py` pattern.
+Open Qs: internal Echo360 API spec/sandbox? Canvas Studio vs Files? Moodle version targeting?
+
+## Active: GTM LMS-migration wedge (time-sensitive)
+May-2026 Canvas breach + Anthology/Blackboard fallout → LMS-migration wave. Pull
+Higher-Ed accounts (HubSpot/Apollo), flag Canvas/Blackboard shops for lecture-capture
+re-integration outreach. Owner: Tim. Fresh while breach signal holds.
 
 ---
 

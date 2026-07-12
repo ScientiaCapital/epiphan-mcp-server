@@ -42,7 +42,6 @@ NOT_YET_CONVERTED = {
     "ai_tools",
     "cloud",
     "ec20",
-    "publishers",
 }
 
 # Fetched once at collection time; get_tools() is async but self-contained.
@@ -294,6 +293,17 @@ _MODEL_MUST_KEEP_FIELDS = {
     "SingleTouchResult": {"success", "device", "message", "error"},
     "EventCreateResult": {"success", "device", "event", "message", "error"},
     "EventControlResult": {"success", "message", "device", "details", "event_id", "error"},
+    # publishers
+    "PublisherCreateResult": {
+        "success", "device", "channel", "publisher", "message", "error",
+    },
+    "PublisherOperationResult": {
+        "success", "message", "device", "details", "channel", "publisher", "error",
+    },
+    "PublisherSettingsResult": {
+        "success", "device", "channel", "publisher", "settings", "error",
+    },
+    "PublisherTypesResult": {"success", "device", "channel", "types", "error"},
     # qsys (integration convention: list/status tools carry no `success` key)
     "QSysComponentListResult": {"components", "count", "filter", "qsys_host", "error"},
     "QSysPearlStatusResult": {"status", "component", "qsys_host", "error"},

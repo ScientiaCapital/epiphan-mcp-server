@@ -34,9 +34,9 @@ class TestCreatePublisher:
                 stream_key="xxxx-xxxx-xxxx",
             )
 
-        assert result["success"] is True
-        assert result["device"] == "192.168.1.100"
-        assert "publisher" in result
+        assert result.success is True
+        assert result.device == "192.168.1.100"
+        assert result.publisher is not None
 
     @pytest.mark.asyncio
     async def test_create_publisher_missing_name(self):
@@ -50,8 +50,8 @@ class TestCreatePublisher:
             publisher_type="rtmp",
         )
 
-        assert result["success"] is False
-        assert "name is required" in result["error"].lower()
+        assert result.success is False
+        assert "name is required" in result.error.lower()
 
 
 class TestDeletePublisher:
@@ -82,7 +82,7 @@ class TestDeletePublisher:
                 publisher="publisher-2",
             )
 
-        assert result["success"] is True
+        assert result.success is True
 
 
 class TestGetPublisherSettings:
@@ -114,9 +114,9 @@ class TestGetPublisherSettings:
                 publisher="publisher-1",
             )
 
-        assert result["success"] is True
-        assert "settings" in result
-        assert result["settings"]["enabled"] is True
+        assert result.success is True
+        assert result.settings is not None
+        assert result.settings["enabled"] is True
 
 
 class TestUpdatePublisherSettings:
@@ -148,7 +148,7 @@ class TestUpdatePublisherSettings:
                 bitrate=8000000,
             )
 
-        assert result["success"] is True
+        assert result.success is True
 
     @pytest.mark.asyncio
     async def test_update_publisher_settings_no_changes(self):
@@ -162,8 +162,8 @@ class TestUpdatePublisherSettings:
             # No settings provided
         )
 
-        assert result["success"] is False
-        assert "no settings" in result["error"].lower()
+        assert result.success is False
+        assert "no settings" in result.error.lower()
 
 
 class TestListPublisherTypes:
@@ -184,9 +184,9 @@ class TestListPublisherTypes:
         ):
             result = await list_publisher_types(device_id="default", channel=1)
 
-        assert result["success"] is True
-        assert "rtmp" in result["types"]
-        assert "srt" in result["types"]
+        assert result.success is True
+        assert "rtmp" in result.types
+        assert "srt" in result.types
 
 
 class TestRenamePublisher:
@@ -218,7 +218,7 @@ class TestRenamePublisher:
                 name="Main Stream",
             )
 
-        assert result["success"] is True
+        assert result.success is True
 
     @pytest.mark.asyncio
     async def test_rename_publisher_missing_name(self):
@@ -232,5 +232,5 @@ class TestRenamePublisher:
             name="",  # Empty name
         )
 
-        assert result["success"] is False
-        assert "name is required" in result["error"].lower()
+        assert result.success is False
+        assert "name is required" in result.error.lower()

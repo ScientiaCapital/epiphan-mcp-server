@@ -5,28 +5,65 @@ on Pearl channels. Publishers handle RTMP, SRT, HLS, RTSP, and MPEG-TS streaming
 """
 
 import logging
-from typing import Any
+from typing import Annotated, Any
 
 from fastmcp import FastMCP
+from pydantic import Field
 
 from ..audit import log_operation
 from ..client import PearlAPIError
+from ..models import (
+    PublisherCreateResult,
+    PublisherOperationResult,
+    PublisherSettingsResult,
+    PublisherTypesResult,
+)
 from ..validation import ValidationError, validate_streaming_url
 from .device import get_client
 from .discovery import get_default_channel
+from .params import ChannelNum, DeviceId
 
 logger = logging.getLogger(__name__)
 
+_PublisherName = Annotated[
+    str,
+    Field(description="Display name for the publisher."),
+]
+_PublisherType = Annotated[
+    str,
+    Field(description="Stream protocol: 'rtmp' (default), 'srt', 'hls', 'rtsp', or 'mpeg_ts'."),
+]
+_StreamUrl = Annotated[
+    str | None,
+    Field(description="Destination URL (e.g. 'rtmp://live.twitch.tv/app')."),
+]
+_StreamKey = Annotated[
+    str | None,
+    Field(description="Stream key for RTMP destinations."),
+]
+_Bitrate = Annotated[
+    int | None,
+    Field(description="Target bitrate in bps."),
+]
+_PublisherId = Annotated[
+    str,
+    Field(description="Publisher ID to act on (e.g. 'publisher-1')."),
+]
+_Enabled = Annotated[
+    bool | None,
+    Field(description="Enable or disable the publisher."),
+]
+
 
 async def create_publisher(
-    device_id: str = "default",
-    channel: int | None = None,
-    name: str = "",
-    publisher_type: str = "rtmp",
-    url: str | None = None,
-    stream_key: str | None = None,
-    bitrate: int | None = None,
-) -> dict[str, Any]:
+    device_id: DeviceId = "default",
+    channel: ChannelNum = None,
+    name: _PublisherName = "",
+    publisher_type: _PublisherType = "rtmp",
+    url: _StreamUrl = None,
+    stream_key: _StreamKey = None,
+    bitrate: _Bitrate = None,
+) -> PublisherCreateResult:
     """
     Create a new streaming destination on a Pearl channel.
 
@@ -45,21 +82,21 @@ async def create_publisher(
     if channel is None:
         channel = await get_default_channel(device_id)
     if not name:
-        return {
-            "success": False,
-            "error": "Publisher name is required",
-            "device": device_id,
-        }
+        return PublisherCreateResult(
+            success=False,
+            error="Publisher name is required",
+            device=device_id,
+        )
 
     if url:
         try:
             validate_streaming_url(url)
         except ValidationError as e:
-            return {
-                "success": False,
-                "error": f"Invalid URL: {e}",
-                "device": device_id,
-            }
+            return PublisherCreateResult(
+                success=False,
+                error=f"Invalid URL: {e}",
+                device=device_id,
+            )
 
     try:
         async with get_client(device_id) as client:
@@ -80,33 +117,33 @@ async def create_publisher(
                 publisher_type=publisher_type,
                 settings=settings if settings else None,
             )
-            return {
-                "success": True,
-                "device": client.host,
-                "channel": channel_id,
-                "publisher": result,
-                "message": f"Publisher '{name}' created successfully",
-            }
+            return PublisherCreateResult(
+                success=True,
+                device=client.host,
+                channel=channel_id,
+                publisher=result,
+                message=f"Publisher '{name}' created successfully",
+            )
     except PearlAPIError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "device": device_id,
-            "channel": channel,
-        }
+        return PublisherCreateResult(
+            success=False,
+            error=str(e),
+            device=device_id,
+            channel=channel,
+        )
     except ValueError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "device": device_id,
-        }
+        return PublisherCreateResult(
+            success=False,
+            error=str(e),
+            device=device_id,
+        )
 
 
 async def delete_publisher(
-    device_id: str = "default",
-    channel: int | None = None,
-    publisher: str = "publisher-1",
-) -> dict[str, Any]:
+    device_id: DeviceId = "default",
+    channel: ChannelNum = None,
+    publisher: _PublisherId = "publisher-1",
+) -> PublisherOperationResult:
     """
     Delete a streaming destination from a Pearl channel.
 
@@ -129,28 +166,28 @@ async def delete_publisher(
                 client.host,
                 details={"channel": channel_id, "publisher": publisher},
             )
-            return result.model_dump()
+            return PublisherOperationResult(**result.model_dump())
     except PearlAPIError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "device": device_id,
-            "channel": channel,
-            "publisher": publisher,
-        }
+        return PublisherOperationResult(
+            success=False,
+            error=str(e),
+            device=device_id,
+            channel=channel,
+            publisher=publisher,
+        )
     except ValueError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "device": device_id,
-        }
+        return PublisherOperationResult(
+            success=False,
+            error=str(e),
+            device=device_id,
+        )
 
 
 async def get_publisher_settings(
-    device_id: str = "default",
-    channel: int | None = None,
-    publisher: str = "publisher-1",
-) -> dict[str, Any]:
+    device_id: DeviceId = "default",
+    channel: ChannelNum = None,
+    publisher: _PublisherId = "publisher-1",
+) -> PublisherSettingsResult:
     """
     Get configuration settings for a streaming destination.
 
@@ -168,38 +205,38 @@ async def get_publisher_settings(
         async with get_client(device_id) as client:
             channel_id = f"channel-{channel}" if isinstance(channel, int) else str(channel)
             settings = await client.get_publisher_settings(channel_id, publisher)
-            return {
-                "success": True,
-                "device": client.host,
-                "channel": channel_id,
-                "publisher": publisher,
-                "settings": settings,
-            }
+            return PublisherSettingsResult(
+                success=True,
+                device=client.host,
+                channel=channel_id,
+                publisher=publisher,
+                settings=settings,
+            )
     except PearlAPIError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "device": device_id,
-            "channel": channel,
-            "publisher": publisher,
-        }
+        return PublisherSettingsResult(
+            success=False,
+            error=str(e),
+            device=device_id,
+            channel=channel,
+            publisher=publisher,
+        )
     except ValueError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "device": device_id,
-        }
+        return PublisherSettingsResult(
+            success=False,
+            error=str(e),
+            device=device_id,
+        )
 
 
 async def update_publisher_settings(
-    device_id: str = "default",
-    channel: int | None = None,
-    publisher: str = "publisher-1",
-    url: str | None = None,
-    stream_key: str | None = None,
-    bitrate: int | None = None,
-    enabled: bool | None = None,
-) -> dict[str, Any]:
+    device_id: DeviceId = "default",
+    channel: ChannelNum = None,
+    publisher: _PublisherId = "publisher-1",
+    url: _StreamUrl = None,
+    stream_key: _StreamKey = None,
+    bitrate: _Bitrate = None,
+    enabled: _Enabled = None,
+) -> PublisherOperationResult:
     """
     Update settings for a streaming destination (partial update).
 
@@ -223,11 +260,11 @@ async def update_publisher_settings(
         try:
             validate_streaming_url(url)
         except ValidationError as e:
-            return {
-                "success": False,
-                "error": f"Invalid URL: {e}",
-                "device": device_id,
-            }
+            return PublisherOperationResult(
+                success=False,
+                error=f"Invalid URL: {e}",
+                device=device_id,
+            )
 
     # Build settings dict with only provided values
     settings: dict[str, Any] = {}
@@ -241,37 +278,37 @@ async def update_publisher_settings(
         settings["enabled"] = enabled
 
     if not settings:
-        return {
-            "success": False,
-            "error": "No settings provided to update",
-            "device": device_id,
-        }
+        return PublisherOperationResult(
+            success=False,
+            error="No settings provided to update",
+            device=device_id,
+        )
 
     try:
         async with get_client(device_id) as client:
             channel_id = f"channel-{channel}" if isinstance(channel, int) else str(channel)
             result = await client.update_publisher_settings(channel_id, publisher, settings)
-            return result.model_dump()
+            return PublisherOperationResult(**result.model_dump())
     except PearlAPIError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "device": device_id,
-            "channel": channel,
-            "publisher": publisher,
-        }
+        return PublisherOperationResult(
+            success=False,
+            error=str(e),
+            device=device_id,
+            channel=channel,
+            publisher=publisher,
+        )
     except ValueError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "device": device_id,
-        }
+        return PublisherOperationResult(
+            success=False,
+            error=str(e),
+            device=device_id,
+        )
 
 
 async def list_publisher_types(
-    device_id: str = "default",
-    channel: int | None = None,
-) -> dict[str, Any]:
+    device_id: DeviceId = "default",
+    channel: ChannelNum = None,
+) -> PublisherTypesResult:
     """
     List available streaming protocols for a channel.
 
@@ -290,33 +327,33 @@ async def list_publisher_types(
         async with get_client(device_id) as client:
             channel_id = f"channel-{channel}" if isinstance(channel, int) else str(channel)
             types = await client.get_publisher_types(channel_id)
-            return {
-                "success": True,
-                "device": client.host,
-                "channel": channel_id,
-                "types": types,
-            }
+            return PublisherTypesResult(
+                success=True,
+                device=client.host,
+                channel=channel_id,
+                types=types,
+            )
     except PearlAPIError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "device": device_id,
-            "channel": channel,
-        }
+        return PublisherTypesResult(
+            success=False,
+            error=str(e),
+            device=device_id,
+            channel=channel,
+        )
     except ValueError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "device": device_id,
-        }
+        return PublisherTypesResult(
+            success=False,
+            error=str(e),
+            device=device_id,
+        )
 
 
 async def rename_publisher(
-    device_id: str = "default",
-    channel: int | None = None,
-    publisher: str = "publisher-1",
-    name: str = "",
-) -> dict[str, Any]:
+    device_id: DeviceId = "default",
+    channel: ChannelNum = None,
+    publisher: _PublisherId = "publisher-1",
+    name: _PublisherName = "",
+) -> PublisherOperationResult:
     """
     Rename a streaming destination.
 
@@ -332,31 +369,31 @@ async def rename_publisher(
     if channel is None:
         channel = await get_default_channel(device_id)
     if not name:
-        return {
-            "success": False,
-            "error": "New name is required",
-            "device": device_id,
-        }
+        return PublisherOperationResult(
+            success=False,
+            error="New name is required",
+            device=device_id,
+        )
 
     try:
         async with get_client(device_id) as client:
             channel_id = f"channel-{channel}" if isinstance(channel, int) else str(channel)
             result = await client.update_publisher_name(channel_id, publisher, name)
-            return result.model_dump()
+            return PublisherOperationResult(**result.model_dump())
     except PearlAPIError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "device": device_id,
-            "channel": channel,
-            "publisher": publisher,
-        }
+        return PublisherOperationResult(
+            success=False,
+            error=str(e),
+            device=device_id,
+            channel=channel,
+            publisher=publisher,
+        )
     except ValueError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "device": device_id,
-        }
+        return PublisherOperationResult(
+            success=False,
+            error=str(e),
+            device=device_id,
+        )
 
 
 def register(server: FastMCP) -> None:

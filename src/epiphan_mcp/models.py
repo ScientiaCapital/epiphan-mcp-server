@@ -1208,6 +1208,73 @@ class EventControlResult(BaseModel):
 
 
 # ============================================================
+# Publisher Tool Response Models
+# ============================================================
+
+
+class PublisherCreateResult(BaseModel):
+    """Return type of ``create_publisher``."""
+
+    success: bool = Field(description="Whether the publisher was created")
+    device: str = Field(default="", description="Device host, or the requested device_id on error")
+    channel: int | str | None = Field(
+        default=None, description="Channel the publisher was created on"
+    )
+    publisher: dict[str, Any] | None = Field(
+        default=None, description="Created publisher info including the assigned ID."
+    )
+    message: str | None = Field(default=None, description="Human-readable confirmation message")
+    error: str | None = Field(default=None, description="Error message on failure.")
+
+
+class PublisherOperationResult(BaseModel):
+    """Return type of ``delete_publisher`` / ``update_publisher_settings`` /
+    ``rename_publisher``."""
+
+    model_config = ConfigDict(extra="allow")
+
+    success: bool = Field(description="Whether the operation succeeded")
+    message: str | None = Field(default=None, description="Human-readable confirmation message")
+    device: str = Field(default="", description="Device host, or the requested device_id on error")
+    details: dict[str, Any] | None = Field(
+        default=None, description="Operation details (e.g. affected publisher id)"
+    )
+    channel: int | str | None = Field(
+        default=None, description="Channel the publisher belongs to (on error paths)"
+    )
+    publisher: str | None = Field(
+        default=None, description="Publisher the operation targeted (on error paths)"
+    )
+    error: str | None = Field(default=None, description="Error message on failure.")
+
+
+class PublisherSettingsResult(BaseModel):
+    """Return type of ``get_publisher_settings``."""
+
+    success: bool = Field(description="Whether the settings were retrieved")
+    device: str = Field(default="", description="Device host, or the requested device_id on error")
+    channel: int | str | None = Field(default=None, description="Channel queried")
+    publisher: str | None = Field(default=None, description="Publisher queried")
+    settings: dict[str, Any] | None = Field(
+        default=None, description="Publisher settings: URL, stream key, bitrate, enabled, etc."
+    )
+    error: str | None = Field(default=None, description="Error message on failure.")
+
+
+class PublisherTypesResult(BaseModel):
+    """Return type of ``list_publisher_types``."""
+
+    success: bool = Field(description="Whether the types were retrieved")
+    device: str = Field(default="", description="Device host, or the requested device_id on error")
+    channel: int | str | None = Field(default=None, description="Channel queried")
+    types: list[str] = Field(
+        default_factory=list,
+        description="Available publisher protocols: rtmp, srt, hls, rtsp, mpeg_ts.",
+    )
+    error: str | None = Field(default=None, description="Error message on failure.")
+
+
+# ============================================================
 # Q-SYS Integration Tool Response Models
 # ============================================================
 #

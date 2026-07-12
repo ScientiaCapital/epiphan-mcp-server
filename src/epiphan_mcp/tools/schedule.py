@@ -1,17 +1,59 @@
 """Scheduling and single-touch control tools for Epiphan Pearl devices."""
 
 import logging
-from typing import Any
+from typing import Annotated
 
 from fastmcp import FastMCP
+from pydantic import Field
 
 from ..client import PearlAPIError
+from ..models import (
+    EventControlResult,
+    EventCreateResult,
+    ScheduledEventListResult,
+    SingleTouchResult,
+)
 from .device import get_client
+from .params import DeviceId
 
 logger = logging.getLogger(__name__)
 
+_EventLimit = Annotated[
+    int,
+    Field(description="Maximum number of events to return. Defaults to 100."),
+]
+_EventName = Annotated[
+    str,
+    Field(description="Event name (required)."),
+]
+_StartTime = Annotated[
+    str | None,
+    Field(
+        description="Start time in ISO format (e.g. '2024-01-15T10:00:00'). "
+        "If omitted, the event starts immediately."
+    ),
+]
+_EndTime = Annotated[
+    str | None,
+    Field(description="End time in ISO format. If omitted, the event runs until stopped."),
+]
+_Recorders = Annotated[
+    str | None,
+    Field(description="Comma-separated list of recorder IDs (e.g. 'recorder-1,recorder-2')."),
+]
+_Publishers = Annotated[
+    str | None,
+    Field(description="Comma-separated list of publisher IDs (e.g. 'publisher-1')."),
+]
+_EventId = Annotated[
+    str,
+    Field(description="Event ID to act on (from get_scheduled_events)."),
+]
 
-async def get_scheduled_events(device_id: str = "default", limit: int = 100) -> dict[str, Any]:
+
+async def get_scheduled_events(
+    device_id: DeviceId = "default", limit: _EventLimit = 100
+) -> ScheduledEventListResult:
     """
     Get scheduled recording events from CMS integration (Kaltura/Panopto/Opencast).
 
@@ -31,27 +73,27 @@ async def get_scheduled_events(device_id: str = "default", limit: int = 100) -> 
     try:
         async with get_client(device_id) as client:
             events = await client.get_events(limit=limit)
-            return {
-                "success": True,
-                "device": client.host,
-                "total_events": len(events),
-                "events": events,
-            }
+            return ScheduledEventListResult(
+                success=True,
+                device=client.host,
+                total_events=len(events),
+                events=events,
+            )
     except PearlAPIError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "device": device_id,
-        }
+        return ScheduledEventListResult(
+            success=False,
+            error=str(e),
+            device=device_id,
+        )
     except ValueError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "device": device_id,
-        }
+        return ScheduledEventListResult(
+            success=False,
+            error=str(e),
+            device=device_id,
+        )
 
 
-async def single_touch_start(device_id: str = "default") -> dict[str, Any]:
+async def single_touch_start(device_id: DeviceId = "default") -> SingleTouchResult:
     """
     Start all recorders and streams on an Epiphan Pearl device with one command.
 
@@ -67,26 +109,26 @@ async def single_touch_start(device_id: str = "default") -> dict[str, Any]:
     try:
         async with get_client(device_id) as client:
             result = await client.single_touch_start()
-            return {
-                "success": True,
-                "device": client.host,
-                "message": result.message,
-            }
+            return SingleTouchResult(
+                success=True,
+                device=client.host,
+                message=result.message,
+            )
     except PearlAPIError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "device": device_id,
-        }
+        return SingleTouchResult(
+            success=False,
+            error=str(e),
+            device=device_id,
+        )
     except ValueError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "device": device_id,
-        }
+        return SingleTouchResult(
+            success=False,
+            error=str(e),
+            device=device_id,
+        )
 
 
-async def single_touch_stop(device_id: str = "default") -> dict[str, Any]:
+async def single_touch_stop(device_id: DeviceId = "default") -> SingleTouchResult:
     """
     Stop all recorders and streams on an Epiphan Pearl device with one command.
 
@@ -102,33 +144,33 @@ async def single_touch_stop(device_id: str = "default") -> dict[str, Any]:
     try:
         async with get_client(device_id) as client:
             result = await client.single_touch_stop()
-            return {
-                "success": True,
-                "device": client.host,
-                "message": result.message,
-            }
+            return SingleTouchResult(
+                success=True,
+                device=client.host,
+                message=result.message,
+            )
     except PearlAPIError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "device": device_id,
-        }
+        return SingleTouchResult(
+            success=False,
+            error=str(e),
+            device=device_id,
+        )
     except ValueError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "device": device_id,
-        }
+        return SingleTouchResult(
+            success=False,
+            error=str(e),
+            device=device_id,
+        )
 
 
 async def create_scheduled_event(
-    device_id: str = "default",
-    name: str = "",
-    start_time: str | None = None,
-    end_time: str | None = None,
-    recorders: str | None = None,
-    publishers: str | None = None,
-) -> dict[str, Any]:
+    device_id: DeviceId = "default",
+    name: _EventName = "",
+    start_time: _StartTime = None,
+    end_time: _EndTime = None,
+    recorders: _Recorders = None,
+    publishers: _Publishers = None,
+) -> EventCreateResult:
     """
     Create an ad-hoc recording event.
 
@@ -148,11 +190,11 @@ async def create_scheduled_event(
         Created event info including the assigned ID.
     """
     if not name:
-        return {
-            "success": False,
-            "error": "Event name is required",
-            "device": device_id,
-        }
+        return EventCreateResult(
+            success=False,
+            error="Event name is required",
+            device=device_id,
+        )
 
     try:
         async with get_client(device_id) as client:
@@ -166,30 +208,30 @@ async def create_scheduled_event(
                 recorders=recorder_list,
                 publishers=publisher_list,
             )
-            return {
-                "success": True,
-                "device": client.host,
-                "event": result,
-                "message": f"Event '{name}' created successfully",
-            }
+            return EventCreateResult(
+                success=True,
+                device=client.host,
+                event=result,
+                message=f"Event '{name}' created successfully",
+            )
     except PearlAPIError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "device": device_id,
-        }
+        return EventCreateResult(
+            success=False,
+            error=str(e),
+            device=device_id,
+        )
     except ValueError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "device": device_id,
-        }
+        return EventCreateResult(
+            success=False,
+            error=str(e),
+            device=device_id,
+        )
 
 
 async def pause_event(
-    device_id: str = "default",
-    event_id: str = "",
-) -> dict[str, Any]:
+    device_id: DeviceId = "default",
+    event_id: _EventId = "",
+) -> EventControlResult:
     """
     Pause an active recording event.
 
@@ -204,35 +246,35 @@ async def pause_event(
         Confirmation that the event was paused.
     """
     if not event_id:
-        return {
-            "success": False,
-            "error": "Event ID is required",
-            "device": device_id,
-        }
+        return EventControlResult(
+            success=False,
+            error="Event ID is required",
+            device=device_id,
+        )
 
     try:
         async with get_client(device_id) as client:
             result = await client.pause_event(event_id)
-            return result.model_dump()
+            return EventControlResult(**result.model_dump(), event_id=event_id)
     except PearlAPIError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "device": device_id,
-            "event_id": event_id,
-        }
+        return EventControlResult(
+            success=False,
+            error=str(e),
+            device=device_id,
+            event_id=event_id,
+        )
     except ValueError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "device": device_id,
-        }
+        return EventControlResult(
+            success=False,
+            error=str(e),
+            device=device_id,
+        )
 
 
 async def resume_event(
-    device_id: str = "default",
-    event_id: str = "",
-) -> dict[str, Any]:
+    device_id: DeviceId = "default",
+    event_id: _EventId = "",
+) -> EventControlResult:
     """
     Resume a paused recording event.
 
@@ -246,29 +288,29 @@ async def resume_event(
         Confirmation that the event was resumed.
     """
     if not event_id:
-        return {
-            "success": False,
-            "error": "Event ID is required",
-            "device": device_id,
-        }
+        return EventControlResult(
+            success=False,
+            error="Event ID is required",
+            device=device_id,
+        )
 
     try:
         async with get_client(device_id) as client:
             result = await client.resume_event(event_id)
-            return result.model_dump()
+            return EventControlResult(**result.model_dump(), event_id=event_id)
     except PearlAPIError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "device": device_id,
-            "event_id": event_id,
-        }
+        return EventControlResult(
+            success=False,
+            error=str(e),
+            device=device_id,
+            event_id=event_id,
+        )
     except ValueError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "device": device_id,
-        }
+        return EventControlResult(
+            success=False,
+            error=str(e),
+            device=device_id,
+        )
 
 
 def register(server: FastMCP) -> None:

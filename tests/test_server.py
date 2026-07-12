@@ -776,8 +776,8 @@ class TestSingleTouchStart:
 
                 result = await single_touch_start.fn(device_id="default")
 
-        assert result["success"] is True
-        assert "started" in result["message"].lower()
+        assert result.success is True
+        assert "started" in result.message.lower()
 
     async def test_single_touch_start_api_error(self, mock_pearl_host: str):
         """Test single touch start with API error."""
@@ -795,8 +795,8 @@ class TestSingleTouchStart:
 
                 result = await single_touch_start.fn(device_id="default")
 
-        assert result["success"] is False
-        assert "error" in result
+        assert result.success is False
+        assert result.error is not None
 
     async def test_single_touch_start_invalid_device(self):
         """Test single touch start with invalid device."""
@@ -807,8 +807,8 @@ class TestSingleTouchStart:
 
             result = await single_touch_start.fn(device_id="nonexistent")
 
-        assert result["success"] is False
-        assert "error" in result
+        assert result.success is False
+        assert result.error is not None
 
 
 class TestSingleTouchStop:
@@ -830,8 +830,8 @@ class TestSingleTouchStop:
 
                 result = await single_touch_stop.fn(device_id="default")
 
-        assert result["success"] is True
-        assert "stopped" in result["message"].lower()
+        assert result.success is True
+        assert "stopped" in result.message.lower()
 
     async def test_single_touch_stop_api_error(self, mock_pearl_host: str):
         """Test single touch stop with API error."""
@@ -849,8 +849,8 @@ class TestSingleTouchStop:
 
                 result = await single_touch_stop.fn(device_id="default")
 
-        assert result["success"] is False
-        assert "error" in result
+        assert result.success is False
+        assert result.error is not None
 
     async def test_single_touch_stop_invalid_device(self):
         """Test single touch stop with invalid device."""
@@ -861,8 +861,8 @@ class TestSingleTouchStop:
 
             result = await single_touch_stop.fn(device_id="nonexistent")
 
-        assert result["success"] is False
-        assert "error" in result
+        assert result.success is False
+        assert result.error is not None
 
 
 # ============================================================
@@ -889,10 +889,10 @@ class TestGetScheduledEvents:
 
                 result = await get_scheduled_events.fn(device_id="default")
 
-        assert result["success"] is True
-        assert result["total_events"] == 2
-        assert len(result["events"]) == 2
-        assert result["events"][0]["name"] == "Morning Lecture"
+        assert result.success is True
+        assert result.total_events == 2
+        assert len(result.events) == 2
+        assert result.events[0]["name"] == "Morning Lecture"
 
     async def test_get_scheduled_events_empty(self, mock_pearl_host: str):
         """Test when no events are scheduled."""
@@ -911,8 +911,8 @@ class TestGetScheduledEvents:
 
                 result = await get_scheduled_events.fn(device_id="default")
 
-        assert result["success"] is True
-        assert result["total_events"] == 0
+        assert result.success is True
+        assert result.total_events == 0
 
     async def test_get_scheduled_events_api_error(self, mock_pearl_host: str):
         """Test scheduled events with API error."""
@@ -930,8 +930,8 @@ class TestGetScheduledEvents:
 
                 result = await get_scheduled_events.fn(device_id="default")
 
-        assert result["success"] is False
-        assert "error" in result
+        assert result.success is False
+        assert result.error is not None
 
     async def test_get_scheduled_events_invalid_device(self):
         """Test scheduled events with invalid device."""
@@ -942,8 +942,8 @@ class TestGetScheduledEvents:
 
             result = await get_scheduled_events.fn(device_id="nonexistent")
 
-        assert result["success"] is False
-        assert "error" in result
+        assert result.success is False
+        assert result.error is not None
 
 
 class TestBatchStartRecording:

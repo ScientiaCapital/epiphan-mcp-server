@@ -1153,6 +1153,61 @@ class InputPreviewResult(BaseModel):
 
 
 # ============================================================
+# Schedule Tool Response Models
+# ============================================================
+
+
+class ScheduledEventListResult(BaseModel):
+    """Return type of ``get_scheduled_events``."""
+
+    success: bool = Field(description="Whether the events were retrieved")
+    device: str = Field(default="", description="Device host, or the requested device_id on error")
+    total_events: int = Field(default=0, description="Number of events returned")
+    events: list[dict[str, Any]] = Field(
+        default_factory=list,
+        description="Scheduled events, each with id/name/status/start_time/"
+        "end_time/cms_type as reported by the CMS integration.",
+    )
+    error: str | None = Field(default=None, description="Error message on failure.")
+
+
+class SingleTouchResult(BaseModel):
+    """Return type of ``single_touch_start`` / ``single_touch_stop``."""
+
+    success: bool = Field(description="Whether the single-touch action succeeded")
+    device: str = Field(default="", description="Device host, or the requested device_id on error")
+    message: str | None = Field(default=None, description="Human-readable confirmation message")
+    error: str | None = Field(default=None, description="Error message on failure.")
+
+
+class EventCreateResult(BaseModel):
+    """Return type of ``create_scheduled_event``."""
+
+    success: bool = Field(description="Whether the event was created")
+    device: str = Field(default="", description="Device host, or the requested device_id on error")
+    event: dict[str, Any] | None = Field(
+        default=None, description="Created event info including the assigned ID."
+    )
+    message: str | None = Field(default=None, description="Human-readable confirmation message")
+    error: str | None = Field(default=None, description="Error message on failure.")
+
+
+class EventControlResult(BaseModel):
+    """Return type of ``pause_event`` / ``resume_event``."""
+
+    model_config = ConfigDict(extra="allow")
+
+    success: bool = Field(description="Whether the control action succeeded")
+    message: str | None = Field(default=None, description="Human-readable confirmation message")
+    device: str = Field(default="", description="Device host, or the requested device_id on error")
+    details: dict[str, Any] | None = Field(
+        default=None, description="Operation details (e.g. affected event id)"
+    )
+    event_id: str | None = Field(default=None, description="Event the action targeted")
+    error: str | None = Field(default=None, description="Error message on failure.")
+
+
+# ============================================================
 # Q-SYS Integration Tool Response Models
 # ============================================================
 #

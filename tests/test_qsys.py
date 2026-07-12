@@ -544,8 +544,8 @@ class TestQSysTools:
 
         with patch.dict(os.environ, {}, clear=True):
             result = await list_qsys_components()
-            assert "error" in result
-            assert "Missing Q-SYS configuration" in result["error"]
+            assert result.error is not None
+            assert "Missing Q-SYS configuration" in result.error
 
     @pytest.mark.asyncio
     async def test_list_qsys_components_success(self):
@@ -569,8 +569,8 @@ class TestQSysTools:
             mock_connect.return_value = (reader, writer)
 
             result = await list_qsys_components()
-            assert result["count"] == 1
-            assert result["components"][0]["Name"] == "Pearl_Recorder"
+            assert result.count == 1
+            assert result.components[0]["Name"] == "Pearl_Recorder"
 
     @pytest.mark.asyncio
     async def test_qsys_get_pearl_status_success(self):
@@ -599,8 +599,8 @@ class TestQSysTools:
             mock_connect.return_value = (reader, writer)
 
             result = await qsys_get_pearl_status("Pearl_Recorder")
-            assert result["status"]["is_recording"] is True
-            assert result["status"]["is_streaming"] is False
+            assert result.status["is_recording"] is True
+            assert result.status["is_streaming"] is False
 
     @pytest.mark.asyncio
     async def test_qsys_get_pearl_status_missing_component(self):
@@ -608,8 +608,8 @@ class TestQSysTools:
         from epiphan_mcp.tools.qsys import qsys_get_pearl_status
 
         result = await qsys_get_pearl_status("")
-        assert "error" in result
-        assert "component_name is required" in result["error"]
+        assert result.error is not None
+        assert "component_name is required" in result.error
 
     @pytest.mark.asyncio
     async def test_qsys_start_recording_success(self):
@@ -623,8 +623,8 @@ class TestQSysTools:
             mock_connect.return_value = (reader, writer)
 
             result = await qsys_start_recording("Pearl_Recorder")
-            assert result["success"] is True
-            assert "Recording started" in result["message"]
+            assert result.success is True
+            assert "Recording started" in result.message
 
     @pytest.mark.asyncio
     async def test_qsys_stop_recording_success(self):
@@ -638,8 +638,8 @@ class TestQSysTools:
             mock_connect.return_value = (reader, writer)
 
             result = await qsys_stop_recording("Pearl_Recorder")
-            assert result["success"] is True
-            assert "Recording stopped" in result["message"]
+            assert result.success is True
+            assert "Recording stopped" in result.message
 
     @pytest.mark.asyncio
     async def test_qsys_switch_layout_success(self):
@@ -653,8 +653,8 @@ class TestQSysTools:
             mock_connect.return_value = (reader, writer)
 
             result = await qsys_switch_layout("2", "Pearl_Layout")
-            assert result["success"] is True
-            assert "Layout switched" in result["message"]
+            assert result.success is True
+            assert "Layout switched" in result.message
 
     @pytest.mark.asyncio
     async def test_qsys_switch_layout_missing_params(self):
@@ -662,10 +662,12 @@ class TestQSysTools:
         from epiphan_mcp.tools.qsys import qsys_switch_layout
 
         result = await qsys_switch_layout("", "Pearl_Layout")
-        assert "layout_id is required" in result["error"]
+        assert result.error is not None
+        assert "layout_id is required" in result.error
 
         result = await qsys_switch_layout("2", "")
-        assert "component_name is required" in result["error"]
+        assert result.error is not None
+        assert "component_name is required" in result.error
 
 
 class TestQSysToolsConnectionErrors:
@@ -691,8 +693,8 @@ class TestQSysToolsConnectionErrors:
             mock_connect.side_effect = OSError("Connection refused")
 
             result = await list_qsys_components()
-            assert "error" in result
-            assert "Connection failed" in result["error"]
+            assert result.error is not None
+            assert "Connection failed" in result.error
 
     @pytest.mark.asyncio
     async def test_auth_error_returns_error_dict(self):
@@ -715,5 +717,5 @@ class TestQSysToolsConnectionErrors:
                 mock_connect.return_value = (reader, writer)
 
                 result = await list_qsys_components()
-                assert "error" in result
-                assert "Authentication failed" in result["error"]
+                assert result.error is not None
+                assert "Authentication failed" in result.error

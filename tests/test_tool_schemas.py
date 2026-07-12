@@ -46,7 +46,6 @@ NOT_YET_CONVERTED = {
     "opencast",
     "panopto",
     "publishers",
-    "qsys",
     "schedule",
     "youtube",
 }
@@ -293,6 +292,12 @@ _MODEL_MUST_KEEP_FIELDS = {
     "OutputSourceResult": {"success", "message", "device", "details", "output_id", "error"},
     "InputPreviewResult": {
         "success", "device", "input_id", "format", "preview_base64", "size_bytes", "error",
+    },
+    # qsys (integration convention: list/status tools carry no `success` key)
+    "QSysComponentListResult": {"components", "count", "filter", "qsys_host", "error"},
+    "QSysPearlStatusResult": {"status", "component", "qsys_host", "error"},
+    "QSysControlResult": {
+        "success", "message", "component", "layout_id", "qsys_host", "result", "error",
     },
 }
 

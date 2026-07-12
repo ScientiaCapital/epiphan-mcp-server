@@ -1150,3 +1150,55 @@ class InputPreviewResult(BaseModel):
         default=None, description="Requested resolution, or null when using the device default."
     )
     error: str | None = Field(default=None, description="Error message on failure.")
+
+
+# ============================================================
+# Q-SYS Integration Tool Response Models
+# ============================================================
+#
+# Q-SYS tools predate the shared {success, ...} convention: the list/status
+# tools carry no ``success`` key, and error paths return a bare ``error``.
+# These models mirror each tool's actual dict shape (union of success + error
+# keys, neutral defaults) rather than imposing a success flag.
+
+
+class QSysComponentListResult(BaseModel):
+    """Return type of ``list_qsys_components``."""
+
+    components: list[dict[str, Any]] = Field(
+        default_factory=list, description="Matching Q-SYS components, each with Name and Type."
+    )
+    count: int | None = Field(default=None, description="Number of components returned")
+    filter: str | None = Field(
+        default=None, description="Name filter applied ('all' when unfiltered)"
+    )
+    qsys_host: str | None = Field(default=None, description="Q-SYS Core host queried")
+    error: str | None = Field(default=None, description="Error message on failure.")
+
+
+class QSysPearlStatusResult(BaseModel):
+    """Return type of ``qsys_get_pearl_status``."""
+
+    status: dict[str, Any] | None = Field(
+        default=None,
+        description="Pearl state via Q-SYS: is_recording, is_streaming, current_layout.",
+    )
+    component: str | None = Field(default=None, description="Q-SYS Pearl component queried")
+    qsys_host: str | None = Field(default=None, description="Q-SYS Core host queried")
+    error: str | None = Field(default=None, description="Error message on failure.")
+
+
+class QSysControlResult(BaseModel):
+    """Return of ``qsys_start_recording`` / ``qsys_stop_recording`` / ``qsys_switch_layout``."""
+
+    success: bool | None = Field(default=None, description="Whether the control action succeeded")
+    message: str | None = Field(default=None, description="Human-readable confirmation message")
+    component: str | None = Field(default=None, description="Q-SYS component targeted")
+    layout_id: str | None = Field(
+        default=None, description="Layout switched to (switch_layout only)"
+    )
+    qsys_host: str | None = Field(default=None, description="Q-SYS Core host")
+    result: dict[str, Any] | None = Field(
+        default=None, description="Raw Q-SYS RPC result payload."
+    )
+    error: str | None = Field(default=None, description="Error message on failure.")

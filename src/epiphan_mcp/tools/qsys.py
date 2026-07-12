@@ -14,9 +14,10 @@ Environment Variables Required:
 """
 
 import os
-from typing import Any
+from typing import Annotated, Any
 
 from fastmcp import FastMCP
+from pydantic import Field
 
 from epiphan_mcp.integrations.qsys import (
     QSysAuthError,
@@ -24,6 +25,26 @@ from epiphan_mcp.integrations.qsys import (
     QSysConnectionError,
     QSysRPCError,
 )
+from epiphan_mcp.models import (
+    QSysComponentListResult,
+    QSysControlResult,
+    QSysPearlStatusResult,
+)
+
+_NameFilter = Annotated[
+    str,
+    Field(
+        description=(
+            "Filter components whose name contains this string (default 'Pearl'). "
+            "Use an empty string to list all components."
+        )
+    ),
+]
+_ComponentName = Annotated[
+    str,
+    Field(description="Name of the Pearl component in the Q-SYS design (e.g. 'Pearl_Recorder')."),
+]
+_QSysLayoutId = Annotated[str, Field(description="Layout ID or index to switch to.")]
 
 
 def _get_qsys_config() -> dict[str, Any]:
@@ -40,7 +61,7 @@ def _get_qsys_config() -> dict[str, Any]:
     }
 
 
-async def list_qsys_components(name_filter: str = "Pearl") -> dict[str, Any]:
+async def list_qsys_components(name_filter: _NameFilter = "Pearl") -> QSysComponentListResult:
     """List Q-SYS components, optionally filtered by name.
 
     Discovers components in the Q-SYS design that match the filter.
@@ -61,26 +82,28 @@ async def list_qsys_components(name_filter: str = "Pearl") -> dict[str, Any]:
     try:
         config = _get_qsys_config()
     except ValueError as e:
-        return {"error": str(e), "components": []}
+        return QSysComponentListResult(error=str(e), components=[])
 
     try:
         async with QSysClient(**config) as client:
             components = await client.discover_components(name_filter=name_filter)
-            return {
-                "components": components,
-                "count": len(components),
-                "filter": name_filter or "all",
-                "qsys_host": config["host"],
-            }
+            return QSysComponentListResult(
+                components=components,
+                count=len(components),
+                filter=name_filter or "all",
+                qsys_host=config["host"],
+            )
     except QSysConnectionError as e:
-        return {"error": f"Connection failed: {e}", "components": []}
+        return QSysComponentListResult(error=f"Connection failed: {e}", components=[])
     except QSysAuthError as e:
-        return {"error": f"Authentication failed: {e}", "components": []}
+        return QSysComponentListResult(error=f"Authentication failed: {e}", components=[])
     except QSysRPCError as e:
-        return {"error": f"RPC error: {e}", "components": []}
+        return QSysComponentListResult(error=f"RPC error: {e}", components=[])
 
 
-async def qsys_get_pearl_status(component_name: str = "Pearl_Recorder") -> dict[str, Any]:
+async def qsys_get_pearl_status(
+    component_name: _ComponentName = "Pearl_Recorder",
+) -> QSysPearlStatusResult:
     """Get Pearl recording/streaming status through Q-SYS.
 
     Retrieves the current state of a Pearl device controlled by Q-SYS.
@@ -98,30 +121,32 @@ async def qsys_get_pearl_status(component_name: str = "Pearl_Recorder") -> dict[
         "Check Q-SYS Pearl_Recorder status"
     """
     if not component_name:
-        return {"error": "component_name is required"}
+        return QSysPearlStatusResult(error="component_name is required")
 
     try:
         config = _get_qsys_config()
     except ValueError as e:
-        return {"error": str(e)}
+        return QSysPearlStatusResult(error=str(e))
 
     try:
         async with QSysClient(**config) as client:
             status = await client.get_pearl_status(component_name)
-            return {
-                "status": status,
-                "component": component_name,
-                "qsys_host": config["host"],
-            }
+            return QSysPearlStatusResult(
+                status=status,
+                component=component_name,
+                qsys_host=config["host"],
+            )
     except QSysConnectionError as e:
-        return {"error": f"Connection failed: {e}"}
+        return QSysPearlStatusResult(error=f"Connection failed: {e}")
     except QSysAuthError as e:
-        return {"error": f"Authentication failed: {e}"}
+        return QSysPearlStatusResult(error=f"Authentication failed: {e}")
     except QSysRPCError as e:
-        return {"error": f"RPC error: {e}"}
+        return QSysPearlStatusResult(error=f"RPC error: {e}")
 
 
-async def qsys_start_recording(component_name: str = "Pearl_Recorder") -> dict[str, Any]:
+async def qsys_start_recording(
+    component_name: _ComponentName = "Pearl_Recorder",
+) -> QSysControlResult:
     """Start recording on Pearl through Q-SYS.
 
     Triggers recording start via the Q-SYS Pearl component. This is useful
@@ -138,32 +163,34 @@ async def qsys_start_recording(component_name: str = "Pearl_Recorder") -> dict[s
         "Q-SYS: start recording on Pearl_Recorder"
     """
     if not component_name:
-        return {"error": "component_name is required"}
+        return QSysControlResult(error="component_name is required")
 
     try:
         config = _get_qsys_config()
     except ValueError as e:
-        return {"error": str(e)}
+        return QSysControlResult(error=str(e))
 
     try:
         async with QSysClient(**config) as client:
             result = await client.start_recording(component_name)
-            return {
-                "success": True,
-                "message": f"Recording started on {component_name}",
-                "component": component_name,
-                "qsys_host": config["host"],
-                "result": result,
-            }
+            return QSysControlResult(
+                success=True,
+                message=f"Recording started on {component_name}",
+                component=component_name,
+                qsys_host=config["host"],
+                result=result,
+            )
     except QSysConnectionError as e:
-        return {"error": f"Connection failed: {e}"}
+        return QSysControlResult(error=f"Connection failed: {e}")
     except QSysAuthError as e:
-        return {"error": f"Authentication failed: {e}"}
+        return QSysControlResult(error=f"Authentication failed: {e}")
     except QSysRPCError as e:
-        return {"error": f"RPC error: {e}"}
+        return QSysControlResult(error=f"RPC error: {e}")
 
 
-async def qsys_stop_recording(component_name: str = "Pearl_Recorder") -> dict[str, Any]:
+async def qsys_stop_recording(
+    component_name: _ComponentName = "Pearl_Recorder",
+) -> QSysControlResult:
     """Stop recording on Pearl through Q-SYS.
 
     Triggers recording stop via the Q-SYS Pearl component.
@@ -179,35 +206,35 @@ async def qsys_stop_recording(component_name: str = "Pearl_Recorder") -> dict[st
         "Q-SYS: stop recording on Pearl_Recorder"
     """
     if not component_name:
-        return {"error": "component_name is required"}
+        return QSysControlResult(error="component_name is required")
 
     try:
         config = _get_qsys_config()
     except ValueError as e:
-        return {"error": str(e)}
+        return QSysControlResult(error=str(e))
 
     try:
         async with QSysClient(**config) as client:
             result = await client.stop_recording(component_name)
-            return {
-                "success": True,
-                "message": f"Recording stopped on {component_name}",
-                "component": component_name,
-                "qsys_host": config["host"],
-                "result": result,
-            }
+            return QSysControlResult(
+                success=True,
+                message=f"Recording stopped on {component_name}",
+                component=component_name,
+                qsys_host=config["host"],
+                result=result,
+            )
     except QSysConnectionError as e:
-        return {"error": f"Connection failed: {e}"}
+        return QSysControlResult(error=f"Connection failed: {e}")
     except QSysAuthError as e:
-        return {"error": f"Authentication failed: {e}"}
+        return QSysControlResult(error=f"Authentication failed: {e}")
     except QSysRPCError as e:
-        return {"error": f"RPC error: {e}"}
+        return QSysControlResult(error=f"RPC error: {e}")
 
 
 async def qsys_switch_layout(
-    layout_id: str,
-    component_name: str = "Pearl_Layout",
-) -> dict[str, Any]:
+    layout_id: _QSysLayoutId,
+    component_name: _ComponentName = "Pearl_Layout",
+) -> QSysControlResult:
     """Switch Pearl layout through Q-SYS.
 
     Changes the active layout/scene on a Pearl device via Q-SYS control.
@@ -225,33 +252,33 @@ async def qsys_switch_layout(
         "Q-SYS: change Pearl layout to fullscreen"
     """
     if not layout_id:
-        return {"error": "layout_id is required"}
+        return QSysControlResult(error="layout_id is required")
 
     if not component_name:
-        return {"error": "component_name is required"}
+        return QSysControlResult(error="component_name is required")
 
     try:
         config = _get_qsys_config()
     except ValueError as e:
-        return {"error": str(e)}
+        return QSysControlResult(error=str(e))
 
     try:
         async with QSysClient(**config) as client:
             result = await client.switch_layout(layout_id, component_name)
-            return {
-                "success": True,
-                "message": f"Layout switched to {layout_id} on {component_name}",
-                "layout_id": layout_id,
-                "component": component_name,
-                "qsys_host": config["host"],
-                "result": result,
-            }
+            return QSysControlResult(
+                success=True,
+                message=f"Layout switched to {layout_id} on {component_name}",
+                layout_id=layout_id,
+                component=component_name,
+                qsys_host=config["host"],
+                result=result,
+            )
     except QSysConnectionError as e:
-        return {"error": f"Connection failed: {e}"}
+        return QSysControlResult(error=f"Connection failed: {e}")
     except QSysAuthError as e:
-        return {"error": f"Authentication failed: {e}"}
+        return QSysControlResult(error=f"Authentication failed: {e}")
     except QSysRPCError as e:
-        return {"error": f"RPC error: {e}"}
+        return QSysControlResult(error=f"RPC error: {e}")
 
 
 # Tool registry for MCP server registration

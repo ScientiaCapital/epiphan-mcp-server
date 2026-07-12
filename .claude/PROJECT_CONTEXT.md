@@ -3,21 +3,26 @@
 **Branch**: main | **Updated**: 2026-07-12
 
 ## Status
-Both of Vadim's critiques (timeout, typed schemas) fixed, merged, and pushed. Reply sent to Vadim. Now also a verified, documented MCP client target — silkroute's new `mcp_bridge` drives this server over stdio end-to-end (README compatibility table updated). 15 tool modules still need the typed-schema conversion (recipe established, not blocking).
+Typed-schema conversion continued: the 5 smallest Pearl-core tool modules (discovery, layout, maintenance, streaming, inputs) are now converted to typed Pydantic params + typed return models. `NOT_YET_CONVERTED` allowlist shrank 15 → 10. Full suite green (876 passed, 7 skipped), mypy strict clean, ruff clean. 5 commits made locally; **not yet pushed** (main is 5 ahead of origin).
+
+## Today's Focus
+1. [x] Convert discovery, layout, maintenance, streaming, inputs to typed schemas
+2. [ ] Push the 5 conversion commits to origin (held for confirmation)
 
 ## Done (This Session)
-- [x] `fix(fleet)`: dedicated `PEARL_FLEET_TIMEOUT_PER_DEVICE` (default 5s) — real cause of the "lacks parallel execution" critique was the 30s timeout, not missing concurrency
-- [x] Typed Pydantic params/returns for fleet, device, system, recording, storage tool modules
-- [x] `tests/test_tool_schemas.py` contract meta-test with shrinking `NOT_YET_CONVERTED` allowlist
-- [x] Reply sent to Vadim (2026-07-12) — confirmed by Tim, closes the loop with live numbers (5.1s vs 30.1s, 5.9x)
-- [x] README updated: SilkRoute added to the MCP-client compatibility table, linking to its "Try the AV demo" section
-- [x] No source changes needed to support the AV demo — `PEARL_DEVICES` already accepted the mock server's host:port, proving the server's existing design was already flexible enough
+- [x] `feat(discovery)`: typed discover_device/clear_discovery_cache + adapted internal get_default_recorder/channel helpers (DeviceDiscoveryResult, CacheClearResult)
+- [x] `feat(layout)`: list_layouts, switch_layout, add_bookmark (LayoutListResult, LayoutSwitchResult, BookmarkResult)
+- [x] `feat(maintenance)`: predict_storage_full, get_device_health_score (StoragePredictionResult, DeviceHealthResult)
+- [x] `feat(streaming)`: start/stop_stream, get_stream_status, list_channels, list_publishers, get_channel_preview (5 result models) + shared PreviewResolution/ImageFormat params
+- [x] `feat(inputs)`: create_network_input, get/update_input_settings, list_outputs, set_output_source, get_input_preview (6 result models)
+- [x] Each conversion migrated its test file (dict-indexing → attribute access) and dropped its module from NOT_YET_CONVERTED in the same commit
+- [x] Security: gitleaks clean (76 commits); mypy strict + ruff clean; full suite 876 passed
 
 ## Blockers
 None
 
 ## Tomorrow
-Tomorrow: convert remaining 15 modules to typed schemas via the established recipe (ai_tools, cloud, discovery, ec20, inputs, kaltura, layout, maintenance, opencast, panopto, publishers, qsys, schedule, streaming, youtube) — ~1-2h each | Consider running a live end-to-end check against Vadim's real 15-device fleet once he re-tests | Observer notes: none run this session — reviewed inline instead
+Tomorrow: convert remaining 10 modules via the established recipe — start with the CMS/AV integrations (kaltura, opencast, panopto, youtube, qsys) then ai_tools, cloud, ec20, publishers, schedule (~1-2h each) | Recipe: typed Annotated params + Field(description), typed return model in models.py (extra="allow" for control-result tools wrapping OperationResult.model_dump()), serialize BaseModel lists to dicts before construction, migrate the module's test file, drop from NOT_YET_CONVERTED same commit | Backlog.md is stale (says 101 tools, actual 115; P0 items pre-date CI) — needs a cleanup pass | Observer notes: none run this session (plan mode blocked file-writing observers; reviewed inline instead) | Cost file reads MTD $240.74 vs $100 cap — looks like synthetic dev-metrics, verify it's not real gated spend
 
 ## Tech Stack
 Python 3.11+ | FastMCP | httpx (async) | Pydantic v2 | pydantic-settings | pytest + respx | ruff + mypy (strict)
@@ -29,4 +34,4 @@ Python 3.11+ | FastMCP | httpx (async) | Pydantic v2 | pydantic-settings | pytes
 
 ---
 
-_Updated by AV demo cross-repo session. 2026-07-12._
+_Updated by typed-schema core-batch session. 2026-07-12._

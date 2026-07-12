@@ -67,8 +67,8 @@ class TestInvalidDeviceId:
         with patch("epiphan_mcp.tools.device.get_settings", return_value=settings):
             result = await get_device_status(device_id="")
 
-        assert result["success"] is False
-        assert "error" in result
+        assert result.success is False
+        assert hasattr(result, "error")
 
     async def test_device_id_with_spaces(self):
         """Device ID with spaces should be rejected by host validation."""
@@ -77,8 +77,8 @@ class TestInvalidDeviceId:
         with patch("epiphan_mcp.tools.device.get_settings", return_value=settings):
             result = await get_device_status(device_id="bad host")
 
-        assert result["success"] is False
-        assert "error" in result
+        assert result.success is False
+        assert hasattr(result, "error")
 
     async def test_device_id_command_injection(self):
         """Device ID with shell injection attempt should be rejected."""
@@ -87,8 +87,8 @@ class TestInvalidDeviceId:
         with patch("epiphan_mcp.tools.device.get_settings", return_value=settings):
             result = await get_device_status(device_id=";rm -rf /")
 
-        assert result["success"] is False
-        assert "error" in result
+        assert result.success is False
+        assert hasattr(result, "error")
 
     async def test_device_id_sql_injection(self):
         """Device ID with SQL injection attempt should be rejected."""
@@ -97,8 +97,8 @@ class TestInvalidDeviceId:
         with patch("epiphan_mcp.tools.device.get_settings", return_value=settings):
             result = await get_device_status(device_id="' OR 1=1 --")
 
-        assert result["success"] is False
-        assert "error" in result
+        assert result.success is False
+        assert hasattr(result, "error")
 
     async def test_device_id_url(self):
         """Device ID that looks like a URL should be rejected."""
@@ -107,8 +107,8 @@ class TestInvalidDeviceId:
         with patch("epiphan_mcp.tools.device.get_settings", return_value=settings):
             result = await get_device_status(device_id="http://evil.com")
 
-        assert result["success"] is False
-        assert "error" in result
+        assert result.success is False
+        assert hasattr(result, "error")
 
 
 # ============================================================
@@ -444,8 +444,8 @@ class TestBoundaryValues:
         with patch("epiphan_mcp.tools.device.get_settings", return_value=settings):
             result = await get_device_status(device_id=long_name)
 
-        assert result["success"] is False
-        assert "error" in result
+        assert result.success is False
+        assert hasattr(result, "error")
 
     async def test_recorder_id_special_format(self):
         """Recorder with non-standard ID format should work or fail gracefully."""
@@ -498,7 +498,7 @@ class TestBoundaryValues:
                 # Index 1 should resolve to 192.168.1.101
                 result = await get_device_status(device_id="1")
 
-        assert result["success"] is True
+        assert result.success is True
 
     async def test_device_id_out_of_range_index(self):
         """Out-of-range numeric index should fail gracefully."""
@@ -507,8 +507,8 @@ class TestBoundaryValues:
         with patch("epiphan_mcp.tools.device.get_settings", return_value=settings):
             result = await get_device_status(device_id="99")
 
-        assert result["success"] is False
-        assert "error" in result
+        assert result.success is False
+        assert hasattr(result, "error")
 
 
 # ============================================================

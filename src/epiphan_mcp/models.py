@@ -496,6 +496,39 @@ class EventCreateRequest(BaseModel):
 
 
 # ============================================================
+# Device Tool Response Models
+# ============================================================
+
+
+class DeviceStatusResult(BaseModel):
+    """Return type of ``get_device_status``."""
+
+    success: bool = Field(description="Whether the status was retrieved")
+    device: str = Field(
+        default="", description="Device host, or the requested device_id on error"
+    )
+    status: dict[str, Any] | None = Field(
+        default=None,
+        description="Device status detail: uptime_hours, storage "
+        "(total_gb/free_gb/used_percent), firmware, model, and recording state. "
+        "Null on error.",
+    )
+    error: str | None = Field(default=None, description="Error message on failure.")
+
+
+class DeviceListResult(BaseModel):
+    """Return type of ``list_devices``."""
+
+    success: bool = Field(default=True, description="Whether the list was produced")
+    fleet_name: str = Field(default="", description="Fleet identifier")
+    device_count: int = Field(default=0, description="Number of configured devices")
+    devices: list[dict[str, Any]] = Field(
+        default_factory=list,
+        description="Configured devices, each with a numeric index and host.",
+    )
+
+
+# ============================================================
 # Fleet Tool Response Models (LLM-legible tool output schemas)
 # ============================================================
 #

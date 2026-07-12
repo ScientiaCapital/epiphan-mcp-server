@@ -17,7 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fleet tool docstrings now signpost these tools as one-call fleet rollups so an
   LLM prefers a single `get_fleet_status` over N per-device calls.
 
-- **LLM-legible tool schemas (fleet module).** The 7 fleet tools now declare
+- **LLM-legible tool schemas (fleet, device modules).** These tools now declare
   described parameter types and return described Pydantic models instead of
   `dict[str, Any]`, so their MCP input/output JSON schemas carry field-level
   descriptions. Return *values* are unchanged; because a single model spans a

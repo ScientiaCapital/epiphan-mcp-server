@@ -80,10 +80,10 @@ class TestGetDeviceStatus:
                 # Access underlying function via .fn
                 result = await get_device_status.fn(device_id="default")
 
-        assert result["success"] is True
-        assert result["device"] == mock_pearl_host
-        assert result["status"]["recording"] == "stopped"
-        assert result["status"]["model"] == "Pearl-2"
+        assert result.success is True
+        assert result.device == mock_pearl_host
+        assert result.status["recording"] == "stopped"
+        assert result.status["model"] == "Pearl-2"
 
     async def test_get_device_status_recording(self, mock_pearl_host: str):
         """Test device status while recording."""
@@ -107,8 +107,8 @@ class TestGetDeviceStatus:
 
                 result = await get_device_status.fn(device_id="default")
 
-        assert result["success"] is True
-        assert result["status"]["recording"] == "recording"
+        assert result.success is True
+        assert result.status["recording"] == "recording"
 
     async def test_get_device_status_no_devices_configured(self):
         """Test device status with no configured devices."""
@@ -119,8 +119,8 @@ class TestGetDeviceStatus:
 
             result = await get_device_status.fn(device_id="default")
 
-        assert result["success"] is False
-        assert "error" in result
+        assert result.success is False
+        assert hasattr(result, "error")
 
     async def test_get_device_status_api_error(self, mock_pearl_host: str):
         """Test device status with API error."""
@@ -145,7 +145,7 @@ class TestGetDeviceStatus:
                 result = await get_device_status.fn(device_id="default")
 
         # get_system_status handles errors gracefully
-        assert result["success"] is True
+        assert result.success is True
 
 
 class TestListDevices:
@@ -160,10 +160,10 @@ class TestListDevices:
 
             result = await list_devices.fn()
 
-        assert result["success"] is True
-        assert result["device_count"] == 1
-        assert result["devices"][0]["host"] == mock_pearl_host
-        assert result["devices"][0]["index"] == 0
+        assert result.success is True
+        assert result.device_count == 1
+        assert result.devices[0]["host"] == mock_pearl_host
+        assert result.devices[0]["index"] == 0
 
     async def test_list_devices_multiple(self):
         """Test listing multiple devices."""
@@ -178,10 +178,10 @@ class TestListDevices:
 
             result = await list_devices.fn()
 
-        assert result["success"] is True
-        assert result["device_count"] == 3
-        assert result["fleet_name"] == "multi-fleet"
-        assert len(result["devices"]) == 3
+        assert result.success is True
+        assert result.device_count == 3
+        assert result.fleet_name == "multi-fleet"
+        assert len(result.devices) == 3
 
     async def test_list_devices_empty(self):
         """Test listing with no devices configured."""
@@ -192,8 +192,8 @@ class TestListDevices:
 
             result = await list_devices.fn()
 
-        assert result["success"] is True
-        assert result["device_count"] == 0
+        assert result.success is True
+        assert result.device_count == 0
 
 
 # ============================================================
@@ -1153,8 +1153,8 @@ class TestServerErrorBranches:
                 result = await get_device_status.fn(device_id="default")
 
         # The error is caught and returned
-        assert result["success"] is False
-        assert "Recorder busy" in result["error"]
+        assert result.success is False
+        assert "Recorder busy" in result.error
 
     async def test_stop_recording_api_error(self, mock_pearl_host: str):
         """Test stop_recording handles PearlAPIError."""

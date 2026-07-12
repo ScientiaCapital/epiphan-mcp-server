@@ -1,12 +1,13 @@
 """Device status and information tools for Epiphan Pearl devices."""
 
 import logging
-from typing import Any
 
 from fastmcp import FastMCP
 
 from ..client import PearlAPIError, PearlClient
 from ..config import get_settings
+from ..models import DeviceListResult, DeviceStatusResult
+from .params import DeviceId
 
 logger = logging.getLogger(__name__)
 
@@ -26,11 +27,13 @@ def get_client(device_id: str = "default") -> PearlClient:
     return PearlClient.from_settings(host, settings)
 
 
-async def get_device_status(device_id: str = "default") -> dict[str, Any]:
+async def get_device_status(device_id: DeviceId = "default") -> DeviceStatusResult:
     """
     Get the current status of an Epiphan Pearl device.
 
     Use this to check device health, storage levels, uptime, and active operations.
+    To check every configured device at once, prefer get_fleet_status over calling
+    this tool once per device.
 
     Args:
         device_id: Device identifier. Use "default" for the primary configured device,
@@ -52,10 +55,10 @@ async def get_device_status(device_id: str = "default") -> dict[str, Any]:
             status = await client.get_system_status()
             recorder_status = await client.get_recorder_status(f"recorder-{recorder}")
 
-            return {
-                "success": True,
-                "device": client.host,
-                "status": {
+            return DeviceStatusResult(
+                success=True,
+                device=client.host,
+                status={
                     "uptime_hours": status.uptime_hours,
                     "storage": {
                         "total_gb": status.storage_total_gb,
@@ -66,22 +69,22 @@ async def get_device_status(device_id: str = "default") -> dict[str, Any]:
                     "model": status.model,
                     "recording": recorder_status.state.value,
                 },
-            }
+            )
     except PearlAPIError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "device": device_id,
-        }
+        return DeviceStatusResult(
+            success=False,
+            error=str(e),
+            device=device_id,
+        )
     except ValueError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "device": device_id,
-        }
+        return DeviceStatusResult(
+            success=False,
+            error=str(e),
+            device=device_id,
+        )
 
 
-async def list_devices() -> dict[str, Any]:
+async def list_devices() -> DeviceListResult:
     """
     List all configured Epiphan Pearl devices.
 
@@ -96,12 +99,12 @@ async def list_devices() -> dict[str, Any]:
     settings = get_settings()
     devices = settings.get_device_list()
 
-    return {
-        "success": True,
-        "fleet_name": settings.fleet_name,
-        "device_count": len(devices),
-        "devices": [{"index": i, "host": host} for i, host in enumerate(devices)],
-    }
+    return DeviceListResult(
+        success=True,
+        fleet_name=settings.fleet_name,
+        device_count=len(devices),
+        devices=[{"index": i, "host": host} for i, host in enumerate(devices)],
+    )
 
 
 def register(server: FastMCP) -> None:

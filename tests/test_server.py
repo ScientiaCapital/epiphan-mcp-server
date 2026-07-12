@@ -1420,11 +1420,11 @@ class TestPredictStorageFull:
 
                 result = await predict_storage_full.fn(device_id="default")
 
-        assert result["success"] is True
-        assert "hours_until_full" in result
-        assert result["hours_until_full"] > 0
-        assert result["is_recording"] is True
-        assert "storage_free_gb" in result
+        assert result.success is True
+        assert result.hours_until_full is not None
+        assert result.hours_until_full > 0
+        assert result.is_recording is True
+        assert result.storage_free_gb is not None
 
     async def test_predict_storage_not_recording(self, mock_pearl_host: str):
         """Test storage prediction when not recording."""
@@ -1448,8 +1448,8 @@ class TestPredictStorageFull:
 
                 result = await predict_storage_full.fn(device_id="default")
 
-        assert result["success"] is True
-        assert result["is_recording"] is False
+        assert result.success is True
+        assert result.is_recording is False
         # Should still provide estimate based on assumed bitrate
 
     async def test_predict_storage_low_space(self, mock_pearl_host: str):
@@ -1474,8 +1474,8 @@ class TestPredictStorageFull:
 
                 result = await predict_storage_full.fn(device_id="default")
 
-        assert result["success"] is True
-        assert result["warning"] is True  # Low space warning
+        assert result.success is True
+        assert result.warning is True  # Low space warning
 
     async def test_predict_storage_api_error(self, mock_pearl_host: str):
         """Test storage prediction with API error."""
@@ -1500,8 +1500,8 @@ class TestPredictStorageFull:
 
                 result = await predict_storage_full.fn(device_id="default")
 
-        assert result["success"] is False
-        assert "error" in result
+        assert result.success is False
+        assert result.error is not None
 
     async def test_predict_storage_invalid_device(self):
         """Test storage prediction with invalid device."""
@@ -1512,8 +1512,8 @@ class TestPredictStorageFull:
 
             result = await predict_storage_full.fn(device_id="nonexistent")
 
-        assert result["success"] is False
-        assert "error" in result
+        assert result.success is False
+        assert result.error is not None
 
 
 # ============================================================
@@ -1546,12 +1546,11 @@ class TestGetDeviceHealthScore:
 
                 result = await get_device_health_score.fn(device_id="default")
 
-        assert result["success"] is True
-        assert "score" in result
-        assert 0 <= result["score"] <= 100
-        assert result["score"] >= 80  # Healthy device should score high
-        assert "categories" in result
-        assert "storage" in result["categories"]
+        assert result.success is True
+        assert result.score is not None
+        assert 0 <= result.score <= 100
+        assert result.score >= 80  # Healthy device should score high
+        assert "storage" in result.categories
 
     async def test_health_score_low_storage(self, mock_pearl_host: str):
         """Test health score with low storage warning."""
@@ -1575,10 +1574,11 @@ class TestGetDeviceHealthScore:
 
                 result = await get_device_health_score.fn(device_id="default")
 
-        assert result["success"] is True
-        assert result["score"] < 80  # Should be penalized for low storage
-        assert result["categories"]["storage"]["healthy"] is False
-        assert "issues" in result
+        assert result.success is True
+        assert result.score is not None
+        assert result.score < 80  # Should be penalized for low storage
+        assert result.categories["storage"]["healthy"] is False
+        assert result.issues is not None
 
     async def test_health_score_recording_active(self, mock_pearl_host: str):
         """Test health score while recording (should still be healthy)."""
@@ -1602,9 +1602,10 @@ class TestGetDeviceHealthScore:
 
                 result = await get_device_health_score.fn(device_id="default")
 
-        assert result["success"] is True
-        assert result["score"] >= 80  # Recording is normal operation
-        assert result["is_recording"] is True
+        assert result.success is True
+        assert result.score is not None
+        assert result.score >= 80  # Recording is normal operation
+        assert result.is_recording is True
 
     async def test_health_score_api_error(self, mock_pearl_host: str):
         """Test health score with API error (recorder returns error)."""
@@ -1631,9 +1632,9 @@ class TestGetDeviceHealthScore:
                 result = await get_device_health_score.fn(device_id="default")
 
         # Should succeed with degraded recording score (not a total failure)
-        assert result["success"] is True
-        assert result["categories"]["recording"]["healthy"] is False
-        assert "Could not check recorder status" in result["issues"]
+        assert result.success is True
+        assert result.categories["recording"]["healthy"] is False
+        assert "Could not check recorder status" in result.issues
 
     async def test_health_score_invalid_device(self):
         """Test health score with invalid device (no devices configured)."""
@@ -1645,8 +1646,8 @@ class TestGetDeviceHealthScore:
 
             result = await get_device_health_score.fn(device_id="default")
 
-        assert result["success"] is False
-        assert "error" in result
+        assert result.success is False
+        assert result.error is not None
 
 
 # ============================================================

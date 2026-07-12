@@ -1,20 +1,35 @@
 """Predictive maintenance tools for Epiphan Pearl devices."""
 
 import logging
-from typing import Any
+from typing import Annotated, Any
 
 from fastmcp import FastMCP
+from pydantic import Field
 
 from ..client import PearlAPIError
+from ..models import DeviceHealthResult, StoragePredictionResult
 from .device import get_client
 from .discovery import get_default_recorder
+from .params import DeviceId, RecorderNum
 
 logger = logging.getLogger(__name__)
 
+_AssumedBitrate = Annotated[
+    float,
+    Field(
+        description=(
+            "Assumed recording bitrate in Mbps used when the recorder is not "
+            "actively recording. Default 8.0 is typical for 1080p H.264."
+        )
+    ),
+]
+
 
 async def predict_storage_full(
-    device_id: str = "default", recorder: int | None = None, assumed_bitrate_mbps: float = 8.0
-) -> dict[str, Any]:
+    device_id: DeviceId = "default",
+    recorder: RecorderNum = None,
+    assumed_bitrate_mbps: _AssumedBitrate = 8.0,
+) -> StoragePredictionResult:
     """
     Predict when device storage will be full based on current recording rate.
 
@@ -67,37 +82,37 @@ async def predict_storage_full(
             storage_used_percent = storage_status.storage_used_percent or 0
             warning = storage_used_percent >= 90 or hours_until_full < 2
 
-            return {
-                "success": True,
-                "device": client.host,
-                "hours_until_full": round(hours_until_full, 1),
-                "storage_free_gb": round(storage_status.storage_free_gb, 1),
-                "storage_total_gb": round(storage_status.storage_total_gb, 1),
-                "storage_used_percent": round(storage_used_percent, 1),
-                "is_recording": is_recording,
-                "bitrate_mbps": round(bitrate_mbps, 1),
-                "warning": warning,
-                "recommendation": (
+            return StoragePredictionResult(
+                success=True,
+                device=client.host,
+                hours_until_full=round(hours_until_full, 1),
+                storage_free_gb=round(storage_status.storage_free_gb, 1),
+                storage_total_gb=round(storage_status.storage_total_gb, 1),
+                storage_used_percent=round(storage_used_percent, 1),
+                is_recording=is_recording,
+                bitrate_mbps=round(bitrate_mbps, 1),
+                warning=warning,
+                recommendation=(
                     "Storage critically low - archive or delete recordings"
                     if warning
                     else "Storage capacity is sufficient"
                 ),
-            }
+            )
     except PearlAPIError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "device": device_id,
-        }
+        return StoragePredictionResult(
+            success=False,
+            error=str(e),
+            device=device_id,
+        )
     except ValueError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "device": device_id,
-        }
+        return StoragePredictionResult(
+            success=False,
+            error=str(e),
+            device=device_id,
+        )
 
 
-async def get_device_health_score(device_id: str = "default") -> dict[str, Any]:
+async def get_device_health_score(device_id: DeviceId = "default") -> DeviceHealthResult:
     """
     Calculate an overall health score for a Pearl device (0-100).
 
@@ -177,27 +192,27 @@ async def get_device_health_score(device_id: str = "default") -> dict[str, Any]:
             else:
                 recommendation = "Device is unhealthy - immediate attention required"
 
-            return {
-                "success": True,
-                "device": client.host,
-                "score": total_score,
-                "categories": category_scores,
-                "issues": issues,
-                "is_recording": is_recording,
-                "recommendation": recommendation,
-            }
+            return DeviceHealthResult(
+                success=True,
+                device=client.host,
+                score=total_score,
+                categories=category_scores,
+                issues=issues,
+                is_recording=is_recording,
+                recommendation=recommendation,
+            )
     except PearlAPIError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "device": device_id,
-        }
+        return DeviceHealthResult(
+            success=False,
+            error=str(e),
+            device=device_id,
+        )
     except ValueError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "device": device_id,
-        }
+        return DeviceHealthResult(
+            success=False,
+            error=str(e),
+            device=device_id,
+        )
 
 
 def register(server: FastMCP) -> None:

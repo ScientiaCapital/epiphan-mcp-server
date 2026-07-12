@@ -921,3 +921,57 @@ class BookmarkResult(BaseModel):
     text: str = Field(default="", description="Bookmark text/label that was added")
     message: str | None = Field(default=None, description="Human-readable confirmation message")
     error: str | None = Field(default=None, description="Error message on failure.")
+
+
+# ============================================================
+# Maintenance Tool Response Models
+# ============================================================
+
+
+class StoragePredictionResult(BaseModel):
+    """Return type of ``predict_storage_full``."""
+
+    success: bool = Field(description="Whether the prediction was produced")
+    device: str = Field(default="", description="Device host, or the requested device_id on error")
+    hours_until_full: float | None = Field(
+        default=None, description="Estimated hours until storage is full (inf if not filling)"
+    )
+    storage_free_gb: float | None = Field(default=None, description="Current free storage in GB")
+    storage_total_gb: float | None = Field(default=None, description="Total storage capacity in GB")
+    storage_used_percent: float | None = Field(
+        default=None, description="Percentage of storage currently used"
+    )
+    is_recording: bool | None = Field(
+        default=None, description="Whether the recorder is currently recording"
+    )
+    bitrate_mbps: float | None = Field(
+        default=None, description="Actual (if recording) or assumed recording bitrate in Mbps"
+    )
+    warning: bool | None = Field(
+        default=None, description="True when storage is critically low (>=90% used or <2h left)"
+    )
+    recommendation: str | None = Field(default=None, description="Suggested action")
+    error: str | None = Field(default=None, description="Error message on failure.")
+
+
+class DeviceHealthResult(BaseModel):
+    """Return type of ``get_device_health_score``."""
+
+    success: bool = Field(description="Whether the health assessment was produced")
+    device: str = Field(default="", description="Device host, or the requested device_id on error")
+    score: int | None = Field(
+        default=None, description="Overall health score 0-100 (higher is better)"
+    )
+    categories: dict[str, Any] = Field(
+        default_factory=dict,
+        description="Per-category breakdown (storage, recording), each with score, "
+        "max, and healthy flag.",
+    )
+    issues: list[str] = Field(default_factory=list, description="Detected health issues.")
+    is_recording: bool | None = Field(
+        default=None, description="Whether the device is currently recording"
+    )
+    recommendation: str | None = Field(
+        default=None, description="Suggested action based on the score"
+    )
+    error: str | None = Field(default=None, description="Error message on failure.")

@@ -11,7 +11,6 @@ from epiphan_mcp.models import RecordingState, StreamingState
 
 from .fixtures.responses import (
     BUSY_RESPONSE,
-    CONTROL_SUCCESS_RESPONSE,
     ERROR_RESPONSE,
     RECORDER_STATUS_RECORDING,
 )
@@ -280,22 +279,6 @@ class TestPublisherOperations:
             result = await client.stop_all_publishers("channel-1")
 
         assert result.success is True
-
-    async def test_start_stream(self, pearl_client: PearlClient, mock_publisher_routes):
-        """Test starting a specific stream."""
-        async with pearl_client as client:
-            result = await client.start_stream("channel-1", "publisher-1")
-
-        assert result.success is True
-        assert result.details["publisher"] == "publisher-1"
-
-    async def test_stop_stream(self, pearl_client: PearlClient, mock_publisher_routes):
-        """Test stopping a specific stream."""
-        async with pearl_client as client:
-            result = await client.stop_stream("channel-1", "publisher-1")
-
-        assert result.success is True
-
 
 # ============================================================
 # Input Tests
@@ -589,29 +572,6 @@ class TestEventOperations:
         assert len(events) == 2
         assert events[0]["id"] == "event-001"
         assert events[0]["cms_type"] == "kaltura"
-
-    async def test_start_event(self, pearl_client: PearlClient, mock_api_base: str, respx_mock):
-        """Test force starting an event."""
-        respx_mock.post(f"{mock_api_base}/schedule/events/event-001/control/start").mock(
-            return_value=Response(200, json=CONTROL_SUCCESS_RESPONSE)
-        )
-
-        async with pearl_client as client:
-            result = await client.start_event("event-001")
-
-        assert result.success is True
-
-    async def test_stop_event(self, pearl_client: PearlClient, mock_api_base: str, respx_mock):
-        """Test force stopping an event."""
-        respx_mock.post(f"{mock_api_base}/schedule/events/event-001/control/stop").mock(
-            return_value=Response(200, json=CONTROL_SUCCESS_RESPONSE)
-        )
-
-        async with pearl_client as client:
-            result = await client.stop_event("event-001")
-
-        assert result.success is True
-
 
 # ============================================================
 # AFU Tests

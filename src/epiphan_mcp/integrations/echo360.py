@@ -271,8 +271,7 @@ class Echo360Client:
 
             if response.status_code == 429:
                 raise Echo360APIError(
-                    "Rate limit exceeded (Echo360 allows 120 requests/minute) - "
-                    f"{response.text}",
+                    f"Rate limit exceeded (Echo360 allows 120 requests/minute) - {response.text}",
                     status_code=429,
                 )
 

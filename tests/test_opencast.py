@@ -22,60 +22,7 @@ from epiphan_mcp.integrations.opencast import (
     OpencastAPIError,
     OpencastAuthError,
     OpencastClient,
-    _build_dublin_core,
 )
-
-# ============================================================================
-# Dublin Core Tests
-# ============================================================================
-
-
-class TestDublinCore:
-    """Tests for Dublin Core XML generation."""
-
-    def test_build_dublin_core_minimal(self):
-        """Test building Dublin Core with minimal fields."""
-        xml = _build_dublin_core(title="Test Recording")
-        assert "<?xml version" in xml
-        # Check for title content (namespace prefix may vary)
-        assert ">Test Recording<" in xml
-        assert "http://purl.org/dc/terms/" in xml
-
-    def test_build_dublin_core_full(self):
-        """Test building Dublin Core with all fields."""
-        xml = _build_dublin_core(
-            title="Physics Lecture 5",
-            creator="Dr. Smith",
-            description="Wave mechanics introduction",
-            series_id="series-123",
-            spatial="Room 201",
-            start_date=datetime(2024, 1, 15, 10, 0),
-            language="en",
-            license="CC-BY",
-            contributor="TA Johnson",
-            subject="Physics",
-        )
-
-        # Check for content values (namespace prefixes may vary with ElementTree)
-        assert ">Physics Lecture 5<" in xml
-        assert ">Dr. Smith<" in xml
-        assert ">Wave mechanics introduction<" in xml
-        assert ">series-123<" in xml
-        assert ">Room 201<" in xml
-        assert ">en<" in xml
-        assert ">CC-BY<" in xml
-        assert ">TA Johnson<" in xml
-        assert ">Physics<" in xml
-        assert "2024-01-15T10:00:00" in xml  # created date
-
-    def test_build_dublin_core_empty_fields_omitted(self):
-        """Test that empty fields are not included."""
-        xml = _build_dublin_core(title="Test", creator="", description="")
-        assert ">Test<" in xml
-        # Empty values should not be included
-        assert "creator" not in xml.lower() or "><" not in xml.split("creator")[1][:20]
-        assert "description" not in xml.lower()
-
 
 # ============================================================================
 # OpencastClient Initialization Tests

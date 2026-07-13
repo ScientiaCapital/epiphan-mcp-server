@@ -411,34 +411,6 @@ class KalturaClient:
 
         return await self._request("media", "add", data)
 
-    async def update_media_entry(
-        self,
-        entry_id: str,
-        name: str | None = None,
-        description: str | None = None,
-        tags: str | None = None,
-    ) -> dict[str, Any]:
-        """Update media entry metadata.
-
-        Args:
-            entry_id: Media entry ID
-            name: New name (optional)
-            description: New description (optional)
-            tags: New tags (optional)
-
-        Returns:
-            Updated media entry object
-        """
-        data: dict[str, Any] = {"entryId": entry_id}
-        if name is not None:
-            data["mediaEntry:name"] = name
-        if description is not None:
-            data["mediaEntry:description"] = description
-        if tags is not None:
-            data["mediaEntry:tags"] = tags
-
-        return await self._request("media", "update", data)
-
     # =========================================================================
     # Upload Management
     # =========================================================================

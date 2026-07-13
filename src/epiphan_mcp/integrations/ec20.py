@@ -12,7 +12,8 @@ The EC20 supports multiple control protocols:
 - VISCA over IP - alternative for legacy systems
 - ONVIF - open standard
 
-API Endpoints (placeholder - to be discovered from real hardware):
+TODO: Replace all endpoint paths with actual endpoints discovered from
+hardware — every path below is a best-effort placeholder:
 The actual endpoints will be documented after accessing the EC20 web interface
 at http://<camera-ip>. Common patterns include:
 - /api/ptz/position - Get/set PTZ position
@@ -227,7 +228,6 @@ class EC20Client:
             EC20ConnectionError: Connection failed
             EC20APIError: API error
         """
-        # TODO: Replace with actual endpoint discovered from hardware
         return await self._get("/api/status")
 
     async def get_position(self) -> dict[str, Any]:
@@ -240,7 +240,6 @@ class EC20Client:
             EC20ConnectionError: Connection failed
             EC20APIError: API error
         """
-        # TODO: Replace with actual endpoint discovered from hardware
         return await self._get("/api/ptz/position")
 
     # =========================================================================
@@ -261,7 +260,6 @@ class EC20Client:
             EC20ConnectionError: Connection failed
             EC20APIError: API error
         """
-        # TODO: Replace with actual endpoint discovered from hardware
         return await self._post("/api/ptz/pan", data={"degrees": degrees, "speed": speed})
 
     async def tilt(self, degrees: float, speed: int = 50) -> dict[str, Any]:
@@ -278,7 +276,6 @@ class EC20Client:
             EC20ConnectionError: Connection failed
             EC20APIError: API error
         """
-        # TODO: Replace with actual endpoint discovered from hardware
         return await self._post("/api/ptz/tilt", data={"degrees": degrees, "speed": speed})
 
     async def zoom(self, level: int) -> dict[str, Any]:
@@ -298,7 +295,6 @@ class EC20Client:
         if not 1 <= level <= 36:
             raise ValueError(f"Zoom level must be 1-36, got {level}")
 
-        # TODO: Replace with actual endpoint discovered from hardware
         return await self._post("/api/ptz/zoom", data={"level": level})
 
     async def home(self) -> dict[str, Any]:
@@ -311,7 +307,6 @@ class EC20Client:
             EC20ConnectionError: Connection failed
             EC20APIError: API error
         """
-        # TODO: Replace with actual endpoint discovered from hardware
         return await self._post("/api/ptz/home")
 
     # =========================================================================
@@ -328,7 +323,6 @@ class EC20Client:
             EC20ConnectionError: Connection failed
             EC20APIError: API error
         """
-        # TODO: Replace with actual endpoint discovered from hardware
         result = await self._get("/api/ptz/presets")
         presets: list[dict[str, Any]] = result.get("presets", [])
         return presets
@@ -346,7 +340,6 @@ class EC20Client:
             EC20ConnectionError: Connection failed
             EC20APIError: API error
         """
-        # TODO: Replace with actual endpoint discovered from hardware
         return await self._post("/api/ptz/preset/goto", data={"preset_id": preset_id})
 
     async def save_preset(self, preset_id: int, name: str) -> dict[str, Any]:
@@ -363,7 +356,6 @@ class EC20Client:
             EC20ConnectionError: Connection failed
             EC20APIError: API error
         """
-        # TODO: Replace with actual endpoint discovered from hardware
         return await self._post(
             "/api/ptz/preset/save",
             data={"preset_id": preset_id, "name": name},
@@ -391,7 +383,6 @@ class EC20Client:
         if mode not in valid_modes:
             raise ValueError(f"Invalid tracking mode: {mode}. Must be one of {valid_modes}")
 
-        # TODO: Replace with actual endpoint discovered from hardware
         return await self._post("/api/tracking/enable", data={"mode": mode})
 
     async def disable_tracking(self) -> dict[str, Any]:
@@ -404,7 +395,6 @@ class EC20Client:
             EC20ConnectionError: Connection failed
             EC20APIError: API error
         """
-        # TODO: Replace with actual endpoint discovered from hardware
         return await self._post("/api/tracking/disable")
 
     # =========================================================================
@@ -425,7 +415,6 @@ class EC20Client:
             raise EC20ConnectionError("Not connected - use async with")
 
         try:
-            # TODO: Replace with actual endpoint discovered from hardware
             response = await self._client.get("/api/preview")
 
             if response.status_code >= 400:

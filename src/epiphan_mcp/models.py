@@ -37,30 +37,6 @@ class StreamingState(str, Enum):
     ERROR = "error"
 
 
-class SourceType(str, Enum):
-    """Input source type."""
-
-    HDMI = "hdmi"
-    SDI = "sdi"
-    USB = "usb"
-    NDI = "ndi"
-    SRT = "srt"
-    RTSP = "rtsp"
-    DECKLINK = "decklink"
-    WEBCAM = "webcam"
-    NETWORK = "network"
-
-
-class PublisherType(str, Enum):
-    """Publisher (stream) type."""
-
-    RTMP = "rtmp"
-    SRT = "srt"
-    HLS = "hls"
-    RTSP = "rtsp"
-    MPEG_TS = "mpeg_ts"
-
-
 # ============================================================
 # Storage Models
 # ============================================================
@@ -174,34 +150,9 @@ class ChannelInfo(BaseModel):
     active_layout: str | None = Field(default=None, description="Active layout ID")
 
 
-class ChannelParams(BaseModel):
-    """Legacy channel parameters (for backwards compatibility)."""
-
-    model_config = ConfigDict(extra="allow")
-
-    channel_id: int = Field(description="Channel number")
-    name: str | None = Field(default=None, description="Channel name")
-    rec_enabled: bool = Field(default=False, description="Recording enabled")
-    publish_type: int | None = Field(default=None, description="Publish type")
-    framesize: str | None = Field(default=None, description="Frame size")
-    framerate: float | None = Field(default=None, description="Frame rate")
-    bitrate: int | None = Field(default=None, description="Bitrate in kbps")
-
-
 # ============================================================
 # Publisher (Streaming) Models
 # ============================================================
-
-
-class PublisherInfo(BaseModel):
-    """Publisher info from GET /channels/{cid}/publishers."""
-
-    model_config = ConfigDict(extra="allow")
-
-    id: str = Field(description="Publisher ID")
-    name: str = Field(default="", description="Publisher name")
-    type: str = Field(default="", description="Publisher type (rtmp, srt, etc)")
-    enabled: bool = Field(default=True, description="Whether enabled")
 
 
 class PublisherStatus(BaseModel):
@@ -217,19 +168,6 @@ class PublisherStatus(BaseModel):
     viewers: int | None = Field(default=None, description="Number of viewers")
     destination: str = Field(default="", description="Destination URL")
     error_message: str | None = Field(default=None, description="Error if any")
-
-
-class StreamStatus(BaseModel):
-    """Legacy streaming status (for backwards compatibility)."""
-
-    model_config = ConfigDict(extra="allow")
-
-    channel_id: int = Field(description="Channel number")
-    state: StreamingState = Field(description="Current streaming state")
-    destination: str | None = Field(default=None, description="Stream URL")
-    bitrate_actual: int | None = Field(default=None, description="Actual kbps")
-    viewers: int | None = Field(default=None, description="Number of viewers")
-    uptime_seconds: int | None = Field(default=None, description="Stream uptime")
 
 
 # ============================================================
@@ -286,59 +224,6 @@ class Recording(BaseModel):
 
 
 # ============================================================
-# Event/Schedule Models
-# ============================================================
-
-
-class ScheduledEvent(BaseModel):
-    """Scheduled event from GET /schedule/events."""
-
-    model_config = ConfigDict(extra="allow")
-
-    id: str = Field(description="Event ID")
-    name: str = Field(default="", description="Event name")
-    status: str = Field(default="", description="Event status")
-    start_time: datetime | None = Field(default=None, description="Start time")
-    end_time: datetime | None = Field(default=None, description="End time")
-    cms_type: str | None = Field(default=None, description="CMS type")
-
-
-# ============================================================
-# Device & Fleet Models
-# ============================================================
-
-
-class DeviceInfo(BaseModel):
-    """Complete device information."""
-
-    model_config = ConfigDict(extra="allow")
-
-    host: str = Field(description="Device hostname or IP")
-    name: str | None = Field(default=None, description="Device name")
-    model: str | None = Field(default=None, description="Pearl model")
-    serial: str | None = Field(default=None, description="Serial number")
-    firmware: str | None = Field(default=None, description="Firmware version")
-    online: bool = Field(default=False, description="Whether device is reachable")
-    status: SystemStatus | None = Field(default=None, description="System status")
-    channels: list[ChannelInfo] = Field(default_factory=list, description="Channels")
-    recorders: list[RecorderInfo] = Field(default_factory=list, description="Recorders")
-
-
-class FleetStatus(BaseModel):
-    """Fleet-wide status."""
-
-    model_config = ConfigDict(extra="allow")
-
-    fleet_name: str = Field(description="Fleet identifier")
-    total_devices: int = Field(description="Total devices in fleet")
-    online_devices: int = Field(description="Devices currently online")
-    recording_devices: int = Field(description="Devices currently recording")
-    streaming_devices: int = Field(description="Devices currently streaming")
-    devices_with_alerts: int = Field(default=0, description="Devices with issues")
-    devices: list[DeviceInfo] = Field(default_factory=list, description="Device details")
-
-
-# ============================================================
 # Operation Results
 # ============================================================
 
@@ -385,112 +270,6 @@ class Alert(BaseModel):
     message: str = Field(description="Alert message")
     timestamp: datetime = Field(default_factory=datetime.now, description="Timestamp")
     details: dict[str, Any] | None = Field(default=None, description="Details")
-
-
-# ============================================================
-# AFU (Automatic File Upload) Models
-# ============================================================
-
-
-class AFUStatus(BaseModel):
-    """Automatic File Upload status from GET /afu/status."""
-
-    model_config = ConfigDict(extra="allow")
-
-    id: str = Field(description="AFU ID")
-    name: str = Field(default="", description="AFU name")
-    protocol: str = Field(default="", description="Upload protocol")
-    state: str = Field(default="", description="Current state")
-    queue_count: int = Field(default=0, description="Files in queue")
-    destination: str = Field(default="", description="Destination URL")
-
-
-# ============================================================
-# Publisher Settings Models (Phase 1 - API Expansion)
-# ============================================================
-
-
-class PublisherSettings(BaseModel):
-    """Publisher (stream) settings for CRUD operations."""
-
-    model_config = ConfigDict(extra="allow")
-
-    enabled: bool = Field(default=True, description="Whether publisher is enabled")
-    url: str | None = Field(default=None, description="Stream destination URL")
-    stream_key: str | None = Field(default=None, description="Stream key (for RTMP)")
-    bitrate: int | None = Field(default=None, description="Target bitrate in bps")
-    latency: int | None = Field(default=None, description="Latency mode (for SRT)")
-    passphrase: str | None = Field(default=None, description="Encryption passphrase (for SRT)")
-    mode: str | None = Field(default=None, description="Connection mode (caller/listener)")
-
-
-class PublisherCreateRequest(BaseModel):
-    """Request body for creating a new publisher."""
-
-    model_config = ConfigDict(extra="allow")
-
-    name: str = Field(description="Display name for the publisher")
-    type: PublisherType = Field(description="Publisher type (rtmp, srt, hls, rtsp, mpeg_ts)")
-    settings: PublisherSettings | None = Field(
-        default=None, description="Protocol-specific settings"
-    )
-
-
-# ============================================================
-# Input/Output Models (Phase 2 - API Expansion)
-# ============================================================
-
-
-class InputSettings(BaseModel):
-    """Network input settings for CRUD operations."""
-
-    model_config = ConfigDict(extra="allow")
-
-    srt_url: str | None = Field(default=None, description="SRT URL for SRT inputs")
-    rtsp_url: str | None = Field(default=None, description="RTSP URL for RTSP inputs")
-    ndi_source: str | None = Field(default=None, description="NDI source name")
-    latency: int | None = Field(default=None, description="Buffer latency in ms")
-    passphrase: str | None = Field(default=None, description="Encryption passphrase")
-    mode: str | None = Field(default=None, description="Connection mode (caller/listener)")
-
-
-class InputCreateRequest(BaseModel):
-    """Request body for creating a new network input."""
-
-    model_config = ConfigDict(extra="allow")
-
-    name: str = Field(description="Display name for the input")
-    type: str = Field(description="Input type (srt, rtsp, ndi)")
-    settings: InputSettings | None = Field(default=None, description="Protocol-specific settings")
-
-
-class OutputInfo(BaseModel):
-    """Output port information from GET /outputs."""
-
-    model_config = ConfigDict(extra="allow")
-
-    id: str = Field(description="Output ID")
-    name: str = Field(default="", description="Output name (e.g., 'HDMI 1')")
-    type: str = Field(default="", description="Output type (hdmi, sdi)")
-    source: str | None = Field(default=None, description="Current source channel ID")
-    resolution: str | None = Field(default=None, description="Output resolution")
-
-
-# ============================================================
-# Event Models (Phase 3 - API Expansion)
-# ============================================================
-
-
-class EventCreateRequest(BaseModel):
-    """Request body for creating an ad-hoc event."""
-
-    model_config = ConfigDict(extra="allow")
-
-    name: str = Field(description="Event name")
-    start_time: datetime | None = Field(default=None, description="Start time (ISO format)")
-    end_time: datetime | None = Field(default=None, description="End time (ISO format)")
-    recorders: list[str] | None = Field(default=None, description="Recorder IDs to use")
-    publishers: list[str] | None = Field(default=None, description="Publisher IDs to use")
 
 
 # ============================================================
@@ -1422,9 +1201,7 @@ class CloudDeviceResult(BaseModel):
 class CloudPairResult(BaseModel):
     """Return type of ``cloud_pair_device``."""
 
-    device: dict[str, Any] | None = Field(
-        default=None, description="Newly paired device details."
-    )
+    device: dict[str, Any] | None = Field(default=None, description="Newly paired device details.")
     message: str | None = Field(default=None, description="Human-readable confirmation message")
     error: str | None = Field(default=None, description="Error message on failure.")
 
@@ -1669,9 +1446,7 @@ class QSysControlResult(BaseModel):
         default=None, description="Layout switched to (switch_layout only)"
     )
     qsys_host: str | None = Field(default=None, description="Q-SYS Core host")
-    result: dict[str, Any] | None = Field(
-        default=None, description="Raw Q-SYS RPC result payload."
-    )
+    result: dict[str, Any] | None = Field(default=None, description="Raw Q-SYS RPC result payload.")
     error: str | None = Field(default=None, description="Error message on failure.")
 
 
@@ -1689,9 +1464,7 @@ class YouTubeBroadcastResult(BaseModel):
     broadcast_id: str | None = Field(default=None, description="YouTube broadcast ID")
     stream_id: str | None = Field(default=None, description="YouTube stream ID")
     title: str | None = Field(default=None, description="Broadcast title")
-    scheduled_start: str | None = Field(
-        default=None, description="Scheduled start (ISO 8601)"
-    )
+    scheduled_start: str | None = Field(default=None, description="Scheduled start (ISO 8601)")
     privacy: str | None = Field(default=None, description="Privacy: public, unlisted, or private")
     rtmp_url: str | None = Field(default=None, description="RTMP server URL for Pearl publisher")
     stream_key: str | None = Field(default=None, description="RTMP stream key")
@@ -1767,9 +1540,7 @@ class OpencastSeriesResult(BaseModel):
     series: dict[str, Any] | None = Field(
         default=None, description="Series detail (identifier, title, description, creator)."
     )
-    message: str | None = Field(
-        default=None, description="Confirmation message (create only)."
-    )
+    message: str | None = Field(default=None, description="Confirmation message (create only).")
     error: str | None = Field(default=None, description="Error message on failure.")
 
 
@@ -2000,9 +1771,7 @@ class KalturaUploadResult(BaseModel):
 class KalturaScheduleResult(BaseModel):
     """Return type of ``schedule_kaltura_event``."""
 
-    event: dict[str, Any] | None = Field(
-        default=None, description="Created schedule event detail."
-    )
+    event: dict[str, Any] | None = Field(default=None, description="Created schedule event detail.")
     message: str | None = Field(default=None, description="Human-readable confirmation message")
     start_time: str | None = Field(default=None, description="Scheduled start (ISO 8601)")
     end_time: str | None = Field(default=None, description="Scheduled end (ISO 8601)")
@@ -2161,7 +1930,5 @@ class Echo360UploadStatusResult(BaseModel):
 
     upload_id: str | None = Field(default=None, description="Capture upload ID queried")
     status: str | None = Field(default=None, description="Upload/processing state")
-    details: dict[str, Any] | None = Field(
-        default=None, description="Full raw upload status."
-    )
+    details: dict[str, Any] | None = Field(default=None, description="Full raw upload status.")
     error: str | None = Field(default=None, description="Error message on failure.")

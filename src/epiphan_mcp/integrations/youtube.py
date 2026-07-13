@@ -412,42 +412,6 @@ class YouTubeClient:
         first_item: dict[str, Any] = items[0]
         return first_item
 
-    async def list_streams(self, max_results: int = 25) -> list[dict[str, Any]]:
-        """List streams for the authenticated user.
-
-        Args:
-            max_results: Maximum number of results (1-50)
-
-        Returns:
-            List of stream resources
-        """
-        result = await self._request(
-            "GET",
-            "liveStreams",
-            params={
-                "part": "snippet,cdn,status",
-                "mine": "true",
-                "maxResults": min(max_results, 50),
-            },
-        )
-        items: list[dict[str, Any]] = result.get("items", [])
-        return items
-
-    async def delete_stream(self, stream_id: str) -> dict[str, Any]:
-        """Delete a stream.
-
-        Args:
-            stream_id: The stream ID to delete
-
-        Returns:
-            Success confirmation
-        """
-        return await self._request(
-            "DELETE",
-            "liveStreams",
-            params={"id": stream_id},
-        )
-
     # =========================================================================
     # Binding Operations
     # =========================================================================

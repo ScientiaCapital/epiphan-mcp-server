@@ -297,27 +297,6 @@ class PanoptoClient:
 
         return await self._request("POST", "/folders", json=data)
 
-    async def get_folder_sessions(
-        self,
-        folder_id: str,
-        sort_field: str = "CreatedDate",
-        sort_order: str = "Desc",
-    ) -> list[dict[str, Any]]:
-        """Get sessions in a folder.
-
-        Args:
-            folder_id: Folder UUID
-            sort_field: Field to sort by
-            sort_order: Sort direction (Asc/Desc)
-
-        Returns:
-            List of session objects
-        """
-        params = {"sortField": sort_field, "sortOrder": sort_order}
-        result = await self._request("GET", f"/folders/{folder_id}/sessions", params=params)
-        sessions: list[dict[str, Any]] = result.get("Results", [])
-        return sessions
-
     # =========================================================================
     # Session Management
     # =========================================================================
@@ -379,30 +358,6 @@ class PanoptoClient:
             "Description": description,
         }
         return await self._request("POST", "/sessions", json=data)
-
-    async def update_session(
-        self,
-        session_id: str,
-        name: str | None = None,
-        description: str | None = None,
-    ) -> dict[str, Any]:
-        """Update session metadata.
-
-        Args:
-            session_id: Session UUID
-            name: New name (optional)
-            description: New description (optional)
-
-        Returns:
-            Updated session object
-        """
-        data: dict[str, Any] = {}
-        if name is not None:
-            data["Name"] = name
-        if description is not None:
-            data["Description"] = description
-
-        return await self._request("PUT", f"/sessions/{session_id}", json=data)
 
     async def delete_session(self, session_id: str) -> dict[str, Any]:
         """Delete a session.
@@ -616,27 +571,3 @@ class PanoptoClient:
     # =========================================================================
     # User Management
     # =========================================================================
-
-    async def search_users(self, search_query: str) -> list[dict[str, Any]]:
-        """Search for users.
-
-        Args:
-            search_query: Search term
-
-        Returns:
-            List of matching users
-        """
-        result = await self._request("GET", "/users/search", params={"searchQuery": search_query})
-        users: list[dict[str, Any]] = result.get("Results", [])
-        return users
-
-    async def get_user(self, user_id: str) -> dict[str, Any]:
-        """Get user details.
-
-        Args:
-            user_id: User UUID
-
-        Returns:
-            User object
-        """
-        return await self._request("GET", f"/users/{user_id}")

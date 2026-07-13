@@ -23,17 +23,10 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 from typing import Any
-from xml.etree import ElementTree as ET
 
 import httpx
 
 logger = logging.getLogger(__name__)
-
-# Dublin Core namespaces
-DC_NAMESPACES = {
-    "dcterms": "http://purl.org/dc/terms/",
-    "xsi": "http://www.w3.org/2001/XMLSchema-instance",
-}
 
 
 class OpencastAuthError(Exception):
@@ -48,66 +41,6 @@ class OpencastAPIError(Exception):
     def __init__(self, message: str, status_code: int | None = None):
         super().__init__(message)
         self.status_code = status_code
-
-
-def _build_dublin_core(
-    title: str,
-    creator: str = "",
-    description: str = "",
-    series_id: str = "",
-    spatial: str = "",
-    start_date: datetime | None = None,
-    language: str = "en",
-    license: str = "",
-    contributor: str = "",
-    subject: str = "",
-) -> str:
-    """Build Dublin Core XML metadata.
-
-    Args:
-        title: Event/episode title (required)
-        creator: Creator/presenter name
-        description: Description text
-        series_id: Parent series UUID
-        spatial: Location/room name
-        start_date: Recording start time
-        language: Language code (default "en")
-        license: License identifier
-        contributor: Contributor names
-        subject: Subject/topic
-
-    Returns:
-        Dublin Core XML string
-    """
-    root = ET.Element(
-        "{http://purl.org/dc/terms/}dublincore",
-        attrib={
-            "xmlns:dcterms": DC_NAMESPACES["dcterms"],
-            "xmlns:xsi": DC_NAMESPACES["xsi"],
-        },
-    )
-
-    def add_element(name: str, value: str) -> None:
-        if value:
-            elem = ET.SubElement(root, f"{{http://purl.org/dc/terms/}}{name}")
-            elem.text = value
-
-    add_element("title", title)
-    add_element("creator", creator)
-    add_element("description", description)
-    add_element("spatial", spatial)
-    add_element("language", language)
-    add_element("license", license)
-    add_element("contributor", contributor)
-    add_element("subject", subject)
-
-    if series_id:
-        add_element("isPartOf", series_id)
-
-    if start_date:
-        add_element("created", start_date.isoformat())
-
-    return ET.tostring(root, encoding="unicode", xml_declaration=True)
 
 
 @dataclass
@@ -642,12 +575,3 @@ class OpencastClient:
 
         result = await self._post("/events", data=data)
         return result if isinstance(result, dict) else {"identifier": str(result)}
-
-    async def list_capture_agents(self) -> list[dict[str, Any]]:
-        """List registered capture agents.
-
-        Returns:
-            List of capture agents including Pearl devices
-        """
-        result = await self._get("/agents")
-        return result if isinstance(result, list) else []

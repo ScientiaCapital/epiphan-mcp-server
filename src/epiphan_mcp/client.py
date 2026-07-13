@@ -647,50 +647,6 @@ class PearlClient:
             details={"channel": channel_id},
         )
 
-    async def start_stream(self, channel_id: str, publisher_id: str) -> OperationResult:
-        """
-        Start a specific publisher (stream).
-
-        POST /channels/{cid}/publishers/{pid}/control/start
-
-        Args:
-            channel_id: Channel ID
-            publisher_id: Publisher ID
-
-        Returns:
-            OperationResult with status.
-        """
-        logger.info(f"Starting stream {publisher_id} on channel {channel_id}")
-        await self._post(f"/channels/{channel_id}/publishers/{publisher_id}/control/start")
-        return OperationResult(
-            success=True,
-            message=f"Stream {publisher_id} started",
-            device=self.host,
-            details={"channel": channel_id, "publisher": publisher_id},
-        )
-
-    async def stop_stream(self, channel_id: str, publisher_id: str) -> OperationResult:
-        """
-        Stop a specific publisher (stream).
-
-        POST /channels/{cid}/publishers/{pid}/control/stop
-
-        Args:
-            channel_id: Channel ID
-            publisher_id: Publisher ID
-
-        Returns:
-            OperationResult with status.
-        """
-        logger.info(f"Stopping stream {publisher_id} on channel {channel_id}")
-        await self._post(f"/channels/{channel_id}/publishers/{publisher_id}/control/stop")
-        return OperationResult(
-            success=True,
-            message=f"Stream {publisher_id} stopped",
-            device=self.host,
-            details={"channel": channel_id, "publisher": publisher_id},
-        )
-
     async def create_publisher(
         self,
         channel_id: str,
@@ -1128,46 +1084,6 @@ class PearlClient:
         data = await self._get("/schedule/events", params=params)
         result: list[dict[str, Any]] = data.get("result", [])
         return result
-
-    async def start_event(self, event_id: str) -> OperationResult:
-        """
-        Force start an upcoming event.
-
-        POST /schedule/events/{eventId}/control/start
-
-        Args:
-            event_id: Event ID
-
-        Returns:
-            OperationResult with status.
-        """
-        await self._post(f"/schedule/events/{event_id}/control/start")
-        return OperationResult(
-            success=True,
-            message=f"Event {event_id} started",
-            device=self.host,
-            details={"event": event_id},
-        )
-
-    async def stop_event(self, event_id: str) -> OperationResult:
-        """
-        Force stop an ongoing event.
-
-        POST /schedule/events/{eventId}/control/stop
-
-        Args:
-            event_id: Event ID
-
-        Returns:
-            OperationResult with status.
-        """
-        await self._post(f"/schedule/events/{event_id}/control/stop")
-        return OperationResult(
-            success=True,
-            message=f"Event {event_id} stopped",
-            device=self.host,
-            details={"event": event_id},
-        )
 
     async def create_event(
         self,

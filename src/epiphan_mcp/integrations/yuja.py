@@ -183,17 +183,6 @@ class YuJaClient:
         videos = result.get("results", result.get("videos", []))
         return list(videos)
 
-    async def get_video(self, video_id: str) -> dict[str, Any]:
-        """Get video details.
-
-        Args:
-            video_id: Video ID
-
-        Returns:
-            Video object
-        """
-        return await self._request("GET", f"/media/videos/{video_id}")
-
     async def get_video_metadata(self, video_id: str) -> dict[str, Any]:
         """Get all metadata entries for a video.
 

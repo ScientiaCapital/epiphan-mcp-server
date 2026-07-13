@@ -72,7 +72,7 @@ async def list_echo360_courses() -> Echo360CourseListResult:
     (first page; Echo360 pages default to 100 items).
 
     Returns:
-        Courses list and count.
+        Courses list, count, and a truncated flag when more pages exist.
 
     Example:
         "List Echo360 courses"
@@ -88,8 +88,10 @@ async def list_echo360_courses() -> Echo360CourseListResult:
             client_id=config.client_id,
             client_secret=config.client_secret,
         ) as client:
-            courses = await client.list_courses()
-            return Echo360CourseListResult(courses=courses, count=len(courses))
+            courses, truncated = await client.list_courses()
+            return Echo360CourseListResult(
+                courses=courses, count=len(courses), truncated=truncated
+            )
     except Echo360AuthError as e:
         return Echo360CourseListResult(error=f"Authentication failed: {e}", courses=[])
     except Echo360APIError as e:
@@ -106,7 +108,7 @@ async def list_echo360_sections(course_id: _CourseId = "") -> Echo360SectionList
         course_id: Optional course ID to filter sections
 
     Returns:
-        Sections list and count.
+        Sections list, count, and a truncated flag when more pages exist.
 
     Example:
         "List Echo360 sections"
@@ -123,11 +125,12 @@ async def list_echo360_sections(course_id: _CourseId = "") -> Echo360SectionList
             client_id=config.client_id,
             client_secret=config.client_secret,
         ) as client:
-            sections = await client.list_sections(course_id=course_id or None)
+            sections, truncated = await client.list_sections(course_id=course_id or None)
             return Echo360SectionListResult(
                 sections=sections,
                 count=len(sections),
                 course_id=course_id or None,
+                truncated=truncated,
             )
     except Echo360AuthError as e:
         return Echo360SectionListResult(error=f"Authentication failed: {e}", sections=[])
@@ -145,7 +148,7 @@ async def list_echo360_medias(search_query: _MediaSearch = "") -> Echo360MediaLi
         search_query: Optional search term to filter media
 
     Returns:
-        Media list and count.
+        Media list, count, and a truncated flag when more pages exist.
 
     Example:
         "List all Echo360 media"
@@ -162,11 +165,12 @@ async def list_echo360_medias(search_query: _MediaSearch = "") -> Echo360MediaLi
             client_id=config.client_id,
             client_secret=config.client_secret,
         ) as client:
-            medias = await client.list_medias(search_query=search_query or None)
+            medias, truncated = await client.list_medias(search_query=search_query or None)
             return Echo360MediaListResult(
                 medias=medias,
                 count=len(medias),
                 search_query=search_query or None,
+                truncated=truncated,
             )
     except Echo360AuthError as e:
         return Echo360MediaListResult(error=f"Authentication failed: {e}", medias=[])

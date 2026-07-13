@@ -1882,6 +1882,10 @@ class Echo360CourseListResult(BaseModel):
         default_factory=list, description="Courses, each with id and name."
     )
     count: int | None = Field(default=None, description="Number of courses returned")
+    truncated: bool = Field(
+        default=False,
+        description="True when the platform reported more items than this first page.",
+    )
     error: str | None = Field(default=None, description="Error message on failure.")
 
 
@@ -1893,6 +1897,10 @@ class Echo360SectionListResult(BaseModel):
     )
     count: int | None = Field(default=None, description="Number of sections returned")
     course_id: str | None = Field(default=None, description="Course filter applied, if any")
+    truncated: bool = Field(
+        default=False,
+        description="True when the platform reported more items than this first page.",
+    )
     error: str | None = Field(default=None, description="Error message on failure.")
 
 
@@ -1904,6 +1912,10 @@ class Echo360MediaListResult(BaseModel):
     )
     count: int | None = Field(default=None, description="Number of media items returned")
     search_query: str | None = Field(default=None, description="Search filter applied, if any")
+    truncated: bool = Field(
+        default=False,
+        description="True when the platform reported more items than this first page.",
+    )
     error: str | None = Field(default=None, description="Error message on failure.")
 
 

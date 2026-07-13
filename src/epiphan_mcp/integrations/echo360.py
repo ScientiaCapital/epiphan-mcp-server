@@ -97,7 +97,7 @@ class Echo360Client:
             client_id="your-client-id",
             client_secret="your-client-secret",
         ) as client:
-            courses = await client.list_courses()
+            courses, truncated = await client.list_courses()
             result = await client.upload_video(
                 file_path="/recordings/lecture.mp4",
             )
@@ -295,23 +295,37 @@ class Echo360Client:
             raise Echo360APIError(f"Request failed: {e}") from e
 
     @staticmethod
-    def _extract_items(result: dict[str, Any], *keys: str) -> list[dict[str, Any]]:
-        """Pull the item list out of a raw response under any of the given keys.
+    def _extract_page(result: dict[str, Any], *keys: str) -> tuple[list[dict[str, Any]], bool]:
+        """Pull the item list and a truncation flag out of a raw response.
 
-        Echo360 responses are paginated (default 100, max 150 per page);
-        this returns the current page's items.
+        Echo360 responses are paginated (default 100, max 150 per page); this
+        returns the current page's items plus whether the envelope indicates
+        more pages exist. Fetching further pages stays deferred until the
+        page-param names are validated against a live Swagger instance.
         """
+        items: list[dict[str, Any]] = []
         for key in ("results", "data", *keys):
-            items = result.get(key)
-            if isinstance(items, list):
-                return list(items)
-        return []
+            found = result.get(key)
+            if isinstance(found, list):
+                items = list(found)
+                break
+
+        truncated = False
+        if result.get("next") or result.get("nextToken") or result.get("hasMore") is True:
+            truncated = True
+        else:
+            for total_key in ("total", "totalResults", "totalCount"):
+                total = result.get(total_key)
+                if isinstance(total, int) and total > len(items):
+                    truncated = True
+                    break
+        return items, truncated
 
     # =========================================================================
     # Courses / Sections
     # =========================================================================
 
-    async def list_courses(self) -> list[dict[str, Any]]:
+    async def list_courses(self) -> tuple[list[dict[str, Any]], bool]:
         """List courses visible to the API client.
 
         UNVERIFIED endpoint path — inferred from the documented
@@ -319,12 +333,12 @@ class Echo360Client:
         courses; validate against a live Swagger instance.
 
         Returns:
-            List of course objects (first page; default page size 100)
+            Tuple of (course objects for the first page, truncated flag)
         """
         result = await self._request("GET", "/courses")
-        return self._extract_items(result, "courses")
+        return self._extract_page(result, "courses")
 
-    async def list_sections(self, course_id: str | None = None) -> list[dict[str, Any]]:
+    async def list_sections(self, course_id: str | None = None) -> tuple[list[dict[str, Any]], bool]:
         """List sections, optionally filtered to one course.
 
         UNVERIFIED endpoint path and filter param — the
@@ -336,20 +350,20 @@ class Echo360Client:
             course_id: Optional course ID to filter sections by
 
         Returns:
-            List of section objects (first page)
+            Tuple of (section objects for the first page, truncated flag)
         """
         params: dict[str, Any] = {}
         if course_id:
             params["courseId"] = course_id
 
         result = await self._request("GET", "/sections", params=params)
-        return self._extract_items(result, "sections")
+        return self._extract_page(result, "sections")
 
     # =========================================================================
     # Media
     # =========================================================================
 
-    async def list_medias(self, search_query: str | None = None) -> list[dict[str, Any]]:
+    async def list_medias(self, search_query: str | None = None) -> tuple[list[dict[str, Any]], bool]:
         """List media items visible to the API client.
 
         The ``/medias`` resource is documented as GET-only. The search
@@ -359,14 +373,14 @@ class Echo360Client:
             search_query: Optional search term to filter media by title
 
         Returns:
-            List of media objects (first page; default page size 100)
+            Tuple of (media objects for the first page, truncated flag)
         """
         params: dict[str, Any] = {}
         if search_query:
             params["search"] = search_query
 
         result = await self._request("GET", "/medias", params=params)
-        return self._extract_items(result, "medias")
+        return self._extract_page(result, "medias")
 
     async def get_media(self, media_id: str) -> dict[str, Any]:
         """Get details of one media item.

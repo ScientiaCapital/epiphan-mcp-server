@@ -1,46 +1,47 @@
 # Technical Roadmap: Production Readiness
 
-**Timeline**: 3-6 months (part-time, learning as you go)
 **Goal**: Production-grade MCP server ready for internal Epiphan demo
 
 ---
 
-## Current State (v0.8.0 - 2026-02-05)
+## Current State (v1.2.0 - 2026-07-12)
 
 | Metric | Status |
 |--------|--------|
-| MCP Tools | 82 |
-| Tests | 541 (95% coverage) |
-| API Coverage | ~96% |
-| Integrations | 7 (Pearl, Panopto, Kaltura, Opencast, Q-SYS, YouTube, LLM) |
-| Production Ready | ✅ Yes |
+| MCP Tools | 130 |
+| Tests | 1,316 collected (1,309 passing / 7 hardware-skipped) |
+| Integrations | 11 (Pearl, Panopto, Kaltura, Opencast, YuJa, Echo360, Q-SYS, YouTube, EC20, Epiphan Cloud, LLM/AI) |
+| Typed schemas | 21/21 tool modules — every tool has described input/output schemas |
+| CI | ✅ GitHub Actions (`.github/workflows/ci.yml`), format + lint gates |
+| Release | ✅ v1.2.0 tagged; CHANGELOG/CONTRIBUTING/LICENSE in place |
+| PyPI | ❌ NOT published (verified 2026-07-12 — README corrected to source install) |
+| Production Ready | ✅ Yes (against mocked API; live-instance validation pending for YuJa/Echo360 endpoints) |
 
-**Completed (2026-01-28 Integration Sprint)**:
-- ✅ Retry logic with exponential backoff
-- ✅ Parallel fleet operations (asyncio.Semaphore)
-- ✅ Publisher CRUD operations (6 tools)
-- ✅ Input/Output management (5 tools)
-- ✅ Event control (3 tools)
-- ✅ Audit logging for sensitive operations
-- ✅ Image size validation for AI tools
-- ✅ DELETE/PATCH HTTP methods added
-- ✅ Panopto CMS integration (9 tools)
-- ✅ Kaltura CMS integration (9 tools)
-- ✅ Opencast CMS integration (9 tools)
-- ✅ Q-SYS AV control integration (5 tools)
-- ✅ YouTube Live integration (4 tools)
+**Shipped since the original roadmap below was written** (it targeted v0.8→v1.0):
+- ✅ EC20 PTZ integration (10 tools) — hardware endpoint validation still pending
+- ✅ Epiphan Cloud fleet integration (12 tools)
+- ✅ YuJa integration (6 tools, signed-URL S3 upload)
+- ✅ Echo360 integration (6 tools, OAuth2 client-credentials + refresh rotation)
+- ✅ server.py split into tools/ modules (3,001 → ~70 lines)
+- ✅ Dynamic recorder/channel discovery with TTL cache (no hardcoded "recorder-1")
+- ✅ Typed-schema surface complete; wire contract pinned in tests
+- ✅ Security hardening (SSRF host/URL validation, audit logging with drift meta-test, retry jitter)
 
-**In Progress (2026-02-05)**:
-- 🚧 EC20 PTZ camera integration (10 new tools planned)
-- 🚧 Real hardware validation with Pearl Mini + EC20
-
-**Remaining Gaps**:
+**Remaining Gaps** (still true):
 - No webhooks / event-driven architecture
-- No device discovery (mDNS/SSDP)
+- No mDNS/SSDP network device discovery
 - Per-device credentials not implemented
-- VISCA fallback for PTZ (if REST limited)
+- PyPI publish
+- Live-instance validation: YuJa + Echo360 collection endpoints, EC20 hardware endpoints
 
 ---
+
+> **HISTORICAL PLANNING (2026-02):** everything below this line is the original
+> phase plan written at v0.8.0. All four phases and the v0.5–v0.9 milestones
+> are complete; the code sketches no longer match the implemented code
+> (e.g. retry lives in `retry.py` with jitter, fleet ops use a semaphore +
+> per-device timeout). Kept for design-intent context only — do not treat
+> as current status.
 
 ## Phase 1: Reliability Hardening (Weeks 1-4)
 
@@ -539,28 +540,18 @@ def test_recorder_status_matches_api_schema():
 - [x] 82 total MCP tools
 - [x] 541 tests passing
 
-### v0.9.0 - EC20 PTZ Integration (Phase 5) 🚧 IN PROGRESS
-- [ ] EC20 REST API client
-- [ ] Basic PTZ control (pan/tilt/zoom/presets)
-- [ ] EC20 MCP tools (10 new)
-- [ ] Real hardware validation (Pearl Mini + EC20)
+### v0.9.0 - EC20 PTZ Integration (Phase 5) ✅ COMPLETE (code)
+- [x] EC20 REST API client
+- [x] Basic PTZ control (pan/tilt/zoom/presets)
+- [x] EC20 MCP tools (10 new)
+- [ ] Real hardware validation (Pearl Mini + EC20) — endpoint paths are
+      best-effort placeholders pending hardware access
 - [ ] NDI integration testing
 
-### v1.0.0 - Production Ready
-- [ ] All above complete
-- [ ] Battle-tested with Pearl Mini + EC20
-- [ ] Documentation for operators
-- [ ] PyPI publish
-- [ ] GitHub Actions CI/CD
-- [ ] Ready for internal Epiphan demo
-
----
-
-## Quick Wins (Do First)
-
-1. **Add retry logic** - 2 hours, high impact
-2. **Parallel fleet ops** - 2 hours, noticeable speedup
-3. **Configurable thresholds** - 1 hour, removes hardcoding criticism
-4. **Split server.py** - 3 hours, cleaner codebase
-
-Total: ~8 hours to address the main code review criticisms.
+### v1.0.0+ - Production Ready ✅ SHIPPED as v1.2.0 (2026-07-12)
+- [x] GitHub Actions CI/CD
+- [x] Release tagged (v1.2.0: typed schemas 21/21 + YuJa + Echo360)
+- [x] Documentation (README, CONTRIBUTING, CHANGELOG)
+- [ ] PyPI publish — still pending (verified not live 2026-07-12)
+- [ ] Battle-tested with Pearl Mini + EC20 — pending hardware
+- [ ] Internal Epiphan demo

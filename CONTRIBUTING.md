@@ -15,7 +15,7 @@ Thank you for your interest in contributing to the Epiphan MCP Server project! T
 1. **Clone the repository**
 
    ```bash
-   git clone https://github.com/tmkipper/epiphan-mcp-server.git
+   git clone https://github.com/ScientiaCapital/epiphan-mcp-server.git
    cd epiphan-mcp-server
    ```
 
@@ -142,11 +142,22 @@ test: Add tests for layout switching
 src/epiphan_mcp/
 ├── __init__.py       # Package initialization
 ├── __main__.py       # CLI entry point
-├── server.py         # FastMCP server and tool definitions
+├── server.py         # FastMCP server entrypoint (registers all tool modules)
 ├── client.py         # Pearl REST API v2.0 client
-├── models.py         # Pydantic models
-├── config.py         # Configuration handling
-└── tools/            # AI-powered tools (optional features)
+├── models.py         # Pydantic models (tool params + typed results)
+├── config.py         # pydantic-settings configuration + host validation
+├── audit.py          # Audit logging for sensitive operations
+├── validation.py     # SSRF/URL validation helpers
+├── retry.py          # Exponential backoff with jitter
+├── llm/              # Vision/LLM provider layer (OpenRouter)
+├── integrations/     # External service clients: Panopto, Kaltura,
+│                     #   Opencast, YuJa, Echo360, Q-SYS, YouTube,
+│                     #   EC20, Epiphan Cloud
+└── tools/            # All MCP tool modules (25) — device, recording,
+                      #   streaming, layout, storage, fleet, schedule,
+                      #   publishers, inputs, system, discovery, ai_tools,
+                      #   and one module per integration; each exposes
+                      #   register(server) called from server.py
 ```
 
 ### Key Components

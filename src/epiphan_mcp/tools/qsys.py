@@ -73,7 +73,7 @@ async def list_qsys_components(name_filter: _NameFilter = "Pearl") -> QSysCompon
                      Use empty string to list all components.
 
     Returns:
-        Dict with components list and count.
+        QSysComponentListResult with components list and count.
 
     Example:
         "List all Q-SYS components"
@@ -114,7 +114,7 @@ async def qsys_get_pearl_status(
                         Common names: "Pearl_Recorder", "Pearl_1", etc.
 
     Returns:
-        Status dict with is_recording, is_streaming, current_layout.
+        QSysPearlStatusResult with is_recording, is_streaming, current_layout.
 
     Example:
         "Get Pearl status from Q-SYS"

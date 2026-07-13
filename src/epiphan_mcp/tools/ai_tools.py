@@ -422,7 +422,7 @@ async def clear_change_detection_cache(
         channel: Specific channel to clear (None for all on device)
 
     Returns:
-        dict with success status and cleared channels
+        ChangeCacheClearResult with success status and cleared channels
     """
     try:
         analyzer = await get_analyzer()

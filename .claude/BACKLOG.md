@@ -76,16 +76,38 @@ segmentation cleanup before these counts feed a forecast. GTM Brain
 (Neo4j/AuraDB) was unreachable this pass (DNS failure, likely sleeping
 free-tier instance).
 
-### Next: GTM wedge v2 — Apollo/Clay enrichment for the 141 Unknowns
-Tim approved Apollo + Clay credit spend (2026-07-12) and directed use of the
-Epiphan AI MCP toolset (`epiphan-ai-mcp-guide-skill`) for enrichment — this
-arrived after the probe pass had already completed, so it wasn't used yet.
-Scoped for tomorrow: run Apollo tech-stack enrichment + Clay company
-enrichment on the 141 Unknown domains (and the 20 unconfirmed Learn-portal
-ones) to convert as many as possible to a known LMS; also try a second-pass
-probe with extended subdomain patterns (`elearning.`, `webcampus.`, `lms.`,
-`bb.`, `elc.`, `quercus.`, `brightspace.`) first since it's free and likely
-converts 50%+ on its own. Owner: Tim.
+### ✅ SUPERSEDED by v3 (ran later same evening): enrichment CANNOT detect LMS
+The gtm-wedge agent ran the v2 plan the same night (report updated in place,
+now v3, 520 lines). **Key validated finding — Apollo/Clay tech-stack
+enrichment does NOT detect LMS**: Apollo org-enrich on 10 known schools
+returned zero LMS signal; Clay Tech Stack on NYU (known Brightspace)
+returned a full BuiltWith-style stack with no LMS in it. Same apex-domain
+blindness as HubSpot's `web_technologies` — they scrape the marketing site,
+never the LMS subdomain. The agent stopped enrichment after validation
+(minimal credit spend: 1 Apollo bulk enrich + 1 people search, 1 Clay
+company + 1 tech-stack — all Tim-approved).
+
+**Final v3 counts (344 institutions, two probe passes merged):**
+113 Canvas / 78 Learn-portal-unconfirmed / 57 Unknown / 43 Moodle /
+35 Blackboard / 17 Brightspace-D2L / 1 Sakai. The extended-pattern
+second-pass probe cut Unknowns 141→57 and surfaced a real Brightspace
+cohort (NYU, Stony Brook, DePaul, Waterloo, Ottawa, Memorial, OHSU).
+Corrections caught: BU = Blackboard (learn.bu.edu), UGA = Brightspace.
+
+**Where credits DID pay off — contacts**: Apollo people search returned 100
+on-target AV/classroom-tech/IT-director decision-makers across the top-10
+Canvas accounts (first-name + title only; unmasking is a separate,
+not-yet-run enrichment step).
+
+### Next: GTM wedge follow-ups (corrected plan)
+1. Human login-page glance for the 78 Learn-portal + 57 Unknown domains —
+   validated as the only reliable way to resolve them (NOT more paid
+   enrichment). Owner: Tim.
+2. When moving top-10 Canvas accounts to outreach: spend Apollo/Clay
+   credits on contact unmasking (names/emails for the 100 found
+   decision-makers), not on more LMS detection.
+3. RevOps: segmentation cleanup of the noisy HIGHER_EDUCATION industry
+   value before these counts feed a forecast.
 
 ---
 
@@ -268,6 +290,20 @@ Every tool named in the original Phase 2/3/4 gap tables (`get_stream_status`,
 
 **Document Owner**: Tim Kipper
 **Review Cadence**: Weekly
+
+## Deferred by design (from 2026-07-13 polish-day audits)
+- **[MEDIUM]** Retry-on-POST idempotency: `with_retry` wraps non-idempotent
+  POSTs (create_publisher, create_event, reboot) — an ambiguous timeout can
+  duplicate side effects on a device. Deliberate behavior change deferred by
+  Tim (needs its own change + hardware verification). Fix: restrict auto-
+  retry to idempotent methods or add an idempotency pre-check.
+- **[LOW]** Echo360 pagination: list endpoints return only the first page
+  with no `truncated` flag or page param — fold into the existing Echo360
+  live-validation item (page param names need the live Swagger anyway).
+- **[LOW]** Blocking file reads in upload paths (kaltura 10MB chunks;
+  panopto/yuja/echo360 `_stream()`; opencast multipart) run on the event
+  loop — only matters if recordings live on slow/network storage. Fix:
+  `asyncio.to_thread` or aiofiles if that deployment pattern appears.
 
 ## Carried-forward items (superseded or still open as of 2026-07-12 EOD)
 - [x] ~~Convert remaining 15 tool modules to typed schemas~~ — done, 21/21 complete (2026-07-12 PM)

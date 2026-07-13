@@ -104,7 +104,7 @@ async def create_youtube_broadcast(
         frame_rate: Frame rate - "30fps" or "60fps" (default "30fps")
 
     Returns:
-        Dict with broadcast details and RTMP credentials for Pearl:
+        YouTubeBroadcastResult with broadcast details and RTMP credentials for Pearl:
         - broadcast_id: YouTube broadcast ID
         - stream_id: YouTube stream ID
         - rtmp_url: RTMP server URL
@@ -179,7 +179,7 @@ async def get_youtube_broadcast_status(
         broadcast_id: The YouTube broadcast ID
 
     Returns:
-        Dict with broadcast status, stream status, and timing info
+        YouTubeBroadcastStatusResult with broadcast status, stream status, and timing info
 
     Example:
         "Check status of YouTube broadcast abc123"
@@ -217,7 +217,7 @@ async def list_youtube_broadcasts(
         limit: Maximum number of results (default 25, max 50)
 
     Returns:
-        Dict with broadcasts list and count
+        YouTubeBroadcastListResult with broadcasts list and count
 
     Example:
         "List my YouTube broadcasts"

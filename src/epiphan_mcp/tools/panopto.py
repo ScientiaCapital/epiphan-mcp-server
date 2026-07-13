@@ -121,7 +121,7 @@ async def list_panopto_folders(
         search_query: Optional search term to filter folders
 
     Returns:
-        Dict with folders list and count
+        PanoptoFolderListResult with folders list and count
 
     Example:
         "List all Panopto folders"
@@ -250,7 +250,7 @@ async def list_panopto_sessions(
         search_query: Optional search term
 
     Returns:
-        Dict with sessions list and count
+        PanoptoSessionListResult with sessions list and count
 
     Example:
         "List all Panopto recordings"

@@ -169,3 +169,4 @@ Thumbs.db
 # Cost tracking (ephemeral)
 .claude/daily-cost.json
 costs/*.json
+.claude/gtm/

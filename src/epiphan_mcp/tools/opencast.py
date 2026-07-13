@@ -113,7 +113,7 @@ async def list_opencast_series(
         offset: Pagination offset for paging through results
 
     Returns:
-        Dict with series list and count
+        OpencastSeriesListResult with series list and count
 
     Example:
         "List all Opencast series"
@@ -241,7 +241,7 @@ async def list_opencast_events(
         offset: Pagination offset
 
     Returns:
-        Dict with events list and count
+        OpencastEventListResult with events list and count
 
     Example:
         "List all Opencast recordings"

@@ -133,7 +133,7 @@ async def list_kaltura_categories(
         page_index: Page number, 1-based (default 1)
 
     Returns:
-        Dict with categories list and count
+        KalturaCategoryListResult with categories list and count
 
     Example:
         "List all Kaltura categories"
@@ -252,7 +252,7 @@ async def list_kaltura_media(
         page_index: Page number, 1-based (default 1)
 
     Returns:
-        Dict with media entries list and count
+        KalturaMediaListResult with media entries list and count
 
     Example:
         "List all Kaltura videos"

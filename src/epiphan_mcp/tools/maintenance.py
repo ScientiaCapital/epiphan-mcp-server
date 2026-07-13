@@ -116,8 +116,9 @@ async def get_device_health_score(device_id: DeviceId = "default") -> DeviceHeal
     """
     Calculate an overall health score for a Pearl device (0-100).
 
-    This AI-powered tool aggregates multiple health indicators into a single
-    score, making it easy to identify devices that need attention.
+    Aggregates multiple health indicators into a single rule-based score
+    (storage and recorder heuristics), making it easy to identify devices
+    that need attention.
 
     Args:
         device_id: Device identifier. Use "default" for the primary configured device.

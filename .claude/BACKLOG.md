@@ -100,9 +100,14 @@ Canvas accounts (first-name + title only; unmasking is a separate,
 not-yet-run enrichment step).
 
 ### Next: GTM wedge follow-ups (corrected plan)
-1. Human login-page glance for the 78 Learn-portal + 57 Unknown domains —
-   validated as the only reliable way to resolve them (NOT more paid
-   enrichment). Owner: Tim.
+1. ✅ ~~Human login-page glance for the 78 Learn-portal + 57 Unknown domains~~
+   — **DONE as automated v4 pass (2026-07-13)**: httpx sweep + Playwright +
+   AI screenshot review resolved 40/135 (Canvas 18, Moodle 12, Brightspace 4,
+   Blackboard 3, Sakai 1, OLAT 1, iSpring 1; spot-check 5/5 vs known truth).
+   Residual 95 classified: 46 Not-LMS (CRM noise — feeds the segmentation
+   cleanup), 13 genuine SSO-only (need insider), 36 blank/unreachable.
+   Full table in the wedge report v4 section. Remaining human work is only
+   the 13 SSO-only domains.
 2. When moving top-10 Canvas accounts to outreach: spend Apollo/Clay
    credits on contact unmasking (names/emails for the 100 found
    decision-makers), not on more LMS detection.
@@ -291,19 +296,22 @@ Every tool named in the original Phase 2/3/4 gap tables (`get_stream_status`,
 **Document Owner**: Tim Kipper
 **Review Cadence**: Weekly
 
-## Deferred by design (from 2026-07-13 polish-day audits)
-- **[MEDIUM]** Retry-on-POST idempotency: `with_retry` wraps non-idempotent
-  POSTs (create_publisher, create_event, reboot) — an ambiguous timeout can
-  duplicate side effects on a device. Deliberate behavior change deferred by
-  Tim (needs its own change + hardware verification). Fix: restrict auto-
-  retry to idempotent methods or add an idempotency pre-check.
-- **[LOW]** Echo360 pagination: list endpoints return only the first page
-  with no `truncated` flag or page param — fold into the existing Echo360
-  live-validation item (page param names need the live Swagger anyway).
-- **[LOW]** Blocking file reads in upload paths (kaltura 10MB chunks;
-  panopto/yuja/echo360 `_stream()`; opencast multipart) run on the event
-  loop — only matters if recordings live on slow/network storage. Fix:
-  `asyncio.to_thread` or aiofiles if that deployment pattern appears.
+## ✅ DONE: Deferred-by-design items cleared (2026-07-13 session)
+- ✅ **Retry-on-POST idempotency** — POST/PATCH now retry only connect-phase
+  failures (`ConnectError`/`ConnectTimeout`); ambiguous post-send failures
+  surface immediately. GET/PUT/DELETE and busy-retry unchanged. 4 new tests.
+- ✅ **Echo360 pagination flag** — client list methods return
+  `(items, truncated)`; tools expose `truncated` (inferred from next/
+  nextToken/hasMore/total). Page fetching still deferred to live validation.
+- ✅ **Non-blocking upload reads** — `stream_file()` reads via
+  `asyncio.to_thread`; Kaltura chunk loop reuses it. Opencast multipart keeps
+  a sync file object (httpx requirement) with the limitation documented.
+- ✅ **`fastmcp<3` pinned** in pyproject.toml (carried-forward item).
+- ✅ **BONUS fix(fleet)**: offline detection was a race — `get_system_status`
+  swallowed transport errors, so a fast-failing device showed online unless
+  jittered retries outlasted the fleet timeout (flake introduced by the
+  retry-jitter fix, wrong on real fleets). Transport errors now propagate;
+  fleet test settings default `max_retries=0` (test_fleet.py 36s → 6s).
 
 ## Carried-forward items (superseded or still open as of 2026-07-12 EOD)
 - [x] ~~Convert remaining 15 tool modules to typed schemas~~ — done, 21/21 complete (2026-07-12 PM)

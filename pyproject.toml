@@ -34,7 +34,7 @@ classifiers = [
     "Topic :: System :: Systems Administration",
 ]
 dependencies = [
-    "fastmcp>=0.1.0",
+    "fastmcp>=0.1.0,<3",
     "httpx>=0.25.0",
     "pydantic>=2.4.0",  # CVE-2024-3772 fix
     "pydantic-settings>=2.0.0",

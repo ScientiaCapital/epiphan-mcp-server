@@ -44,11 +44,7 @@ Pearl Copilot connects **11 systems** through a unified AI interface:
 
 ### Installation
 
-```bash
-pip install epiphan-mcp
-```
-
-Or from source:
+Not yet published to PyPI — install from source:
 
 ```bash
 git clone https://github.com/tmkipper/epiphan-mcp-server.git

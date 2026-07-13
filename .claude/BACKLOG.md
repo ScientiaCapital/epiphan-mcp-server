@@ -3,10 +3,6 @@
 **Last Updated**: 2026-07-12 (end of day)
 **Status**: v1.2.0 shipped — 130 tools, 11 integrations, typed-schema surface complete
 
-> ⚠️ **Stale:** the Implementation Status Summary and Priority Tiers tables below
-> (P0 launch items, "101 tools") pre-date current reality (130 tools; CI format/lint
-> gates exist; v1.2.0 tagged and released). Needs a cleanup pass.
-
 ## ✅ DONE: Typed-Schema Conversion — 21/21 (completed 2026-07-12 PM)
 All tool modules converted to typed Pydantic params + return models.
 `NOT_YET_CONVERTED` is empty; the schema contract meta-tests now enforce fully
@@ -52,7 +48,8 @@ endpoint validation (same situation as YuJa).
   in `test_server.py` instead of dedicated files. Nicety, not urgent.
 
 ## ✅ DONE (v1): GTM Canvas/Blackboard LMS wedge — subdomain probe (2026-07-12)
-Report: `.claude/gtm/canvas-wedge-2026-07-12.md` (v2). HubSpot has 2,914
+Report: `.claude/gtm/canvas-wedge-2026-07-12.md` (v2, local-only — not pushed
+to GitHub; contains customer/prospect names and deal data). HubSpot has 2,914
 Higher-Ed companies (358 customers, 71 open opps, 429 warm → 344 unique
 institutional domains after de-duping departmental subdomains).
 
@@ -100,90 +97,64 @@ converts 50%+ on its own. Owner: Tim.
 | Phase 2: Streaming & Layout | ✅ Complete | 15 | +6 publisher CRUD tools |
 | Phase 3: Fleet Management | ✅ Complete | 6 | Parallel ops, health reports |
 | Phase 4: AI Analysis | ✅ Complete | 9 | **MOAT BUILDER** + fleet intelligence |
-| Phase 4.2: CMS Integration | ✅ Complete | 27 | Panopto (9) + Kaltura (9) + Opencast (9) |
+| Phase 4.2: CMS Integration | ✅ Complete | 45 | Panopto (9) + Kaltura (9) + Opencast (9) + YuJa (6) + Echo360 (6) |
 | Phase 4.3: Input/Output Mgmt | ✅ Complete | 5 | Network inputs, output routing |
 | Phase 4.4: AV Control | ✅ Complete | 9 | Q-SYS (5) + YouTube (4) |
 | Phase 5: Security Hardening | ✅ Complete | - | Audit logging, concurrency limits |
-| **Phase 6: EC20 PTZ** | ✅ Complete | 10 | PTZ camera control |
-| **Phase 7: Discovery & System** | ✅ Complete | 9 | list_recorders, previews, system control |
+| Phase 6: EC20 PTZ | ✅ Complete | 10 | PTZ camera control |
+| Phase 7: Discovery & System | ✅ Complete | 9 | list_recorders, previews, system control |
+| Phase 8: Epiphan Cloud | ✅ Complete | 12 | Fleet mgmt via go.epiphan.cloud |
+| Phase 9: Typed-Schema Surface | ✅ Complete | 21/21 modules | Every tool has described input/output schemas |
 
-**Total MCP Tools: 101**
+**Total MCP Tools: 130** (verified against `src/epiphan_mcp/tools/__init__.py` 2026-07-12)
 
 ---
 
 ## Priority Tiers
 
-### P0: Launch Blockers
-Must complete before v1.0 release.
-
-| Feature | Effort | Impact | Status |
-|---------|--------|--------|--------|
-| GitHub Actions CI/CD | 2h | High | ❌ Not Started |
-| Create git tag v1.0.0 | 15m | High | ❌ Not Started |
-| PyPI package publishing | 1h | High | ❌ Not Started |
-| CHANGELOG.md | 30m | Medium | ❌ Not Started |
-| CONTRIBUTING.md | 30m | Medium | ❌ Not Started |
-| LICENSE file | 10m | High | ❌ Check if exists |
-| **EC20 PTZ Integration** | 2d | Very High | ✅ Complete |
+### P0: Launch Blockers — nearly all resolved
+| Feature | Status |
+|---------|--------|
+| GitHub Actions CI/CD | ✅ Done (`.github/workflows/ci.yml`) |
+| CHANGELOG.md | ✅ Done |
+| CONTRIBUTING.md | ✅ Done |
+| LICENSE file | ✅ Done |
+| Release tag | ✅ Done — v1.2.0 (superseded the original v1.0.0 target) |
+| **EC20 PTZ Integration** | ✅ Complete |
+| **PyPI package publishing** | ❌ Still pending — README instructs `pip install epiphan-mcp` but this is aspirational; not yet verified live on PyPI. Verify and either publish or fix the README. |
 
 ### P1: Moat Builders (Competitive Advantage)
-Features that make Epiphan the AI-native leader.
-
 | Feature | Effort | Impact | Status | Notes |
 |---------|--------|--------|--------|-------|
 | **AI Scene Analysis** | - | - | ✅ Done | 5 tools via OpenRouter |
-| **EC20 PTZ Control** | 2d | Very High | ✅ Complete | 10 tools implemented |
+| **EC20 PTZ Control** | 2d | Very High | ✅ Done | 10 tools implemented |
+| **Predictive Maintenance AI** | 8h | Very High | ✅ Done | `predict_storage_full` |
 | EC20 AI Tracking | 4h | Very High | ❌ | Presenter/zone tracking |
 | Real-time Event Detection | 4h | Very High | ❌ | Auto-trigger on scene change |
-| Predictive Maintenance AI | 8h | Very High | ✅ Done | predict_storage_full |
 | Smart Recording Suggestions | 4h | High | ❌ | AI suggests optimal settings |
 | Voice Control Integration | 4h | High | ❌ | "Start recording Room 201" |
 | Anomaly Detection | 6h | High | ❌ | Detect camera/audio issues |
 | Multi-room Orchestration | 6h | High | ❌ | AI coordinates across rooms |
 
-### P2: Feature Completeness (PRP Gaps)
-Complete the planned feature set.
+### P2: Feature Completeness (PRP Gaps) — ✅ ALL RESOLVED (verified 2026-07-12)
+Every tool named in the original Phase 2/3/4 gap tables (`get_stream_status`,
+`list_layouts`, `list_inputs`, `add_bookmark`, `pearl_discover_device`,
+`get_storage_report`, `fleet_health_report`, `single_touch_start/stop`,
+`get_scheduled_events`, `get_afu_status`, etc.) is confirmed registered in
+`tools/__init__.py`. Section removed — nothing left to track here.
 
-#### Phase 2 Gaps (Streaming & Layout)
-| Feature | Effort | Status | Client Method |
-|---------|--------|--------|---------------|
-| `get_stream_status` | 1h | ❌ | `get_publisher_status` exists |
-| `list_layouts` | 1h | ❌ | Need to add |
-| `get_current_layout` | 1h | ❌ | Need to add |
-| `list_sources` / `list_inputs` | 1h | ❌ | `get_inputs` exists |
-| `get_source_status` | 1h | ❌ | Need to add |
-| `add_bookmark` | 30m | ❌ | `add_bookmark` exists |
-
-#### Phase 3 Gaps (Fleet Management)
-| Feature | Effort | Status | Notes |
-|---------|--------|--------|-------|
-| `discover_devices` | 4h | ❌ | mDNS/SSDP network scan |
-| `get_storage_report` | 1h | ❌ | `get_storages` exists |
-| `get_health_report` | 2h | ❌ | Aggregate health data |
-| `batch_command` | 2h | ❌ | Generic batch executor |
-| `single_touch_start` | 30m | ❌ | Client method exists |
-| `single_touch_stop` | 30m | ❌ | Client method exists |
-
-#### Phase 4 Gaps (Intelligence)
-| Feature | Effort | Status | Notes |
-|---------|--------|--------|-------|
-| `get_scheduled_events` | 1h | ❌ | `get_events` exists |
-| `start_scheduled_event` | 30m | ❌ | `start_event` exists |
-| `stop_scheduled_event` | 30m | ❌ | `stop_event` exists |
-| `get_afu_status` | 30m | ❌ | Client method exists |
-
-### P3: CMS Integrations (Enterprise Value) - ✅ COMPLETE
-These drive enterprise sales.
-
-| Feature | Effort | Impact | Status |
-|---------|--------|--------|--------|
-| Kaltura Upload | 8h | High | ✅ Done (9 tools) |
-| Panopto Upload | 8h | High | ✅ Done (9 tools) |
-| Opencast Upload | 6h | Medium | ✅ Done (9 tools) |
-| Q-SYS AV Control | 4h | High | ✅ Done (5 tools) |
-| YouTube Live | 4h | High | ✅ Done (4 tools) |
-| Upload Progress Tracking | 4h | Medium | ✅ Done |
-| Auto-upload on Recording Stop | 4h | High | ❌ Future |
+### P3: CMS Integrations (Enterprise Value) — ✅ COMPLETE
+| Feature | Status |
+|---------|--------|
+| Kaltura Upload | ✅ Done (9 tools) |
+| Panopto Upload | ✅ Done (9 tools) |
+| Opencast Upload | ✅ Done (9 tools) |
+| YuJa Upload | ✅ Done (6 tools) |
+| Echo360 Upload | ✅ Done (6 tools) |
+| Q-SYS AV Control | ✅ Done (5 tools) |
+| YouTube Live | ✅ Done (4 tools) |
+| Upload Progress Tracking | ✅ Done |
+| Auto-upload on Recording Stop | ❌ Future |
 
 ### P4: Advanced Automation
 | Feature | Effort | Impact | Status |
@@ -205,45 +176,18 @@ These drive enterprise sales.
 
 ---
 
-## Unexposed Client Methods
-
-These methods exist in `PearlClient` but aren't MCP tools yet:
-
-| Client Method | Priority | Notes |
-|---------------|----------|-------|
-| `add_bookmark` | P2 | Useful for chapter markers |
-| `get_publishers` | P2 | List stream destinations |
-| `get_publisher_status` | P2 | Stream health |
-| `start_stream` (single) | P2 | Already have channel-level |
-| `stop_stream` (single) | P2 | Already have channel-level |
-| `get_inputs` | P2 | List sources |
-| `get_channels` | P2 | List channels |
-| `get_channel_preview` | P1 | Used by AI tools internally |
-| `get_input_preview` | P2 | Preview source |
-| `get_storages` | P2 | Storage details |
-| `reboot` | P3 | System control (dangerous) |
-| `shutdown` | P3 | System control (dangerous) |
-| `get_events` | P2 | Scheduled events |
-| `start_event` | P2 | Force start event |
-| `stop_event` | P2 | Force stop event |
-| `get_afu_status` | P2 | Auto-upload status |
-| `single_touch_start` | P2 | Start all recording+streaming |
-| `single_touch_stop` | P2 | Stop all recording+streaming |
-| `get_archive_files` | P2 | List recordings |
-
----
-
 ## GTM Checklist
 
-### Pre-Launch (Before v1.0)
-- [ ] GitHub Actions CI/CD (.github/workflows/ci.yml)
-- [ ] Create releases: v0.4.0 (current), v1.0.0 (launch)
-- [ ] PyPI package: `pip install epiphan-mcp`
+### Pre-Launch
+- [x] GitHub Actions CI/CD (`.github/workflows/ci.yml`)
+- [x] CHANGELOG.md, CONTRIBUTING.md, LICENSE
+- [x] Release tag — v1.2.0 (current; supersedes the original v1.0.0 target)
+- [ ] **PyPI package** — verify `pip install epiphan-mcp` actually resolves; README implies it's live but this hasn't been confirmed this session
 - [ ] Demo video (5 min) showing AI features
 - [ ] Blog post: "AI-Native Control for Pearl"
 
 ### Launch Day
-- [ ] GitHub release v1.0.0
+- [ ] GitHub release notes promoted beyond the tag (blog/socials)
 - [ ] Hacker News post
 - [ ] Reddit r/selfhosted, r/homelab, r/broadcasting
 - [ ] LinkedIn announcement
@@ -276,10 +220,13 @@ These methods exist in `PearlClient` but aren't MCP tools yet:
    - Deep Pearl API integration
    - Training data from real production environments
    - Customer feedback loop
+   - 130 tools / 11 integrations (Pearl core + Panopto/Kaltura/Opencast/YuJa/
+     Echo360 CMS + Q-SYS/YouTube AV + EC20 + Epiphan Cloud) — broadest
+     integration surface of any AV-hardware MCP server as of 2026-07-12
 
 4. **Expansion Path**
    - Start with Pearl → Expand to other Epiphan products
-   - Partner with LMS vendors (Panopto, Kaltura)
+   - Partner with LMS vendors (Panopto, Kaltura, YuJa, Echo360)
    - White-label for integrators
 
 ### Competitive Response Timeline
@@ -297,23 +244,25 @@ These methods exist in `PearlClient` but aren't MCP tools yet:
 
 ## Next Sprint Recommendations
 
-### Sprint (Completed): EC20 PTZ Integration
-1. ✅ Connect Pearl Mini to network, test existing tools
-2. ✅ Connect EC20 via NDI, document REST API
-3. ✅ Create EC20 client (pan/tilt/zoom/presets)
-4. ✅ Create 10 EC20 MCP tools
-5. ⏳ Integration test: Recording + PTZ workflow (needs hardware)
+### Sprint (Completed 2026-07-12): Typed Schemas + YuJa + Echo360 + v1.2.0
+1. ✅ Converted final 5 tool modules to typed schemas — 21/21 complete
+2. ✅ Built YuJa integration (client + 6 tools + 32 tests)
+3. ✅ Fixed latent Panopto S3-upload bug (sync file → async stream)
+4. ✅ Tagged and released v1.2.0
+5. ✅ Built Echo360 integration (client + 6 tools + 38 tests) — 130 tools / 11 integrations
+6. ✅ Ran GTM Canvas/Blackboard wedge v1 (subdomain probe, 344 domains)
 
-### Sprint (Next): Launch Readiness
-1. Create GitHub Actions CI/CD
-2. Create v1.0.0 release tag
-3. Set up PyPI publishing
+### Sprint (Next): Validation + Enrichment + Launch Readiness
+1. Validate YuJa and Echo360 endpoints against live instances (both flagged MEDIUM)
+2. GTM wedge v2 — Apollo/Clay enrichment for the 141 Unknown-LMS domains (approved, scoped above)
+3. Verify PyPI publish status; fix or ship
 4. Demo video: Pearl Mini + EC20 AI workflow
 
-### Sprint (Future): Advanced EC20
+### Sprint (Future): Advanced EC20 + Automation
 1. EC20 AI tracking (presenter mode, zone detection)
 2. Multi-EC20 support for classrooms
 3. Layout switching based on EC20 presets
+4. P4 automation items (webhooks, auto-recovery, scheduled recording)
 
 ---
 

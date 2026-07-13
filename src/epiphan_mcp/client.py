@@ -29,6 +29,15 @@ logger = logging.getLogger(__name__)
 # API v2.0 base path
 API_V2_BASE = "/api/v2.0"
 
+# Non-idempotent requests (POST/PATCH) may only be retried when the failure
+# proves the request never reached the device; anything after send (e.g.
+# ReadTimeout) is ambiguous and retrying could duplicate side effects such as
+# creating a second publisher or rebooting twice.
+_CONNECT_PHASE_RETRYABLE: tuple[type[Exception], ...] = (
+    httpx.ConnectError,
+    httpx.ConnectTimeout,
+)
+
 
 class PearlAPIError(Exception):
     """Exception raised for Pearl API errors."""
@@ -210,13 +219,17 @@ class PearlClient:
     async def _post(
         self, path: str, params: dict[str, Any] | None = None, json: dict[str, Any] | None = None
     ) -> dict[str, Any]:
-        """Make POST request to API v2.0 endpoint with automatic retry."""
+        """Make POST request to API v2.0 endpoint.
+
+        POST is non-idempotent: only connect-phase failures are retried.
+        """
         try:
             return await with_retry(
                 lambda: self._post_raw(path, params, json),
                 max_retries=self.max_retries,
                 base_delay=self.retry_base_delay,
                 max_delay=self.retry_max_delay,
+                retryable_exceptions=_CONNECT_PHASE_RETRYABLE,
             )
         except httpx.RequestError as e:
             logger.error(f"Request error for POST {path}: {e}")
@@ -265,13 +278,17 @@ class PearlClient:
     async def _patch(
         self, path: str, params: dict[str, Any] | None = None, json: dict[str, Any] | None = None
     ) -> dict[str, Any]:
-        """Make PATCH request to API v2.0 endpoint with automatic retry."""
+        """Make PATCH request to API v2.0 endpoint.
+
+        PATCH is non-idempotent: only connect-phase failures are retried.
+        """
         try:
             return await with_retry(
                 lambda: self._patch_raw(path, params, json),
                 max_retries=self.max_retries,
                 base_delay=self.retry_base_delay,
                 max_delay=self.retry_max_delay,
+                retryable_exceptions=_CONNECT_PHASE_RETRYABLE,
             )
         except httpx.RequestError as e:
             logger.error(f"Request error for PATCH {path}: {e}")

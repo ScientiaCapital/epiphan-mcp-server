@@ -25,6 +25,7 @@ from fastmcp import FastMCP
 from pydantic import Field
 
 from epiphan_mcp.audit import log_operation
+from epiphan_mcp.config import require_env
 from epiphan_mcp.integrations.kaltura import (
     KalturaAPIError,
     KalturaAuthError,
@@ -47,9 +48,7 @@ _PageSize = Annotated[int, Field(description="Results per page (default 50, max 
 _PageIndex = Annotated[int, Field(description="Page number, 1-based (default 1).")]
 _CategoryId = Annotated[int, Field(description="Category ID (numeric).")]
 _CategoryName = Annotated[str, Field(description="Category name.")]
-_ParentIdOpt = Annotated[
-    int | None, Field(description="Parent category ID (None = root level).")
-]
+_ParentIdOpt = Annotated[int | None, Field(description="Parent category ID (None = root level).")]
 _Description = Annotated[str, Field(description="Optional description.")]
 _CategoryIdsFilter = Annotated[
     str, Field(description="Comma-separated category IDs to filter by (optional).")
@@ -57,9 +56,7 @@ _CategoryIdsFilter = Annotated[
 _SearchText = Annotated[
     str, Field(description="Search term for name, description, tags (optional).")
 ]
-_EntryId = Annotated[
-    str, Field(description="Media entry ID (alphanumeric, starts with 0_ or 1_).")
-]
+_EntryId = Annotated[str, Field(description="Media entry ID (alphanumeric, starts with 0_ or 1_).")]
 _MediaName = Annotated[str, Field(description="Media entry name/title.")]
 _Tags = Annotated[str, Field(description="Optional comma-separated tags.")]
 _CategoryIdsAssign = Annotated[
@@ -74,9 +71,7 @@ _EventName = Annotated[str, Field(description="Event name/title.")]
 _StartTime = Annotated[
     str, Field(description="Start time in ISO format (e.g. '2024-01-15T10:00:00').")
 ]
-_EndTime = Annotated[
-    str, Field(description="End time in ISO format (e.g. '2024-01-15T11:00:00').")
-]
+_EndTime = Annotated[str, Field(description="End time in ISO format (e.g. '2024-01-15T11:00:00').")]
 _EventEntryId = Annotated[
     str, Field(description="Existing media entry ID to associate (optional).")
 ]
@@ -86,32 +81,17 @@ _UploadTokenId = Annotated[str, Field(description="Upload token ID from the uplo
 
 def _get_kaltura_config() -> dict[str, str | int]:
     """Get Kaltura configuration from environment."""
-    partner_id_str = os.environ.get("KALTURA_PARTNER_ID")
-    app_token_id = os.environ.get("KALTURA_APP_TOKEN_ID")
-    app_token = os.environ.get("KALTURA_APP_TOKEN")
-
-    missing = []
-    if not partner_id_str:
-        missing.append("KALTURA_PARTNER_ID")
-    if not app_token_id:
-        missing.append("KALTURA_APP_TOKEN_ID")
-    if not app_token:
-        missing.append("KALTURA_APP_TOKEN")
-
-    if missing:
-        raise ValueError(
-            f"Missing Kaltura configuration. Set environment variables: {', '.join(missing)}"
-        )
+    env = require_env("Kaltura", "KALTURA_PARTNER_ID", "KALTURA_APP_TOKEN_ID", "KALTURA_APP_TOKEN")
 
     try:
-        partner_id = int(partner_id_str)  # type: ignore
+        partner_id = int(env["KALTURA_PARTNER_ID"])
     except ValueError as err:
         raise ValueError("KALTURA_PARTNER_ID must be a valid integer") from err
 
     return {
         "partner_id": partner_id,
-        "app_token_id": app_token_id,  # type: ignore
-        "app_token": app_token,  # type: ignore
+        "app_token_id": env["KALTURA_APP_TOKEN_ID"],
+        "app_token": env["KALTURA_APP_TOKEN"],
         "user_id": os.environ.get("KALTURA_USER_ID", ""),
         "service_url": os.environ.get("KALTURA_SERVICE_URL", "https://www.kaltura.com"),
     }
@@ -228,9 +208,7 @@ async def create_kaltura_category(
                 parent_id=parent_id,
                 description=description,
             )
-            return KalturaCategoryResult(
-                category=category, message=f"Created category '{name}'"
-            )
+            return KalturaCategoryResult(category=category, message=f"Created category '{name}'")
     except KalturaAuthError as e:
         return KalturaCategoryResult(error=f"Authentication failed: {e}")
     except KalturaAPIError as e:

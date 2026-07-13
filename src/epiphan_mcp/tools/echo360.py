@@ -11,7 +11,6 @@ Environment Variables Required:
     ECHO360_CLIENT_SECRET: OAuth2 client secret (shown once at creation)
 """
 
-import os
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Annotated
@@ -20,7 +19,7 @@ from fastmcp import FastMCP
 from pydantic import Field
 
 from epiphan_mcp.audit import log_operation
-from epiphan_mcp.config import validate_integration_host
+from epiphan_mcp.config import require_env, validate_integration_host
 from epiphan_mcp.integrations.echo360 import (
     Echo360APIError,
     Echo360AuthError,
@@ -35,17 +34,11 @@ from epiphan_mcp.models import (
     Echo360UploadStatusResult,
 )
 
-_CourseId = Annotated[
-    str, Field(description="Echo360 course ID to filter sections by (optional).")
-]
-_MediaSearch = Annotated[
-    str, Field(description="Search term to filter media by title (optional).")
-]
+_CourseId = Annotated[str, Field(description="Echo360 course ID to filter sections by (optional).")]
+_MediaSearch = Annotated[str, Field(description="Search term to filter media by title (optional).")]
 _MediaId = Annotated[str, Field(description="Echo360 media ID.")]
 _FilePath = Annotated[str, Field(description="Local path to the video file to upload.")]
-_MediaTitle = Annotated[
-    str, Field(description="Media title (defaults to the filename if empty).")
-]
+_MediaTitle = Annotated[str, Field(description="Media title (defaults to the filename if empty).")]
 _WaitForProcessing = Annotated[
     bool,
     Field(description="Whether to wait for Echo360 to finish processing before returning."),
@@ -64,32 +57,11 @@ class _Echo360Config:
 
 def _get_echo360_config() -> _Echo360Config:
     """Get Echo360 configuration from environment."""
-    host = os.environ.get("ECHO360_HOST")
-    client_id = os.environ.get("ECHO360_CLIENT_ID")
-    client_secret = os.environ.get("ECHO360_CLIENT_SECRET")
-
-    missing = []
-    if not host:
-        missing.append("ECHO360_HOST")
-    if not client_id:
-        missing.append("ECHO360_CLIENT_ID")
-    if not client_secret:
-        missing.append("ECHO360_CLIENT_SECRET")
-
-    if missing:
-        raise ValueError(
-            f"Missing Echo360 configuration. Set environment variables: {', '.join(missing)}"
-        )
-
-    # After validation, all required fields are guaranteed non-None
-    assert host is not None
-    assert client_id is not None
-    assert client_secret is not None
-
+    env = require_env("Echo360", "ECHO360_HOST", "ECHO360_CLIENT_ID", "ECHO360_CLIENT_SECRET")
     return _Echo360Config(
-        host=validate_integration_host(host, "Echo360"),
-        client_id=client_id,
-        client_secret=client_secret,
+        host=validate_integration_host(env["ECHO360_HOST"], "Echo360"),
+        client_id=env["ECHO360_CLIENT_ID"],
+        client_secret=env["ECHO360_CLIENT_SECRET"],
     )
 
 

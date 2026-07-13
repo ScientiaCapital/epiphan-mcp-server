@@ -21,6 +21,7 @@ from fastmcp import FastMCP
 from pydantic import Field
 
 from epiphan_mcp.audit import log_operation
+from epiphan_mcp.config import require_env
 from epiphan_mcp.integrations.panopto import (
     PanoptoAPIError,
     PanoptoAuthError,
@@ -72,37 +73,14 @@ class _PanoptoConfig:
 
 def _get_panopto_config() -> _PanoptoConfig:
     """Get Panopto configuration from environment."""
-    host = os.environ.get("PANOPTO_HOST")
-    client_id = os.environ.get("PANOPTO_CLIENT_ID")
-    username = os.environ.get("PANOPTO_USERNAME")
-    password = os.environ.get("PANOPTO_PASSWORD")
-
-    missing = []
-    if not host:
-        missing.append("PANOPTO_HOST")
-    if not client_id:
-        missing.append("PANOPTO_CLIENT_ID")
-    if not username:
-        missing.append("PANOPTO_USERNAME")
-    if not password:
-        missing.append("PANOPTO_PASSWORD")
-
-    if missing:
-        raise ValueError(
-            f"Missing Panopto configuration. Set environment variables: {', '.join(missing)}"
-        )
-
-    # After validation, all required fields are guaranteed non-None
-    assert host is not None
-    assert client_id is not None
-    assert username is not None
-    assert password is not None
-
+    env = require_env(
+        "Panopto", "PANOPTO_HOST", "PANOPTO_CLIENT_ID", "PANOPTO_USERNAME", "PANOPTO_PASSWORD"
+    )
     return _PanoptoConfig(
-        host=host,
-        client_id=client_id,
-        username=username,
-        password=password,
+        host=env["PANOPTO_HOST"],
+        client_id=env["PANOPTO_CLIENT_ID"],
+        username=env["PANOPTO_USERNAME"],
+        password=env["PANOPTO_PASSWORD"],
         client_secret=os.environ.get("PANOPTO_CLIENT_SECRET"),
     )
 

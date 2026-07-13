@@ -60,6 +60,15 @@ class EC20APIError(Exception):
         self.status_code = status_code
 
 
+class EC20AuthError(EC20APIError):
+    """Authentication error with EC20 camera (bad credentials).
+
+    Subclasses EC20APIError so existing ``except EC20APIError`` handlers
+    in the tool layer keep catching auth failures while callers that care
+    can distinguish them.
+    """
+
+
 class EC20Client:
     """Async HTTP client for Epiphan EC20 PTZ camera.
 
@@ -193,8 +202,15 @@ class EC20Client:
             JSON response as dict
 
         Raises:
-            EC20APIError: API returned error status
+            EC20AuthError: On 401/403 (bad credentials)
+            EC20APIError: API returned any other error status
         """
+        if response.status_code in (401, 403):
+            raise EC20AuthError(
+                f"Authentication failed: {response.status_code} - {response.text}",
+                status_code=response.status_code,
+            )
+
         # Check for HTTP errors
         if response.status_code >= 400:
             error_msg = "Unknown error"

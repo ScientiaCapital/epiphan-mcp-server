@@ -33,6 +33,15 @@ MOCK_HOST = "go.epiphan.cloud"
 BASE_URL = f"https://{MOCK_HOST}/front/api/v2"
 
 
+@pytest.fixture(autouse=True)
+def mock_env():
+    """Provide the Cloud token to every test; missing-config tests
+    override with an inner ``patch.dict(..., clear=True)``.
+    """
+    with patch.dict(os.environ, {"EPIPHAN_CLOUD_TOKEN": MOCK_TOKEN}):
+        yield
+
+
 # ============================================================================
 # Configuration Validation Tests
 # ============================================================================
@@ -74,11 +83,6 @@ class TestCloudConfigValidation:
 class TestCloudGetUser:
     """Tests for cloud_get_user tool function."""
 
-    @pytest.fixture(autouse=True)
-    def mock_env(self):
-        with patch.dict(os.environ, {"EPIPHAN_CLOUD_TOKEN": MOCK_TOKEN}):
-            yield
-
     @respx.mock
     @pytest.mark.asyncio
     async def test_get_user_success(self):
@@ -107,11 +111,6 @@ class TestCloudGetUser:
 
 class TestCloudListDevices:
     """Tests for cloud_list_devices tool function."""
-
-    @pytest.fixture(autouse=True)
-    def mock_env(self):
-        with patch.dict(os.environ, {"EPIPHAN_CLOUD_TOKEN": MOCK_TOKEN}):
-            yield
 
     @respx.mock
     @pytest.mark.asyncio
@@ -159,11 +158,6 @@ class TestCloudListDevices:
 class TestCloudGetDevice:
     """Tests for cloud_get_device tool function."""
 
-    @pytest.fixture(autouse=True)
-    def mock_env(self):
-        with patch.dict(os.environ, {"EPIPHAN_CLOUD_TOKEN": MOCK_TOKEN}):
-            yield
-
     @respx.mock
     @pytest.mark.asyncio
     async def test_get_device_success(self):
@@ -187,11 +181,6 @@ class TestCloudGetDevice:
 
 class TestCloudPairDevice:
     """Tests for cloud_pair_device tool function."""
-
-    @pytest.fixture(autouse=True)
-    def mock_env(self):
-        with patch.dict(os.environ, {"EPIPHAN_CLOUD_TOKEN": MOCK_TOKEN}):
-            yield
 
     @respx.mock
     @pytest.mark.asyncio
@@ -224,11 +213,6 @@ class TestCloudPairDevice:
 class TestCloudUnpairDevice:
     """Tests for cloud_unpair_device tool function."""
 
-    @pytest.fixture(autouse=True)
-    def mock_env(self):
-        with patch.dict(os.environ, {"EPIPHAN_CLOUD_TOKEN": MOCK_TOKEN}):
-            yield
-
     @respx.mock
     @pytest.mark.asyncio
     async def test_unpair_device_success(self):
@@ -251,11 +235,6 @@ class TestCloudUnpairDevice:
 class TestCloudDeleteDevice:
     """Tests for cloud_delete_device tool function."""
 
-    @pytest.fixture(autouse=True)
-    def mock_env(self):
-        with patch.dict(os.environ, {"EPIPHAN_CLOUD_TOKEN": MOCK_TOKEN}):
-            yield
-
     @respx.mock
     @pytest.mark.asyncio
     async def test_delete_device_success(self):
@@ -277,11 +256,6 @@ class TestCloudDeleteDevice:
 
 class TestCloudRenameDevice:
     """Tests for cloud_rename_device tool function."""
-
-    @pytest.fixture(autouse=True)
-    def mock_env(self):
-        with patch.dict(os.environ, {"EPIPHAN_CLOUD_TOKEN": MOCK_TOKEN}):
-            yield
 
     @respx.mock
     @pytest.mark.asyncio
@@ -309,11 +283,6 @@ class TestCloudRenameDevice:
 
 class TestCloudRunCommand:
     """Tests for cloud_run_command tool function."""
-
-    @pytest.fixture(autouse=True)
-    def mock_env(self):
-        with patch.dict(os.environ, {"EPIPHAN_CLOUD_TOKEN": MOCK_TOKEN}):
-            yield
 
     @respx.mock
     @pytest.mark.asyncio
@@ -343,11 +312,6 @@ class TestCloudRunCommand:
 class TestCloudBatchCommand:
     """Tests for cloud_batch_command tool function."""
 
-    @pytest.fixture(autouse=True)
-    def mock_env(self):
-        with patch.dict(os.environ, {"EPIPHAN_CLOUD_TOKEN": MOCK_TOKEN}):
-            yield
-
     @respx.mock
     @pytest.mark.asyncio
     async def test_batch_command_success(self):
@@ -376,11 +340,6 @@ class TestCloudBatchCommand:
 class TestCloudGetSettings:
     """Tests for cloud_get_settings tool function."""
 
-    @pytest.fixture(autouse=True)
-    def mock_env(self):
-        with patch.dict(os.environ, {"EPIPHAN_CLOUD_TOKEN": MOCK_TOKEN}):
-            yield
-
     @respx.mock
     @pytest.mark.asyncio
     async def test_get_settings_success(self):
@@ -404,11 +363,6 @@ class TestCloudGetSettings:
 
 class TestCloudGetPreview:
     """Tests for cloud_get_preview tool function."""
-
-    @pytest.fixture(autouse=True)
-    def mock_env(self):
-        with patch.dict(os.environ, {"EPIPHAN_CLOUD_TOKEN": MOCK_TOKEN}):
-            yield
 
     @respx.mock
     @pytest.mark.asyncio
@@ -437,11 +391,6 @@ class TestCloudGetPreview:
 
 class TestCloudApplyPreset:
     """Tests for cloud_apply_preset tool function."""
-
-    @pytest.fixture(autouse=True)
-    def mock_env(self):
-        with patch.dict(os.environ, {"EPIPHAN_CLOUD_TOKEN": MOCK_TOKEN}):
-            yield
 
     @respx.mock
     @pytest.mark.asyncio

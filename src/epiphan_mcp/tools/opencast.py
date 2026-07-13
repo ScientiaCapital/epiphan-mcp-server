@@ -24,6 +24,7 @@ from fastmcp import FastMCP
 from pydantic import Field
 
 from epiphan_mcp.audit import log_operation
+from epiphan_mcp.config import require_env
 from epiphan_mcp.integrations.opencast import (
     OpencastAPIError,
     OpencastAuthError,
@@ -61,37 +62,17 @@ _WorkflowId = Annotated[str, Field(description="Workflow instance ID returned by
 _StartTime = Annotated[
     str, Field(description="Start time in ISO format (e.g. '2024-01-15T10:00:00').")
 ]
-_EndTime = Annotated[
-    str, Field(description="End time in ISO format (e.g. '2024-01-15T11:00:00').")
-]
-_CaptureAgent = Annotated[
-    str, Field(description="Capture agent ID (the Pearl device identifier).")
-]
+_EndTime = Annotated[str, Field(description="End time in ISO format (e.g. '2024-01-15T11:00:00').")]
+_CaptureAgent = Annotated[str, Field(description="Capture agent ID (the Pearl device identifier).")]
 
 
 def _get_opencast_config() -> dict[str, Any]:
     """Get Opencast configuration from environment."""
-    host = os.environ.get("OPENCAST_HOST")
-    username = os.environ.get("OPENCAST_USERNAME")
-    password = os.environ.get("OPENCAST_PASSWORD")
-
-    missing = []
-    if not host:
-        missing.append("OPENCAST_HOST")
-    if not username:
-        missing.append("OPENCAST_USERNAME")
-    if not password:
-        missing.append("OPENCAST_PASSWORD")
-
-    if missing:
-        raise ValueError(
-            f"Missing Opencast configuration. Set environment variables: {', '.join(missing)}"
-        )
-
+    env = require_env("Opencast", "OPENCAST_HOST", "OPENCAST_USERNAME", "OPENCAST_PASSWORD")
     return {
-        "host": host,
-        "username": username,
-        "password": password,
+        "host": env["OPENCAST_HOST"],
+        "username": env["OPENCAST_USERNAME"],
+        "password": env["OPENCAST_PASSWORD"],
         "use_https": os.environ.get("OPENCAST_USE_HTTPS", "true").lower() == "true",
         "default_series": os.environ.get("OPENCAST_DEFAULT_SERIES", ""),
     }
@@ -511,7 +492,9 @@ async def delete_opencast_event(event_id: _EventId) -> OpencastDeleteResult:
     try:
         async with OpencastClient(**config) as client:
             await client.delete_event(event_id)
-            log_operation("delete_opencast_event", str(config["host"]), details={"event_id": event_id})
+            log_operation(
+                "delete_opencast_event", str(config["host"]), details={"event_id": event_id}
+            )
             return OpencastDeleteResult(
                 success=True,
                 message=f"Deleted event {event_id}",

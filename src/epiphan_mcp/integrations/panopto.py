@@ -203,7 +203,8 @@ class PanoptoClient:
             JSON response data
 
         Raises:
-            PanoptoAPIError: If request fails
+            PanoptoAuthError: On 401/403 (expired token or missing permissions)
+            PanoptoAPIError: On any other request failure
         """
         if not self._client:
             raise PanoptoAPIError("Client not initialized")
@@ -218,6 +219,11 @@ class PanoptoClient:
 
         try:
             response = await self._client.request(method, url, headers=headers, **kwargs)
+
+            if response.status_code in (401, 403):
+                raise PanoptoAuthError(
+                    f"Authentication failed: {response.status_code} - {response.text}"
+                )
 
             if response.status_code >= 400:
                 raise PanoptoAPIError(

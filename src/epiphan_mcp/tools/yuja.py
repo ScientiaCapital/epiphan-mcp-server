@@ -20,7 +20,7 @@ from fastmcp import FastMCP
 from pydantic import Field
 
 from epiphan_mcp.audit import log_operation
-from epiphan_mcp.config import validate_integration_host
+from epiphan_mcp.config import require_env, validate_integration_host
 from epiphan_mcp.integrations.yuja import (
     YuJaAPIError,
     YuJaAuthError,
@@ -40,9 +40,7 @@ _VideoSearch = Annotated[
 ]
 _VideoId = Annotated[str, Field(description="YuJa video ID.")]
 _FilePath = Annotated[str, Field(description="Local path to the video file to upload.")]
-_VideoTitle = Annotated[
-    str, Field(description="Video title (defaults to the filename if empty).")
-]
+_VideoTitle = Annotated[str, Field(description="Video title (defaults to the filename if empty).")]
 _UploadUserId = Annotated[
     str,
     Field(
@@ -68,27 +66,10 @@ class _YuJaConfig:
 
 def _get_yuja_config() -> _YuJaConfig:
     """Get YuJa configuration from environment."""
-    host = os.environ.get("YUJA_HOST")
-    auth_token = os.environ.get("YUJA_AUTH_TOKEN")
-
-    missing = []
-    if not host:
-        missing.append("YUJA_HOST")
-    if not auth_token:
-        missing.append("YUJA_AUTH_TOKEN")
-
-    if missing:
-        raise ValueError(
-            f"Missing YuJa configuration. Set environment variables: {', '.join(missing)}"
-        )
-
-    # After validation, all required fields are guaranteed non-None
-    assert host is not None
-    assert auth_token is not None
-
+    env = require_env("YuJa", "YUJA_HOST", "YUJA_AUTH_TOKEN")
     return _YuJaConfig(
-        host=validate_integration_host(host, "YuJa"),
-        auth_token=auth_token,
+        host=validate_integration_host(env["YUJA_HOST"], "YuJa"),
+        auth_token=env["YUJA_AUTH_TOKEN"],
         user_id=os.environ.get("YUJA_USER_ID"),
     )
 

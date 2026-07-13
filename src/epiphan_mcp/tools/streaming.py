@@ -192,9 +192,7 @@ async def list_channels(
                 include_publishers=include_publishers,
                 include_layouts=include_layouts,
             )
-            channel_dicts = [
-                c.model_dump() if isinstance(c, BaseModel) else c for c in channels
-            ]
+            channel_dicts = [c.model_dump() if isinstance(c, BaseModel) else c for c in channels]
             return ChannelListResult(
                 success=True,
                 device=client.host,

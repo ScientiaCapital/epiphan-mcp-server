@@ -115,8 +115,10 @@ class EpiphanCloudClient:
             response = await self._client.request(method, url, headers=headers, **kwargs)
 
             # Handle authentication errors specifically
-            if response.status_code == 401:
-                raise EpiphanCloudAuthError(f"Authentication failed: 401 - {response.text}")
+            if response.status_code in (401, 403):
+                raise EpiphanCloudAuthError(
+                    f"Authentication failed: {response.status_code} - {response.text}"
+                )
 
             # Handle other client/server errors
             if response.status_code >= 400:
@@ -166,8 +168,10 @@ class EpiphanCloudClient:
             response = await self._client.request(method, url, headers=headers, **kwargs)
 
             # Handle authentication errors specifically
-            if response.status_code == 401:
-                raise EpiphanCloudAuthError(f"Authentication failed: 401 - {response.text}")
+            if response.status_code in (401, 403):
+                raise EpiphanCloudAuthError(
+                    f"Authentication failed: {response.status_code} - {response.text}"
+                )
 
             # Handle other client/server errors
             if response.status_code >= 400:

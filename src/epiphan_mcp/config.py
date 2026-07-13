@@ -1,6 +1,7 @@
 """Configuration management for Epiphan MCP Server."""
 
 import ipaddress
+import os
 import re
 from functools import lru_cache
 
@@ -9,6 +10,32 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # RFC 1123 hostname pattern: alphanumeric + hyphens + dots, max 253 chars
 _HOSTNAME_RE = re.compile(r"^(?!-)[A-Za-z0-9-]{1,63}(?<!-)(\.[A-Za-z0-9-]{1,63})*$")
+
+
+def require_env(service: str, *names: str) -> dict[str, str]:
+    """Read required integration env vars, raising one error naming all gaps.
+
+    Shared by the CMS/AV integration config getters — the collect-missing-
+    and-raise block was previously copy-pasted per integration. The error
+    message shape is wire-stable (tests match on it).
+
+    Args:
+        service: Service label for the error message (e.g., "Panopto").
+        *names: Environment variable names that must be set and non-empty.
+
+    Returns:
+        Mapping of each name to its (non-empty) value.
+
+    Raises:
+        ValueError: Listing every missing variable at once.
+    """
+    values = {name: os.environ.get(name) for name in names}
+    missing = [name for name, value in values.items() if not value]
+    if missing:
+        raise ValueError(
+            f"Missing {service} configuration. Set environment variables: {', '.join(missing)}"
+        )
+    return {name: value for name, value in values.items() if value is not None}
 
 
 def validate_integration_host(host: str, service: str) -> str:
@@ -99,38 +126,15 @@ class Settings(BaseSettings):
         return [d.strip() for d in self.ec20_devices.split(",") if d.strip()]
 
     def get_ec20_host(self, device_id: str = "default") -> str:
-        """Get host for an EC20 device ID.
-
-        Args:
-            device_id: Device identifier. Can be:
-                - "default" - first configured EC20 camera
-                - IP address or hostname - used directly
-                - Index like "0", "1" - nth configured camera
-
-        Returns:
-            EC20 hostname or IP.
-
-        Raises:
-            ValueError: If device_id cannot be resolved.
-        """
-        devices = self.get_ec20_device_list()
-
-        if device_id == "default":
-            if not devices:
-                raise ValueError(
-                    "No default EC20 camera configured. Set EC20_DEVICES environment variable."
-                )
-            return devices[0]
-
-        # Check if it's an index
-        if device_id.isdigit():
-            idx = int(device_id)
-            if idx < len(devices):
-                return devices[idx]
-            raise ValueError(f"EC20 index {idx} out of range. Have {len(devices)} cameras.")
-
-        # Validate before returning as direct hostname/IP
-        return self._validate_host(device_id, "EC20")
+        """Get host for an EC20 device ID (see _resolve_host for accepted forms)."""
+        return self._resolve_host(
+            device_id,
+            devices=self.get_ec20_device_list(),
+            device_type="EC20",
+            no_default_msg=(
+                "No default EC20 camera configured. Set EC20_DEVICES environment variable."
+            ),
+        )
 
     # Health thresholds
     storage_warning_percent: float = Field(
@@ -231,14 +235,37 @@ class Settings(BaseSettings):
         return [d.strip() for d in self.devices.split(",") if d.strip()]
 
     def get_device_host(self, device_id: str = "default") -> str:
-        """
-        Get host for a device ID.
+        """Get host for a Pearl device ID (see _resolve_host for accepted forms)."""
+        return self._resolve_host(
+            device_id,
+            devices=self.get_device_list(),
+            device_type="Pearl",
+            no_default_msg=(
+                "No default device configured. Set PEARL_DEVICES environment variable."
+            ),
+        )
+
+    def _resolve_host(
+        self,
+        device_id: str,
+        devices: list[str],
+        device_type: str,
+        no_default_msg: str,
+    ) -> str:
+        """Resolve a device identifier against a configured device list.
+
+        Accepted forms:
+            - "default" - first configured device
+            - Index like "0", "1" - nth configured device
+            - IP address or hostname - validated, then used directly
 
         Args:
-            device_id: Device identifier. Can be:
-                - "default" - first configured device
-                - IP address or hostname - used directly
-                - Index like "0", "1" - nth configured device
+            device_id: The raw device identifier.
+            devices: The configured device list to resolve against.
+            device_type: Label for error messages (e.g., "Pearl", "EC20").
+            no_default_msg: Full error message when "default" is requested
+                but nothing is configured (wire-stable: tests and clients
+                match on the existing wording).
 
         Returns:
             Device hostname or IP.
@@ -246,24 +273,21 @@ class Settings(BaseSettings):
         Raises:
             ValueError: If device_id cannot be resolved.
         """
-        devices = self.get_device_list()
-
         if device_id == "default":
             if not devices:
-                raise ValueError(
-                    "No default device configured. Set PEARL_DEVICES environment variable."
-                )
+                raise ValueError(no_default_msg)
             return devices[0]
 
-        # Check if it's an index
         if device_id.isdigit():
             idx = int(device_id)
             if idx < len(devices):
                 return devices[idx]
-            raise ValueError(f"Device index {idx} out of range. Have {len(devices)} devices.")
+            raise ValueError(
+                f"{device_type} index {idx} out of range. Have {len(devices)} devices."
+            )
 
         # Validate before returning as direct hostname/IP
-        return self._validate_host(device_id, "Pearl")
+        return self._validate_host(device_id, device_type)
 
 
 @lru_cache

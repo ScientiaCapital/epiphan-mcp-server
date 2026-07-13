@@ -92,7 +92,7 @@ async def discover_device(device_id: DeviceId = "default") -> DeviceDiscoveryRes
             return DeviceDiscoveryResult(success=True, device=host, cached=False, **data)
 
     except Exception as e:
-        logger.debug("Discovery failed for %s: %s", device_id, e)
+        logger.warning("Discovery failed for %s: %s", device_id, e)
         return DeviceDiscoveryResult(success=False, error=str(e), device=device_id)
 
 

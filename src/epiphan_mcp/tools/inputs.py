@@ -33,9 +33,7 @@ _InputUrl = Annotated[
     str | None,
     Field(description="Source URL (for SRT/RTSP inputs), validated against SSRF."),
 ]
-_Passphrase = Annotated[
-    str | None, Field(description="Encryption passphrase (for SRT inputs).")
-]
+_Passphrase = Annotated[str | None, Field(description="Encryption passphrase (for SRT inputs).")]
 _Latency = Annotated[int | None, Field(description="Buffer latency in milliseconds.")]
 _InputId = Annotated[str, Field(description="Input source ID (e.g. 'srt-1', 'hdmi-1').")]
 _OutputId = Annotated[str, Field(description="Output ID (e.g. 'hdmi-1', 'sdi-1').")]
@@ -43,8 +41,7 @@ _SourceChannel = Annotated[
     int | None,
     Field(
         description=(
-            "Channel number (1-based) to display on the output, or None to disable "
-            "the output."
+            "Channel number (1-based) to display on the output, or None to disable the output."
         )
     ),
 ]

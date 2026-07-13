@@ -10,12 +10,12 @@ Environment Variables Required:
     YOUTUBE_REFRESH_TOKEN: OAuth2 refresh token (long-lived)
 """
 
-import os
 from typing import Annotated, Any
 
 from fastmcp import FastMCP
 from pydantic import Field
 
+from epiphan_mcp.config import require_env
 from epiphan_mcp.integrations.youtube import (
     YouTubeAPIError,
     YouTubeAuthError,
@@ -51,34 +51,18 @@ _StatusFilter = Annotated[
         )
     ),
 ]
-_ListLimit = Annotated[
-    int, Field(description="Maximum number of results (default 25, max 50).")
-]
+_ListLimit = Annotated[int, Field(description="Maximum number of results (default 25, max 50).")]
 
 
 def _get_youtube_config() -> dict[str, Any]:
     """Get YouTube configuration from environment."""
-    client_id = os.environ.get("YOUTUBE_CLIENT_ID")
-    client_secret = os.environ.get("YOUTUBE_CLIENT_SECRET")
-    refresh_token = os.environ.get("YOUTUBE_REFRESH_TOKEN")
-
-    missing = []
-    if not client_id:
-        missing.append("YOUTUBE_CLIENT_ID")
-    if not client_secret:
-        missing.append("YOUTUBE_CLIENT_SECRET")
-    if not refresh_token:
-        missing.append("YOUTUBE_REFRESH_TOKEN")
-
-    if missing:
-        raise ValueError(
-            f"Missing YouTube configuration. Set environment variables: {', '.join(missing)}"
-        )
-
+    env = require_env(
+        "YouTube", "YOUTUBE_CLIENT_ID", "YOUTUBE_CLIENT_SECRET", "YOUTUBE_REFRESH_TOKEN"
+    )
     return {
-        "client_id": client_id,
-        "client_secret": client_secret,
-        "refresh_token": refresh_token,
+        "client_id": env["YOUTUBE_CLIENT_ID"],
+        "client_secret": env["YOUTUBE_CLIENT_SECRET"],
+        "refresh_token": env["YOUTUBE_REFRESH_TOKEN"],
     }
 
 

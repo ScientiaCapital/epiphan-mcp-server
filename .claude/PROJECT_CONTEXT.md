@@ -1,34 +1,30 @@
 # epiphan-mcp-server
 
-**Branch**: main | **Updated**: 2026-07-12 (second session — sprint start)
+**Branch**: main | **Updated**: 2026-07-13 (end of day)
 
 ## Status
-Second session of 2026-07-12, starting from a clean main (in sync with origin, suite green at 1,311 passed / 7 skipped). Earlier today: v1.2.0 released, Echo360 shipped (130 tools / 11 integrations), GTM Canvas wedge v1–v3 (113 Canvas confirmed), full polish day (7 commits, −349 net lines, 6-agent audit). This session: clear the three deferred-by-design backlog code items + automate the GTM login-page pass for the 135 unresolved domains.
+Clean close, everything pushed (origin/main @ 18d6e96). Full `/begin`→`/end` day: start-day observer audit found 2 WARNINGs + 2 RISKs + smells; every unblocked finding was fixed and merged same-day across two parallel branches. Suite at **1,334 passed / 7 skipped**, mypy strict + ruff clean, gitleaks 0 leaks. GTM: HubSpot noise-cleanup scoped and verified — awaiting Tim's go before any CRM write.
 
-## Today's Focus
-1. [x] Retry-on-POST idempotency fix (`fix/retry-idempotency`) — POST/PATCH retry only on connect-phase errors
-2. [x] Echo360 pagination `truncated` flag (`fix/echo360-pagination-flag`)
-3. [x] Non-blocking upload reads via `asyncio.to_thread` (`fix/nonblocking-upload-reads`)
-4. [x] Pin `fastmcp<3` in pyproject.toml (folded into last branch)
-5. [x] GTM login-page pass (automated): resolved 40/135, residual classified → v4 section in wedge report
+## Tomorrow's Focus (sprint-ready)
+1. [ ] **GTM — HubSpot cleanup (Tim gate, then 10 min)**: confirm the 6 junk records / 5 domains (berkley.edu ×2 incl. fake "Berkeley Law", boston.edu ≠ BU, i2itech.com, laregents.edu, victorchang.edu.au, taboradelaide.edu.au — IDs in memory `lms-detection-for-gtm.md`), pick mechanism (industry patch vs `[AI]` review list), then execute. **Do NOT touch the other ~39 "Not-LMS" domains — they're real universities, LMS just not visible to the probe.**
+2. [ ] **GTM — 13 SSO-only domains**: Tim's 5-second glance (list in wedge report v4 residual table); after that, Apollo/Clay credits go to unmasking the 100 decision-maker contacts when top-10 Canvas accounts move to outreach
+3. [ ] **Vadim draft**: verify recipient (draft r2770306474456285798 addressed to vkalinsky@epiphan.com, inferred) + send, or move text to Slack
+4. [ ] **PyPI publish decision**: still NOT live; publish v1.2.x or keep docs honest
+5. [ ] **Live-endpoint validation** (all blocked on credentials/hardware): YuJa + Echo360 collection endpoints (MEDIUM), EC20 placeholder paths (MEDIUM, `ec20.py:15`)
+6. [ ] `.env` still missing locally (`cp .env.example .env` + credentials before any live-hardware work)
+7. [ ] Optional code (LOW): Opencast multipart still reads on the event loop — streaming multipart or multi-step ingest, ~1-2h
 
 ## Done (This Session)
-- [x] `fix(client)`: POST/PATCH retry restricted to connect-phase failures (ReadTimeout after send no longer duplicates side effects); busy-retry preserved; 4 tests
-- [x] `fix(fleet)` **found during verification**: unreachable devices were reported online whenever jittered retries beat the fleet timeout — `get_system_status` now re-raises transport errors; deterministic test; test_fleet.py 36s → 6s (flake introduced by yesterday's jitter fix, killed for good)
-- [x] `feat(echo360)`: list tools expose `truncated` flag from envelope pagination hints; page fetching still deferred to live-Swagger validation
-- [x] `fix(upload)`: `stream_file()` reads via `asyncio.to_thread` (event-loop-responsiveness test proves it); Kaltura chunk loop dedup'd onto `stream_file`; Opencast limitation documented; `fastmcp<3` pinned
-- [x] GTM v4 pass: 3-stage automated login-page glance (httpx markers/SSO-redirects → Playwright render → AI screenshot review of 88 shots; classifier spot-check 5/5). 40/135 resolved (Canvas 18, Moodle 12, Brightspace 4, Blackboard 3, Sakai 1, OLAT 1, iSpring 1); residual 95 fully classified (46 Not-LMS/CRM noise, 13 SSO-only for human glance, 36 blank/unreachable). Appended to wedge report (local-only)
-- Suite: 1,311 → **1,324 passed** / 7 skipped, mypy strict + ruff clean at every merge
+- [x] **feat(cms)**: Panopto + YuJa list tools surface `truncated` flag — same silent-pagination bug class Echo360 got fixed for; extraction generalized into shared `integrations/_pagination.extract_page` (Echo360 delegates); Panopto `TotalNumberOfResults` in heuristics; 8 TDD tests
+- [x] **test(kaltura)**: first-ever coverage of the 5-step streamed upload workflow (chunk order, resume/resumeAt, finalChunk) — teammate branch
+- [x] **docs(retry) + test**: busy-retry on POST/PATCH pinned as deliberate (busy = pre-execution reject) with comment + regression test
+- [x] **chore(deps)**: `httpx<1`, `pydantic<3`, `pydantic-settings<3` caps; author email fixed
+- [x] **GTM**: HubSpot cleanup scoped — corrected "46 noise domains" to **7 actual noise / 39 real universities**; 6 HubSpot records verified by ID; tallinn.ee has no company record; saved to memory
+- [x] Vadim reply drafted in Gmail (both fleet fixes)
+- [x] End-day: observers dispositioned + archived + reset, BACKLOG updated (2 stale items closed), gitleaks clean, metrics logged, main pushed
 
 ## Blockers
-None
-
-## Tomorrow (carried priorities)
-1. **GTM**: Tim's 5-second glance on the 13 SSO-only domains (list in wedge report v4 residual table); Apollo/Clay credits go to unmasking the 100 decision-maker contacts when top-10 Canvas accounts move to outreach; HubSpot segmentation cleanup now has 46 confirmed Not-LMS/noise domains as input
-2. **YuJa + Echo360 live-endpoint validation** (both MEDIUM, vendor docs gated behind login)
-3. **PyPI publish decision**: confirmed NOT live; either publish or keep docs honest (README already fixed)
-4. Reply to Vadim re: fleet-timeout fix (still unconfirmed sent) — note the NEW fleet fix (offline-detection race) is also worth mentioning to him
-5. `.env` still missing locally (`cp .env.example .env` + credentials before any live-hardware work)
+None. (Tim-gated: HubSpot write confirmation, SSO glance, PyPI decision, vendor credentials.)
 
 ## Tech Stack
 Python 3.11+ | FastMCP | httpx (async) | Pydantic v2 | pydantic-settings | pytest + respx | ruff + mypy (strict)
@@ -37,28 +33,9 @@ Python 3.11+ | FastMCP | httpx (async) | Pydantic v2 | pydantic-settings | pytes
 - GitHub: https://github.com/ScientiaCapital/epiphan-mcp-server
 - GTM wedge report (LOCAL ONLY, gitignored — contains customer/deal data): `.claude/gtm/canvas-wedge-2026-07-12.md`
 - Pearl API docs: https://www.epiphan.com/userguides/pearl-api/
-- Echo360 API/SDK docs: https://support.echo360.com/hc/en-us/articles/360038693311-EchoVideo-API-and-SDK-Documentation
 
 ---
 
-## Portfolio Capture — 2026-07-12 (full day)
+Tomorrow: HubSpot cleanup execute (post-confirm) + SSO glance + Vadim send + PyPI decision | main session | Est: 1-2h agent time, GTM-heavy, code work optional | Observer notes: 0 CRITICAL/BLOCKER open; top flags are the 2 MEDIUM unvalidated-endpoint items (YuJa/Echo360) + EC20 placeholders — all credential/hardware-gated
 
-### Output
-- Commits: 49 across the calendar day (22 feat, 4 fix); polish session alone: 7 commits, 48 files, 1,282+/1,631- (src 965+/1,395-, tests 210+/168-)
-- Features: v1.2.0 release, Echo360 integration (6 tools), GTM wedge v1-v3
-- Fixes: 2 resource leaks, 1 systemic null bug, audit-policy drift, retry jitter
-
-### Quality
-- 6-agent audit: 2 High leaks + 2 High audit gaps + 1 systemic bug found and fixed same-day; drift-guard meta-test prevents recurrence
-- Tech debt removed: 651 dead lines, 12× fixture dup, 3× stream helper dup, 2× config dup
-- Honest-docs pass: roadmap/CONTRIBUTING/README no longer claim untrue things (incl. PyPI)
-
-### GTME Value
-- GTM: data-backed Canvas wedge list (113 confirmed Canvas warm accounts, top-10 with deal counts, 100 masked decision-maker contacts) + a validated negative worth real money — paid enrichment can't detect LMS, the free probe can
-- Skill demonstrated: revops data-quality diagnosis, security-relevant audit reconciliation, large-scale verified refactoring
-
----
-
-Tomorrow: 13 SSO-only domains human glance (5 min) + YuJa/Echo360 live validation + PyPI decision + Vadim reply | main session | Est: 2-3h, live-validation blocked on vendor credentials + `.env` | Observer notes: 0 CRITICAL/BLOCKER; top flags remain the 2 MEDIUM unvalidated-endpoint smells (YuJa/Echo360) — retry-idempotency/pagination/upload-reads all cleared this session
-
-_Updated at second-session close. 2026-07-13._
+_Updated at end of day 2026-07-13._

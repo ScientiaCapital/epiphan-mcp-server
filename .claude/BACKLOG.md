@@ -315,6 +315,35 @@ Every tool named in the original Phase 2/3/4 gap tables (`get_stream_status`,
 
 ## Carried-forward items (superseded or still open as of 2026-07-12 EOD)
 - [x] ~~Convert remaining 15 tool modules to typed schemas~~ — done, 21/21 complete (2026-07-12 PM)
-- [ ] Pin `fastmcp<3` in pyproject.toml before next PyPI release (FastMCP 3.0 breaking-change warning observed) — still open, not yet actioned
+- [x] ~~Pin `fastmcp<3` in pyproject.toml~~ — done 2026-07-13 session (commit 4efcd83)
 - [ ] tests/ lint: 30 manual findings deferred (F841, SIM117, E402) — not CI-gated, still open
-- [ ] Reply to Vadim: both critiques fixed, live-verified 5.1s vs 30.1s (5.9x) with offline devices — confirm this was sent; not verified this session
+- [x] Reply to Vadim: Gmail draft created 2026-07-13 (covers both fleet fixes) — pending Tim verify-address + send
+
+## ✅ DONE: Start-day observer findings cleared same-day (2026-07-13 EOD)
+- ✅ **Panopto/YuJa silent pagination** — list tools now return `truncated`
+  (same bug class as Echo360); extraction generalized into shared
+  `integrations/_pagination.extract_page` (Echo360 delegates to it);
+  Panopto `TotalNumberOfResults` added to envelope heuristics. 8 new tests.
+- ✅ **Kaltura streamed-upload happy path** — first-ever coverage of the
+  5-step upload workflow: chunk order, resume/resumeAt, finalChunk.
+- ✅ **Busy-retry on POST/PATCH pinned** — deliberate behavior (busy =
+  pre-execution reject) now has an explanatory comment + regression test.
+- ✅ **pyproject hygiene** — `httpx<1`, `pydantic<3`, `pydantic-settings<3`
+  caps; author email fixed (was placeholder).
+- Suite 1,324 → **1,334 passed** / 7 skipped; mypy strict + ruff clean; pushed.
+
+## Open items (2026-07-13 EOD)
+- [ ] **[MEDIUM]** EC20 endpoint paths are best-effort placeholders
+  (`integrations/ec20.py:15` TODO) — blocks EC20-specific feature work until
+  validated against real camera hardware. Owner: Tim (needs EC20 on bench).
+- [ ] **[LOW]** Opencast multipart upload reads file on the event loop
+  (documented limitation) — migrate to streaming multipart or multi-step
+  ingest endpoints when revisited. Effort: ~1-2h.
+- [ ] **GTM**: HubSpot noise cleanup awaiting Tim's confirmation — 6 records
+  / 5 domains confirmed junk (berkley.edu ×2, boston.edu≠BU, i2itech.com,
+  laregents.edu, victorchang.edu.au, taboradelaide.edu.au); the other ~39
+  "Not-LMS" domains are REAL universities, do not tag as noise. IDs in
+  memory `lms-detection-for-gtm.md`.
+- [ ] **Vadim reply**: Gmail draft created (fleet-timeout + offline-detection
+  race fixes) addressed to vkalinsky@epiphan.com (inferred) — Tim to verify
+  address + send, or move to Slack.

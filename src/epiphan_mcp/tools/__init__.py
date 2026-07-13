@@ -47,8 +47,10 @@ from .fleet import (
     batch_start_recording,
     batch_stop_recording,
     fleet_health_report,
-    generate_shift_handoff,
     get_fleet_status,
+)
+from .fleet_intelligence import (
+    generate_shift_handoff,
     predict_fleet_issues,
     suggest_maintenance_window,
 )

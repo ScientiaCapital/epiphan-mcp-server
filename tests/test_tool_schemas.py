@@ -402,6 +402,13 @@ _MODEL_MUST_KEEP_FIELDS = {
     "YuJaUploadResult": {"upload", "message", "file_size", "error"},
     "YuJaUploadStatusResult": {"session_id", "status", "details", "error"},
     "YuJaDeleteResult": {"success", "message", "video_id", "error"},
+    # echo360 (born typed 2026-07-12; pins the v1 wire contract going forward)
+    "Echo360CourseListResult": {"courses", "count", "error"},
+    "Echo360SectionListResult": {"sections", "count", "course_id", "error"},
+    "Echo360MediaListResult": {"medias", "count", "search_query", "error"},
+    "Echo360MediaResult": {"media", "error"},
+    "Echo360UploadResult": {"upload", "message", "file_size", "error"},
+    "Echo360UploadStatusResult": {"upload_id", "status", "details", "error"},
 }
 
 

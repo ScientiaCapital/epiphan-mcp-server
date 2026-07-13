@@ -13,7 +13,7 @@
   },
   "license": "MIT",
   "transport": "stdio",
-  "tools_count": 124,
+  "tools_count": 130,
   "categories": ["hardware", "video", "av-control", "iot"],
   "integrations": [
     "Epiphan Pearl",
@@ -21,6 +21,7 @@
     "Kaltura",
     "Opencast",
     "YuJa",
+    "Echo360",
     "Q-SYS",
     "YouTube Live",
     "Epiphan EC20",

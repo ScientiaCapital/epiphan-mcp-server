@@ -1,6 +1,6 @@
 # Epiphan Pearl MCP Server
 
-MCP (Model Context Protocol) server wrapping Epiphan Pearl's REST API v2.0, enabling AI assistants to control Pearl video capture devices through natural language. 124 MCP tools across 10 integrations.
+MCP (Model Context Protocol) server wrapping Epiphan Pearl's REST API v2.0, enabling AI assistants to control Pearl video capture devices through natural language. 130 MCP tools across 11 integrations.
 
 ## Stack
 
@@ -9,7 +9,7 @@ MCP (Model Context Protocol) server wrapping Epiphan Pearl's REST API v2.0, enab
 - **HTTP**: httpx (async)
 - **Validation**: Pydantic v2
 - **Config**: pydantic-settings
-- **Testing**: pytest + respx (1,253 tests)
+- **Testing**: pytest + respx (1,316 tests)
 - **Linting**: ruff, mypy (strict)
 - **Build**: hatchling (`pip install -e ".[dev]"`)
 
@@ -25,7 +25,7 @@ src/epiphan_mcp/
 └── tools/            # 20 tool modules with register() + discovery cache
     ├── discovery.py  # Dynamic recorder/channel auto-detection
     └── ...           # recording, streaming, layout, fleet, ai_tools, etc.
-tests/                # 1,253 tests (unit + integration)
+tests/                # 1,316 tests (unit + integration)
 ```
 
 ## Key Commands

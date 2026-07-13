@@ -14,6 +14,7 @@ from .tools import (
     device,
     discovery,
     ec20,
+    echo360,
     fleet,
     inputs,
     kaltura,
@@ -61,6 +62,7 @@ for _module in [
     qsys,
     youtube,
     yuja,
+    echo360,
     ec20,
     cloud,
 ]:

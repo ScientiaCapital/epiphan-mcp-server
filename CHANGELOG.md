@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Echo360 (EchoVideo) integration** — 6 tools (`list_echo360_courses`,
+  `list_echo360_sections`, `list_echo360_medias`, `get_echo360_media`,
+  `upload_video_to_echo360`, `get_echo360_upload_status`). OAuth2
+  client-credentials auth with single-use refresh-token rotation, regional
+  base URLs (US/EMEA/APAC/Canada), Capture Intake signed-URL S3 upload,
+  429 rate-limit surfacing. Server now registers **130 tools across 11
+  integrations**. Collection endpoint paths are best-effort from public
+  docs (Echo360 gates its full Swagger behind per-institution login) and
+  flagged UNVERIFIED in docstrings pending live-instance validation.
+
+## [1.2.0] - 2026-07-12
+
 ### Changed
 
 - **Fleet operations no longer stall on offline devices.** Fleet/batch tools
@@ -39,6 +53,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `tests/test_tool_schemas.py` — contract meta-test asserting every converted
   tool has described input params and a described output schema (with a
   shrinking `NOT_YET_CONVERTED` allowlist), plus fleet wire-compat tests.
+- **Typed-schema surface complete (21/21 modules)** — the `NOT_YET_CONVERTED`
+  allowlist is empty; every tool enforces fully described input/output schemas,
+  with pre-conversion wire keys pinned in `_MODEL_MUST_KEEP_FIELDS`.
+- **YuJa Enterprise Video Platform integration** — 6 tools (videos, channels,
+  signed-URL two-step S3 upload) with static `authToken` auth (124 tools
+  across 10 integrations at this release).
+
+### Fixed
+
+- **Panopto S3 uploads** — file bytes are now streamed as an async byte
+  iterator; passing a sync file object as `content=` to `httpx.AsyncClient`
+  raised `RuntimeError` on every real upload.
 
 ## [1.1.0] - 2026-03-21
 

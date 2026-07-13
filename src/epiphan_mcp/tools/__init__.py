@@ -35,6 +35,14 @@ from .ec20 import (
     ec20_save_preset,
     ec20_zoom,
 )
+from .echo360 import (
+    get_echo360_media,
+    get_echo360_upload_status,
+    list_echo360_courses,
+    list_echo360_medias,
+    list_echo360_sections,
+    upload_video_to_echo360,
+)
 from .fleet import (
     batch_start_recording,
     batch_stop_recording,
@@ -260,6 +268,13 @@ __all__ = [
     "upload_video_to_yuja",
     "get_yuja_upload_status",
     "delete_yuja_video",
+    # Echo360 CMS integration tools
+    "list_echo360_courses",
+    "list_echo360_sections",
+    "list_echo360_medias",
+    "get_echo360_media",
+    "upload_video_to_echo360",
+    "get_echo360_upload_status",
     # Epiphan Cloud fleet management tools
     "cloud_get_user",
     "cloud_list_devices",

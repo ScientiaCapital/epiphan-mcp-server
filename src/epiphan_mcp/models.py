@@ -2094,3 +2094,74 @@ class YuJaDeleteResult(BaseModel):
     message: str | None = Field(default=None, description="Human-readable confirmation message")
     video_id: str | None = Field(default=None, description="Video the deletion targeted")
     error: str | None = Field(default=None, description="Error message on failure.")
+
+
+# ============================================================
+# Echo360 Integration Tool Response Models
+# ============================================================
+#
+# Born typed (2026-07-12) — same integration convention as the other CMS
+# modules: list/get/upload tools carry no ``success`` key; error paths
+# return a bare ``error``. Echo360 exposes no delete via its public
+# media API (GET-only), so there is no destructive result model.
+
+
+class Echo360CourseListResult(BaseModel):
+    """Return type of ``list_echo360_courses``."""
+
+    courses: list[dict[str, Any]] = Field(
+        default_factory=list, description="Courses, each with id and name."
+    )
+    count: int | None = Field(default=None, description="Number of courses returned")
+    error: str | None = Field(default=None, description="Error message on failure.")
+
+
+class Echo360SectionListResult(BaseModel):
+    """Return type of ``list_echo360_sections``."""
+
+    sections: list[dict[str, Any]] = Field(
+        default_factory=list, description="Sections, each with id and name."
+    )
+    count: int | None = Field(default=None, description="Number of sections returned")
+    course_id: str | None = Field(default=None, description="Course filter applied, if any")
+    error: str | None = Field(default=None, description="Error message on failure.")
+
+
+class Echo360MediaListResult(BaseModel):
+    """Return type of ``list_echo360_medias``."""
+
+    medias: list[dict[str, Any]] = Field(
+        default_factory=list, description="Media items, each with id, title, and status."
+    )
+    count: int | None = Field(default=None, description="Number of media items returned")
+    search_query: str | None = Field(default=None, description="Search filter applied, if any")
+    error: str | None = Field(default=None, description="Error message on failure.")
+
+
+class Echo360MediaResult(BaseModel):
+    """Return type of ``get_echo360_media``."""
+
+    media: dict[str, Any] | None = Field(default=None, description="Media item detail.")
+    error: str | None = Field(default=None, description="Error message on failure.")
+
+
+class Echo360UploadResult(BaseModel):
+    """Return type of ``upload_video_to_echo360``."""
+
+    upload: dict[str, Any] | None = Field(
+        default=None, description="Final upload status from Echo360."
+    )
+    message: str | None = Field(default=None, description="Human-readable confirmation message")
+    file_size: int | None = Field(default=None, description="Uploaded file size in bytes")
+    error: str | None = Field(default=None, description="Error message on failure.")
+
+
+class Echo360UploadStatusResult(BaseModel):
+    """Return type of ``get_echo360_upload_status``."""
+
+    upload_id: str | None = Field(default=None, description="Capture upload ID queried")
+    status: str | None = Field(default=None, description="Upload/processing state")
+    details: dict[str, Any] | None = Field(
+        default=None, description="Full raw upload status."
+    )
+    error: str | None = Field(default=None, description="Error message on failure.")

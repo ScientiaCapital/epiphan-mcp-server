@@ -2,9 +2,9 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
-[![Tests](https://img.shields.io/badge/tests-1246_passing-brightgreen.svg)](tests/)
-[![Tools](https://img.shields.io/badge/MCP_tools-124-blue.svg)](src/epiphan_mcp/server.py)
-[![Version](https://img.shields.io/badge/version-1.1.0-blue.svg)](CHANGELOG.md)
+[![Tests](https://img.shields.io/badge/tests-1309_passing-brightgreen.svg)](tests/)
+[![Tools](https://img.shields.io/badge/MCP_tools-130-blue.svg)](src/epiphan_mcp/server.py)
+[![Version](https://img.shields.io/badge/version-1.2.0-blue.svg)](CHANGELOG.md)
 
 MCP (Model Context Protocol) server for controlling Epiphan Pearl video capture devices through AI assistants like Claude.
 
@@ -22,7 +22,7 @@ MCP (Model Context Protocol) server for controlling Epiphan Pearl video capture 
 
 ## Integrations
 
-Pearl Copilot connects **10 systems** through a unified AI interface:
+Pearl Copilot connects **11 systems** through a unified AI interface:
 
 | Integration | Tools | Description |
 |-------------|-------|-------------|
@@ -32,12 +32,13 @@ Pearl Copilot connects **10 systems** through a unified AI interface:
 | **Kaltura CMS** | 9 | Video platform — categories, media, chunked upload |
 | **Opencast CMS** | 9 | Open-source CMS — series, events, Dublin Core ingest |
 | **YuJa CMS** | 6 | Enterprise video platform — videos, channels, signed-URL upload |
+| **Echo360 CMS** | 6 | EchoVideo platform — courses, sections, media, Capture Intake upload |
 | **Q-SYS AV** | 5 | Room control — JSON-RPC over TCP to Q-SYS Core |
 | **YouTube Live** | 4 | Live streaming — broadcasts, RTMP credentials |
 | **EC20 PTZ Camera** | 10 | Camera control — pan/tilt/zoom, presets, AI tracking |
 | **Epiphan Cloud** | 12 | Fleet management — devices, commands, presets via go.epiphan.cloud |
 | **AI Analysis** | 9 | Vision LLMs — scene analysis, OCR, quality checks |
-| **Total** | **124** | |
+| **Total** | **130** | |
 
 ## Quick Start
 

@@ -29,6 +29,7 @@ from urllib.parse import urljoin
 
 import httpx
 
+from ._pagination import extract_page
 from ._upload import stream_file
 
 logger = logging.getLogger(__name__)
@@ -60,7 +61,7 @@ class YuJaClient:
             host="university.yuja.com",
             auth_token="your-api-token",
         ) as client:
-            videos = await client.list_videos()
+            videos, truncated = await client.list_videos()
             result = await client.upload_video(
                 user_id="12345",
                 file_path="/recordings/lecture.mp4",
@@ -168,22 +169,23 @@ class YuJaClient:
     # Video / Media Management
     # =========================================================================
 
-    async def list_videos(self, search_query: str | None = None) -> list[dict[str, Any]]:
+    async def list_videos(
+        self, search_query: str | None = None
+    ) -> tuple[list[dict[str, Any]], bool]:
         """List videos accessible to the API token.
 
         Args:
             search_query: Optional search term to filter videos by title
 
         Returns:
-            List of video objects
+            Tuple of (video objects for the first page, truncated flag)
         """
         params: dict[str, Any] = {}
         if search_query:
             params["search"] = search_query
 
         result = await self._request("GET", "/media/videos", params=params)
-        videos = result.get("results", result.get("videos", []))
-        return list(videos)
+        return extract_page(result, "videos")
 
     async def get_video_metadata(self, video_id: str) -> dict[str, Any]:
         """Get all metadata entries for a video.
@@ -211,15 +213,14 @@ class YuJaClient:
     # Channel Management
     # =========================================================================
 
-    async def list_channels(self) -> list[dict[str, Any]]:
+    async def list_channels(self) -> tuple[list[dict[str, Any]], bool]:
         """List media channels accessible to the API token.
 
         Returns:
-            List of channel objects
+            Tuple of (channel objects for the first page, truncated flag)
         """
         result = await self._request("GET", "/channels")
-        channels = result.get("results", result.get("channels", []))
-        return list(channels)
+        return extract_page(result, "channels")
 
     # =========================================================================
     # Upload Management (signed-URL S3 upload)

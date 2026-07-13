@@ -119,7 +119,7 @@ async def list_panopto_folders(
             password=config.password,
             client_secret=config.client_secret,
         ) as client:
-            folders = await client.list_folders(
+            folders, truncated = await client.list_folders(
                 parent_folder_id=parent_folder_id or None,
                 search_query=search_query or None,
             )
@@ -127,6 +127,7 @@ async def list_panopto_folders(
                 folders=folders,
                 count=len(folders),
                 parent_folder_id=parent_folder_id or "root",
+                truncated=truncated,
             )
     except PanoptoAuthError as e:
         return PanoptoFolderListResult(error=f"Authentication failed: {e}", folders=[])
@@ -248,7 +249,7 @@ async def list_panopto_sessions(
             password=config.password,
             client_secret=config.client_secret,
         ) as client:
-            sessions = await client.list_sessions(
+            sessions, truncated = await client.list_sessions(
                 folder_id=folder_id or None,
                 search_query=search_query or None,
             )
@@ -256,6 +257,7 @@ async def list_panopto_sessions(
                 sessions=sessions,
                 count=len(sessions),
                 folder_id=folder_id or "all",
+                truncated=truncated,
             )
     except PanoptoAuthError as e:
         return PanoptoSessionListResult(error=f"Authentication failed: {e}", sessions=[])

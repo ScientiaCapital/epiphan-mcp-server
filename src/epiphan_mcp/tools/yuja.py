@@ -97,11 +97,12 @@ async def list_yuja_videos(search_query: _VideoSearch = "") -> YuJaVideoListResu
 
     try:
         async with YuJaClient(host=config.host, auth_token=config.auth_token) as client:
-            videos = await client.list_videos(search_query=search_query or None)
+            videos, truncated = await client.list_videos(search_query=search_query or None)
             return YuJaVideoListResult(
                 videos=videos,
                 count=len(videos),
                 search_query=search_query or None,
+                truncated=truncated,
             )
     except YuJaAuthError as e:
         return YuJaVideoListResult(error=f"Authentication failed: {e}", videos=[])
@@ -158,8 +159,10 @@ async def list_yuja_channels() -> YuJaChannelListResult:
 
     try:
         async with YuJaClient(host=config.host, auth_token=config.auth_token) as client:
-            channels = await client.list_channels()
-            return YuJaChannelListResult(channels=channels, count=len(channels))
+            channels, truncated = await client.list_channels()
+            return YuJaChannelListResult(
+                channels=channels, count=len(channels), truncated=truncated
+            )
     except YuJaAuthError as e:
         return YuJaChannelListResult(error=f"Authentication failed: {e}", channels=[])
     except YuJaAPIError as e:

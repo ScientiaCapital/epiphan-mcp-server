@@ -1629,6 +1629,10 @@ class PanoptoFolderListResult(BaseModel):
     parent_folder_id: str | None = Field(
         default=None, description="Parent folder queried ('root' when unspecified)"
     )
+    truncated: bool = Field(
+        default=False,
+        description="True when the platform reported more items than this first page.",
+    )
     error: str | None = Field(default=None, description="Error message on failure.")
 
 
@@ -1651,6 +1655,10 @@ class PanoptoSessionListResult(BaseModel):
     count: int | None = Field(default=None, description="Number of sessions returned")
     folder_id: str | None = Field(
         default=None, description="Folder filter applied ('all' when unfiltered)"
+    )
+    truncated: bool = Field(
+        default=False,
+        description="True when the platform reported more items than this first page.",
     )
     error: str | None = Field(default=None, description="Error message on failure.")
 
@@ -1810,6 +1818,10 @@ class YuJaVideoListResult(BaseModel):
     )
     count: int | None = Field(default=None, description="Number of videos returned")
     search_query: str | None = Field(default=None, description="Search filter applied, if any")
+    truncated: bool = Field(
+        default=False,
+        description="True when the platform reported more items than this first page.",
+    )
     error: str | None = Field(default=None, description="Error message on failure.")
 
 
@@ -1829,6 +1841,10 @@ class YuJaChannelListResult(BaseModel):
         default_factory=list, description="Media channels, each with id and name."
     )
     count: int | None = Field(default=None, description="Number of channels returned")
+    truncated: bool = Field(
+        default=False,
+        description="True when the platform reported more items than this first page.",
+    )
     error: str | None = Field(default=None, description="Error message on failure.")
 
 

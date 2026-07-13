@@ -125,9 +125,10 @@ class TestYuJaClientVideos:
             return_value=Response(200, json=[{"id": "1", "title": "Lecture 1"}])
         )
         async with _client() as client:
-            videos = await client.list_videos()
+            videos, truncated = await client.list_videos()
         assert len(videos) == 1
         assert videos[0]["title"] == "Lecture 1"
+        assert truncated is False
 
     @pytest.mark.asyncio
     @respx.mock
@@ -137,6 +138,31 @@ class TestYuJaClientVideos:
         async with _client() as client:
             await client.list_videos(search_query="physics")
         assert route.calls.last.request.url.params["search"] == "physics"
+
+    @pytest.mark.asyncio
+    @respx.mock
+    async def test_list_videos_reports_truncation_from_total(self):
+        """An envelope total larger than the page marks the result truncated."""
+        respx.get(f"{API}/media/videos").mock(
+            return_value=Response(
+                200, json={"results": [{"id": "1"}, {"id": "2"}], "total": 250}
+            )
+        )
+        async with _client() as client:
+            videos, truncated = await client.list_videos()
+        assert len(videos) == 2
+        assert truncated is True
+
+    @pytest.mark.asyncio
+    @respx.mock
+    async def test_list_videos_complete_page_not_truncated(self):
+        """A complete page (total == items, no next link) is not truncated."""
+        respx.get(f"{API}/media/videos").mock(
+            return_value=Response(200, json={"results": [{"id": "1"}], "total": 1})
+        )
+        async with _client() as client:
+            _videos, truncated = await client.list_videos()
+        assert truncated is False
 
     @pytest.mark.asyncio
     @respx.mock
@@ -166,8 +192,23 @@ class TestYuJaClientVideos:
             return_value=Response(200, json=[{"id": "c1", "name": "Physics"}])
         )
         async with _client() as client:
-            channels = await client.list_channels()
+            channels, truncated = await client.list_channels()
         assert channels[0]["name"] == "Physics"
+        assert truncated is False
+
+    @pytest.mark.asyncio
+    @respx.mock
+    async def test_list_channels_reports_truncation_from_has_more(self):
+        """A hasMore marker in the envelope marks the result truncated."""
+        respx.get(f"{API}/channels").mock(
+            return_value=Response(
+                200, json={"results": [{"id": "c1"}], "hasMore": True}
+            )
+        )
+        async with _client() as client:
+            channels, truncated = await client.list_channels()
+        assert len(channels) == 1
+        assert truncated is True
 
 
 class TestYuJaClientUpload:
@@ -381,6 +422,24 @@ class TestListYuJaVideos:
         assert result.error is None
         assert result.count == 1
         assert result.videos[0]["title"] == "Lecture 1"
+
+    @pytest.mark.asyncio
+    @respx.mock
+    async def test_list_videos_surfaces_truncation(self):
+        """The tool exposes a truncated flag so callers know the list is partial."""
+        from epiphan_mcp.tools.yuja import list_yuja_videos
+
+        respx.get(f"{API}/media/videos").mock(
+            return_value=Response(
+                200, json={"results": [{"id": "1", "title": "Lecture 1"}], "total": 99}
+            )
+        )
+        with patch.dict(os.environ, YUJA_ENV):
+            result = await list_yuja_videos()
+
+        assert result.error is None
+        assert result.count == 1
+        assert result.truncated is True
 
     @pytest.mark.asyncio
     @respx.mock

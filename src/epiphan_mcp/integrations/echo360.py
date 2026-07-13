@@ -42,6 +42,7 @@ from urllib.parse import urljoin
 
 import httpx
 
+from ._pagination import extract_page
 from ._upload import stream_file
 
 logger = logging.getLogger(__name__)
@@ -294,32 +295,10 @@ class Echo360Client:
         except httpx.RequestError as e:
             raise Echo360APIError(f"Request failed: {e}") from e
 
-    @staticmethod
-    def _extract_page(result: dict[str, Any], *keys: str) -> tuple[list[dict[str, Any]], bool]:
-        """Pull the item list and a truncation flag out of a raw response.
-
-        Echo360 responses are paginated (default 100, max 150 per page); this
-        returns the current page's items plus whether the envelope indicates
-        more pages exist. Fetching further pages stays deferred until the
-        page-param names are validated against a live Swagger instance.
-        """
-        items: list[dict[str, Any]] = []
-        for key in ("results", "data", *keys):
-            found = result.get(key)
-            if isinstance(found, list):
-                items = list(found)
-                break
-
-        truncated = False
-        if result.get("next") or result.get("nextToken") or result.get("hasMore") is True:
-            truncated = True
-        else:
-            for total_key in ("total", "totalResults", "totalCount"):
-                total = result.get(total_key)
-                if isinstance(total, int) and total > len(items):
-                    truncated = True
-                    break
-        return items, truncated
+    # Echo360 responses are paginated (default 100, max 150 per page); the
+    # shared ``extract_page`` helper surfaces a truncation flag. Fetching
+    # further pages stays deferred until the page-param names are validated
+    # against a live Swagger instance.
 
     # =========================================================================
     # Courses / Sections
@@ -336,7 +315,7 @@ class Echo360Client:
             Tuple of (course objects for the first page, truncated flag)
         """
         result = await self._request("GET", "/courses")
-        return self._extract_page(result, "courses")
+        return extract_page(result, "courses")
 
     async def list_sections(self, course_id: str | None = None) -> tuple[list[dict[str, Any]], bool]:
         """List sections, optionally filtered to one course.
@@ -357,7 +336,7 @@ class Echo360Client:
             params["courseId"] = course_id
 
         result = await self._request("GET", "/sections", params=params)
-        return self._extract_page(result, "sections")
+        return extract_page(result, "sections")
 
     # =========================================================================
     # Media
@@ -380,7 +359,7 @@ class Echo360Client:
             params["search"] = search_query
 
         result = await self._request("GET", "/medias", params=params)
-        return self._extract_page(result, "medias")
+        return extract_page(result, "medias")
 
     async def get_media(self, media_id: str) -> dict[str, Any]:
         """Get details of one media item.

@@ -29,6 +29,8 @@ from urllib.parse import urljoin
 
 import httpx
 
+from ._upload import stream_file
+
 logger = logging.getLogger(__name__)
 
 
@@ -274,16 +276,9 @@ class YuJaClient:
         file_size = file_path.stat().st_size
         logger.info(f"Uploading {file_path.name} ({file_size} bytes) to YuJa S3")
 
-        # httpx.AsyncClient requires an async byte stream — a plain file
-        # object is a sync iterable and raises at request time.
-        async def _stream(chunk_size: int = 1024 * 1024) -> Any:
-            with open(file_path, "rb") as f:
-                while chunk := f.read(chunk_size):
-                    yield chunk
-
         response = await self._client.put(
             signed_url,
-            content=_stream(),
+            content=stream_file(file_path),
             headers={
                 "Content-Type": content_type,
                 "Content-Length": str(file_size),

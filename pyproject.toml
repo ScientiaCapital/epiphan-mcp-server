@@ -10,7 +10,7 @@ readme = "README.md"
 license = "MIT"
 requires-python = ">=3.11"
 authors = [
-    { name = "Tim Kipper", email = "tim@example.com" }
+    { name = "Tim Kipper", email = "tkipper@epiphan.com" }
 ]
 keywords = [
     "mcp",
@@ -35,9 +35,9 @@ classifiers = [
 ]
 dependencies = [
     "fastmcp>=0.1.0,<3",
-    "httpx>=0.25.0",
-    "pydantic>=2.4.0",  # CVE-2024-3772 fix
-    "pydantic-settings>=2.0.0",
+    "httpx>=0.25.0,<1",
+    "pydantic>=2.4.0,<3",  # CVE-2024-3772 fix
+    "pydantic-settings>=2.0.0,<3",
     "python-dotenv>=1.0.0",
     # AI/LLM integration (OpenRouter gateway)
     # Note: No openai package needed - using httpx directly for OpenRouter API

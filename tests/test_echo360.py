@@ -242,9 +242,10 @@ class TestEcho360ClientContent:
             return_value=Response(200, json=[{"id": "c1", "name": "Physics 101"}])
         )
         async with _client() as client:
-            courses = await client.list_courses()
+            courses, truncated = await client.list_courses()
         assert len(courses) == 1
         assert courses[0]["name"] == "Physics 101"
+        assert truncated is False
 
     @pytest.mark.asyncio
     @respx.mock
@@ -255,8 +256,9 @@ class TestEcho360ClientContent:
             return_value=Response(200, json={"data": [{"id": "c1"}], "total": 1})
         )
         async with _client() as client:
-            courses = await client.list_courses()
+            courses, truncated = await client.list_courses()
         assert courses == [{"id": "c1"}]
+        assert truncated is False
 
     @pytest.mark.asyncio
     @respx.mock
@@ -277,6 +279,47 @@ class TestEcho360ClientContent:
         async with _client() as client:
             await client.list_medias(search_query="physics")
         assert route.calls.last.request.url.params["search"] == "physics"
+
+    @pytest.mark.asyncio
+    @respx.mock
+    async def test_list_courses_reports_truncation_from_total(self):
+        """An envelope total larger than the page marks the result truncated."""
+        _mock_token()
+        respx.get(f"{API}/courses").mock(
+            return_value=Response(
+                200, json={"data": [{"id": "c1"}, {"id": "c2"}], "total": 250}
+            )
+        )
+        async with _client() as client:
+            courses, truncated = await client.list_courses()
+        assert len(courses) == 2
+        assert truncated is True
+
+    @pytest.mark.asyncio
+    @respx.mock
+    async def test_list_courses_reports_truncation_from_next_link(self):
+        """A non-null next link marks the result truncated."""
+        _mock_token()
+        respx.get(f"{API}/courses").mock(
+            return_value=Response(
+                200, json={"data": [{"id": "c1"}], "next": "/courses?page=2"}
+            )
+        )
+        async with _client() as client:
+            _courses, truncated = await client.list_courses()
+        assert truncated is True
+
+    @pytest.mark.asyncio
+    @respx.mock
+    async def test_list_courses_complete_page_not_truncated(self):
+        """A complete page (total == items, no next link) is not truncated."""
+        _mock_token()
+        respx.get(f"{API}/courses").mock(
+            return_value=Response(200, json={"data": [{"id": "c1"}], "total": 1})
+        )
+        async with _client() as client:
+            _courses, truncated = await client.list_courses()
+        assert truncated is False
 
     @pytest.mark.asyncio
     @respx.mock
@@ -531,6 +574,25 @@ class TestListEcho360Courses:
         assert result.error is None
         assert result.count == 1
         assert result.courses[0]["name"] == "Physics 101"
+
+    @pytest.mark.asyncio
+    @respx.mock
+    async def test_list_courses_surfaces_truncation(self):
+        """The tool exposes a truncated flag so callers know the list is partial."""
+        from epiphan_mcp.tools.echo360 import list_echo360_courses
+
+        _mock_token()
+        respx.get(f"{API}/courses").mock(
+            return_value=Response(
+                200, json={"data": [{"id": "c1"}, {"id": "c2"}], "total": 250}
+            )
+        )
+        with patch.dict(os.environ, ECHO360_ENV):
+            result = await list_echo360_courses()
+
+        assert result.error is None
+        assert result.count == 2
+        assert result.truncated is True
 
     @pytest.mark.asyncio
     @respx.mock

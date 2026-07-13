@@ -12,6 +12,7 @@ Tests cover:
 
 import hashlib
 import os
+import re
 from datetime import datetime, timedelta
 from unittest.mock import patch
 
@@ -457,6 +458,75 @@ class TestKalturaClientUpload:
             status = await client.get_upload_status("0_upload123")
             assert status["status"] == 2
             assert status["uploadedFileSize"] == 1024000
+
+    @staticmethod
+    def _parse_multipart(request: httpx.Request) -> dict[str, bytes]:
+        """Parse a multipart/form-data body into {field name: value bytes}."""
+        boundary = request.headers["content-type"].split("boundary=")[1].encode()
+        fields: dict[str, bytes] = {}
+        for part in request.content.split(b"--" + boundary):
+            part = part.strip(b"\r\n")
+            if not part or part == b"--":
+                continue
+            headers, _, value = part.partition(b"\r\n\r\n")
+            match = re.search(rb'name="([^"]+)"', headers)
+            if match:
+                fields[match.group(1).decode()] = value
+        return fields
+
+    @pytest.mark.asyncio
+    @respx.mock
+    async def test_upload_file_streams_multiple_chunks(self, auth_mock, tmp_path):
+        """upload_file streams a multi-chunk file via stream_file in order.
+
+        Pins the chunked wire protocol: first chunk is a fresh upload
+        (resume=0, resumeAt=0), middle chunks resume at their byte offset,
+        and only the last chunk carries finalChunk=1.
+        """
+        respx.post("https://www.kaltura.com/api_v3/service/media/action/add").mock(
+            return_value=httpx.Response(200, json={"id": "0_entry1", "name": "lecture"})
+        )
+        respx.post("https://www.kaltura.com/api_v3/service/uploadToken/action/add").mock(
+            return_value=httpx.Response(200, json={"id": "0_token1", "status": 0})
+        )
+        upload_route = respx.post(
+            "https://www.kaltura.com/api_v3/service/uploadToken/action/upload"
+        ).mock(return_value=httpx.Response(200, json={"id": "0_token1", "status": 2}))
+        respx.post("https://www.kaltura.com/api_v3/service/media/action/addContent").mock(
+            return_value=httpx.Response(200, json={"id": "0_entry1"})
+        )
+        respx.post("https://www.kaltura.com/api_v3/service/media/action/get").mock(
+            return_value=httpx.Response(200, json={"id": "0_entry1", "status": 2})
+        )
+
+        # Three chunks at chunk_size=1024: two full + one partial (final)
+        chunk_size = 1024
+        chunks = [b"A" * 1024, b"B" * 1024, b"C" * 512]
+        file_path = tmp_path / "lecture.mp4"
+        file_path.write_bytes(b"".join(chunks))
+
+        async with KalturaClient(
+            partner_id=12345,
+            app_token_id="0_abc123",
+            app_token="secret",
+        ) as client:
+            entry = await client.upload_file(file_path, chunk_size=chunk_size)
+
+        assert entry["id"] == "0_entry1"
+        assert upload_route.call_count == 3
+
+        parsed = [self._parse_multipart(call.request) for call in upload_route.calls]
+
+        # Chunk order and content
+        assert [p["fileData"] for p in parsed] == chunks
+        assert all(p["uploadTokenId"] == b"0_token1" for p in parsed)
+
+        # Resume flags: first chunk starts fresh, later chunks resume at offset
+        assert [p["resume"] for p in parsed] == [b"0", b"1", b"1"]
+        assert [p["resumeAt"] for p in parsed] == [b"0", b"1024", b"2048"]
+
+        # Only the last chunk is marked final
+        assert [p["finalChunk"] for p in parsed] == [b"0", b"0", b"1"]
 
 
 class TestKalturaClientSchedule:

@@ -779,6 +779,25 @@ class TestMethodAwareRetry:
 
         assert route.call_count == 1
 
+    async def test_post_retries_on_busy_api_error(
+        self, retrying_client: PearlClient, mock_api_base: str, respx_mock
+    ):
+        """A 'busy' response is a definitive pre-execution reject — the device
+        refused the request without acting on it, so retrying a POST cannot
+        duplicate side effects. Busy stays retryable for all methods, exempt
+        from the connect-phase-only restriction above."""
+        route = respx_mock.post(f"{mock_api_base}/recorders/recorder-1/control/start")
+        route.side_effect = [
+            Response(200, json={"status": "busy"}),
+            Response(200, json={"status": "ok"}),
+        ]
+
+        async with retrying_client as client:
+            result = await client._post("/recorders/recorder-1/control/start")
+
+        assert result == {"status": "ok"}
+        assert route.call_count == 2
+
     async def test_get_still_retries_on_read_timeout(
         self, retrying_client: PearlClient, mock_api_base: str, respx_mock
     ):

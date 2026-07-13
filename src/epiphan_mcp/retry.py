@@ -69,7 +69,12 @@ async def with_retry(
         try:
             return await operation()
         except Exception as exc:
-            # Check if this exception should be retried
+            # Check if this exception should be retried. A Pearl 'busy' API
+            # error is a definitive pre-execution reject — the device refused
+            # the request without acting on it — so retrying cannot duplicate
+            # side effects. It is therefore exempt from the connect-phase-only
+            # restriction that callers apply to non-idempotent POST/PATCH via
+            # retryable_exceptions (see client._CONNECT_PHASE_RETRYABLE).
             should_retry = isinstance(exc, retryable_exceptions) or _is_busy_api_error(exc)
 
             if not should_retry:

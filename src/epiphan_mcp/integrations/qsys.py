@@ -105,9 +105,19 @@ class QSysClient:
                 asyncio.open_connection(self.host, self.port),
                 timeout=self.timeout,
             )
-            self._connected = True
-            logger.info(f"Connected to Q-SYS Core at {self.host}:{self.port}")
+        except TimeoutError as e:
+            raise QSysConnectionError(
+                f"Connection timeout to Q-SYS Core at {self.host}:{self.port}"
+            ) from e
+        except OSError as e:
+            raise QSysConnectionError(
+                f"Failed to connect to Q-SYS Core at {self.host}:{self.port}: {e}"
+            ) from e
 
+        self._connected = True
+        logger.info(f"Connected to Q-SYS Core at {self.host}:{self.port}")
+
+        try:
             # Start response reader task
             self._reader_task = asyncio.create_task(self._read_responses())
 
@@ -117,15 +127,11 @@ class QSysClient:
 
             # Start keep-alive task
             self._keepalive_task = asyncio.create_task(self._keep_alive())
-
-        except TimeoutError as e:
-            raise QSysConnectionError(
-                f"Connection timeout to Q-SYS Core at {self.host}:{self.port}"
-            ) from e
-        except OSError as e:
-            raise QSysConnectionError(
-                f"Failed to connect to Q-SYS Core at {self.host}:{self.port}: {e}"
-            ) from e
+        except BaseException:
+            # __aexit__ never runs when __aenter__ raises, so a logon failure
+            # here would otherwise leak the open socket and the reader task.
+            await self.disconnect()
+            raise
 
     async def disconnect(self) -> None:
         """Disconnect from Q-SYS Core."""

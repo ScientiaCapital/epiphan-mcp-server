@@ -274,6 +274,53 @@ class TestYuJaClientUpload:
             with pytest.raises(YuJaAPIError, match="missing sessionId/uploadUrl"):
                 await client.upload_video(user_id="619", file_path=video)
 
+    @pytest.mark.asyncio
+    @respx.mock
+    async def test_upload_video_null_session_id_falls_back_to_id(self, tmp_path):
+        """An explicit JSON null sessionId falls through to the id key.
+
+        Regression: `.get("sessionId", .get("id"))` returned None for an
+        explicit null, which str() turned into the truthy string "None".
+        """
+        video = tmp_path / "lecture.mp4"
+        video.write_bytes(b"fake video content")
+
+        respx.post(f"{API}/media/upload/session/619/createlinks").mock(
+            return_value=Response(
+                200,
+                json={"sessionId": None, "id": 777, "uploadUrl": "https://s3.example.com/signed"},
+            )
+        )
+        respx.put("https://s3.example.com/signed").mock(return_value=Response(200))
+        complete_route = respx.post(f"{API}/media/upload/session/777").mock(
+            return_value=Response(200, json={"sessionId": 777, "state": "processing"})
+        )
+        respx.get(f"{API}/media/upload/session/777").mock(
+            return_value=Response(200, json={"sessionId": 777, "state": "processing"})
+        )
+
+        async with _client() as client:
+            await client.upload_video(user_id="619", file_path=video)
+
+        assert complete_route.called
+
+    @pytest.mark.asyncio
+    @respx.mock
+    async def test_upload_video_null_ids_raise(self, tmp_path):
+        """sessionId and id both null raise the clear missing-fields error."""
+        video = tmp_path / "lecture.mp4"
+        video.write_bytes(b"fake video content")
+
+        respx.post(f"{API}/media/upload/session/619/createlinks").mock(
+            return_value=Response(
+                200,
+                json={"sessionId": None, "id": None, "uploadUrl": "https://s3.example.com/signed"},
+            )
+        )
+        async with _client() as client:
+            with pytest.raises(YuJaAPIError, match="missing sessionId/uploadUrl"):
+                await client.upload_video(user_id="619", file_path=video)
+
 
 # ============================================================================
 # MCP Tool Tests

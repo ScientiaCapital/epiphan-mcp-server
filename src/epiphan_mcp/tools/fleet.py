@@ -128,6 +128,20 @@ def _calculate_health_score(
 # ============================================================
 
 
+async def _complete_with_provider(prompt: str, max_tokens: int) -> str:
+    """Run one LLM completion, closing the provider even when it raises.
+
+    Without the finally, an LLMError from complete() jumps to the caller's
+    except block and leaks the provider's httpx.AsyncClient.
+    """
+    provider = get_provider()
+    try:
+        return await provider.complete(prompt, max_tokens=max_tokens)
+    finally:
+        if hasattr(provider, "close"):
+            await provider.close()
+
+
 async def _execute_on_fleet(
     hosts: list[str],
     operation: Callable[[PearlClient], Awaitable[dict[str, Any]]],
@@ -540,10 +554,7 @@ Keep the response concise and actionable. Use plain language."""
 
     # Generate AI summary
     try:
-        provider = get_provider()
-        ai_response = await provider.complete(prompt, max_tokens=300)
-        if hasattr(provider, "close"):
-            await provider.close()
+        ai_response = await _complete_with_provider(prompt, max_tokens=300)
 
         # Parse AI response for summary and recommendations
         summary, recommendations = _parse_ai_response(ai_response, attention_required)
@@ -762,10 +773,7 @@ Provide:
 Keep response concise and actionable."""
 
     try:
-        provider = get_provider()
-        ai_response = await provider.complete(prompt, max_tokens=250)
-        if hasattr(provider, "close"):
-            await provider.close()
+        ai_response = await _complete_with_provider(prompt, max_tokens=250)
 
         # Parse AI response
         suggested_window, confidence, reasoning = _parse_maintenance_suggestion(
@@ -989,10 +997,7 @@ Provide a 2-3 sentence executive summary focusing on:
 
 Keep it actionable and concise."""
 
-            provider = get_provider()
-            summary = await provider.complete(prompt, max_tokens=200)
-            if hasattr(provider, "close"):
-                await provider.close()
+            summary = await _complete_with_provider(prompt, max_tokens=200)
         else:
             summary = f"No issues predicted for the next {hours_ahead} hours. Fleet is operating normally."
 
@@ -1149,10 +1154,7 @@ Generate a professional shift handoff summary including:
 Keep it concise (4-5 sentences) and professional."""
 
     try:
-        provider = get_provider()
-        summary = await provider.complete(prompt, max_tokens=300)
-        if hasattr(provider, "close"):
-            await provider.close()
+        summary = await _complete_with_provider(prompt, max_tokens=300)
 
     except LLMError as e:
         logger.warning(f"LLM summary failed: {e}")

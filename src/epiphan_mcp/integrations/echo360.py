@@ -517,7 +517,9 @@ class Echo360Client:
 
         # Step 1: Create pending upload with signed URL(s)
         pending = await self.create_pending_upload(filename=filename)
-        upload_id = str(pending.get("uploadId", pending.get("id", "")))
+        # `or`-chain (not nested .get defaults) so an explicit JSON null
+        # falls through instead of becoming the string "None".
+        upload_id = str(pending.get("uploadId") or pending.get("id") or "")
         signed_url = pending.get("uploadUrl") or pending.get("url", "")
         if not upload_id or not signed_url:
             raise Echo360APIError(f"Pending upload missing uploadId/uploadUrl: {pending}")
@@ -536,7 +538,7 @@ class Echo360Client:
             elapsed = 0.0
             while elapsed < max_wait:
                 status = await self.get_upload_status(upload_id)
-                state = str(status.get("state", status.get("status", ""))).lower()
+                state = str(status.get("state") or status.get("status") or "").lower()
 
                 if state in ("complete", "completed", "done"):
                     logger.info(f"Processing complete for {upload_id}")

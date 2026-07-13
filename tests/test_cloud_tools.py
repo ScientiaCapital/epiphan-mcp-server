@@ -140,6 +140,16 @@ class TestCloudListDevices:
         result = await cloud_list_devices()
         assert result.error is not None
 
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_list_devices_null_devices_key(self):
+        """An explicit `"devices": null` yields an empty list, not a TypeError."""
+        respx.get(f"{BASE_URL}/devices").mock(return_value=Response(200, json={"devices": None}))
+        result = await cloud_list_devices()
+        assert result.error is None
+        assert result.count == 0
+        assert result.devices == []
+
 
 # ============================================================================
 # cloud_get_device Tests

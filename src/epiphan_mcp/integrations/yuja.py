@@ -367,7 +367,9 @@ class YuJaClient:
 
         # Step 1: Create upload session with signed URL(s)
         session = await self.create_upload_links(user_id=user_id, filename=filename)
-        session_id = str(session.get("sessionId", session.get("id", "")))
+        # `or`-chain (not nested .get defaults) so an explicit JSON null
+        # falls through instead of becoming the string "None".
+        session_id = str(session.get("sessionId") or session.get("id") or "")
         signed_url = session.get("uploadUrl") or session.get("url", "")
         if not session_id or not signed_url:
             raise YuJaAPIError(f"Upload session missing sessionId/uploadUrl: {session}")
@@ -386,7 +388,7 @@ class YuJaClient:
             elapsed = 0.0
             while elapsed < max_wait:
                 status = await self.get_upload_status(session_id)
-                state = str(status.get("state", status.get("status", ""))).lower()
+                state = str(status.get("state") or status.get("status") or "").lower()
 
                 if state in ("complete", "completed", "done"):
                     logger.info(f"Processing complete for {session_id}")

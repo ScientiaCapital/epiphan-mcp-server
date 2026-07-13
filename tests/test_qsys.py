@@ -136,6 +136,33 @@ class TestQSysClientConnection:
             with pytest.raises(QSysConnectionError, match="Connection refused"):
                 await client.connect()
 
+    @pytest.mark.asyncio
+    async def test_logon_failure_cleans_up_connection(self):
+        """A failed PIN logon closes the socket and cancels the reader task.
+
+        __aexit__ never runs when __aenter__ raises, so connect() itself
+        must tear down on a post-connect failure (leak regression).
+        """
+        reader = MockStreamReader([])
+        writer = MockStreamWriter()
+
+        with patch("asyncio.open_connection", new_callable=AsyncMock) as mock_connect:
+            mock_connect.return_value = (reader, writer)
+
+            client = QSysClient(host="192.168.1.50", pin="9999", keepalive_interval=3600)
+            with (
+                patch.object(client, "_logon", side_effect=QSysAuthError("bad PIN")),
+                pytest.raises(QSysAuthError, match="bad PIN"),
+            ):
+                async with client:
+                    pass  # pragma: no cover - never reached
+
+        assert client._connected is False
+        assert client._reader_task is None
+        assert client._keepalive_task is None
+        assert client._writer is None
+        assert writer._closed
+
 
 # ============================================================================
 # QSysClient JSON-RPC Tests

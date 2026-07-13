@@ -787,6 +787,21 @@ class TestFleetHealthReport:
         assert len(result.summary) > 0
         assert hasattr(result, "recommendations")
 
+    async def test_complete_with_provider_closes_on_error(self):
+        """Provider is closed even when complete() raises (client-leak regression)."""
+        from epiphan_mcp.llm.providers import LLMError
+        from epiphan_mcp.tools.fleet import _complete_with_provider
+
+        with patch("epiphan_mcp.tools.fleet.get_provider") as mock_provider:
+            mock_llm = AsyncMock()
+            mock_llm.complete = AsyncMock(side_effect=LLMError("API error"))
+            mock_provider.return_value = mock_llm
+
+            with pytest.raises(LLMError):
+                await _complete_with_provider("prompt", max_tokens=100)
+
+        mock_llm.close.assert_awaited_once()
+
 
 # ============================================================
 # Fleet Timeout (Phase 0)

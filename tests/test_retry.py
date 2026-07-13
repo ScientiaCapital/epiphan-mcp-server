@@ -83,7 +83,7 @@ class TestExponentialBackoff:
     """Tests for exponential backoff timing."""
 
     async def test_retry_exponential_backoff_timing(self):
-        """Verify delays double (1s, 2s, 4s...)."""
+        """Verify delays grow exponentially, with ±50% jitter around each step."""
         operation = AsyncMock(
             side_effect=[
                 httpx.ConnectError("fail 1"),
@@ -102,11 +102,11 @@ class TestExponentialBackoff:
             result = await with_retry(operation, max_retries=3, base_delay=1.0)
 
         assert result == {"status": "ok", "result": "success"}
-        # Should have 3 delays: 1.0, 2.0, 4.0
+        # Base delays are 1.0, 2.0, 4.0, each jittered into [0.5x, 1.5x]
         assert len(sleep_times) == 3
-        assert sleep_times[0] == pytest.approx(1.0, rel=0.1)
-        assert sleep_times[1] == pytest.approx(2.0, rel=0.1)
-        assert sleep_times[2] == pytest.approx(4.0, rel=0.1)
+        assert 0.5 <= sleep_times[0] <= 1.5
+        assert 1.0 <= sleep_times[1] <= 3.0
+        assert 2.0 <= sleep_times[2] <= 6.0
 
     async def test_retry_respects_max_delay(self):
         """Delay never exceeds max_delay."""
@@ -130,18 +130,15 @@ class TestExponentialBackoff:
             result = await with_retry(operation, max_retries=5, base_delay=1.0, max_delay=3.0)
 
         assert result == {"status": "ok", "result": "success"}
-        # Delays would be 1, 2, 4, 8, 16 but capped at 3.0
-        # So: 1.0, 2.0, 3.0, 3.0, 3.0
+        # Base delays 1, 2, 4, 8, 16 are capped at 3.0 before AND after
+        # jitter — max_delay is a hard ceiling regardless of jitter.
         for delay in sleep_times:
             assert delay <= 3.0
 
-        # First two delays are under max
-        assert sleep_times[0] == pytest.approx(1.0, rel=0.1)
-        assert sleep_times[1] == pytest.approx(2.0, rel=0.1)
-        # Remaining delays are capped at max_delay
-        assert sleep_times[2] == pytest.approx(3.0, rel=0.1)
-        assert sleep_times[3] == pytest.approx(3.0, rel=0.1)
-        assert sleep_times[4] == pytest.approx(3.0, rel=0.1)
+        # First delay is base 1.0 jittered into [0.5, 1.5]
+        assert 0.5 <= sleep_times[0] <= 1.5
+        # Later delays hit the cap: jittered into [1.5, 3.0] (never above)
+        assert 1.5 <= sleep_times[4] <= 3.0
 
 
 # ============================================================
@@ -308,7 +305,8 @@ class TestCustomConfiguration:
         with patch("epiphan_mcp.retry.asyncio.sleep", side_effect=mock_sleep):
             await with_retry(operation, max_retries=1, base_delay=0.5)
 
-        assert sleep_times[0] == pytest.approx(0.5, rel=0.1)
+        # Base 0.5 jittered into [0.25, 0.75]
+        assert 0.25 <= sleep_times[0] <= 0.75
 
     async def test_retry_with_custom_retryable_exceptions(self):
         """Custom retryable exceptions work correctly."""

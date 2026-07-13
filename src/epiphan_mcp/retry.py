@@ -6,6 +6,7 @@ configurable exponential backoff.
 
 import asyncio
 import logging
+import random
 from collections.abc import Awaitable, Callable
 from typing import TypeVar
 
@@ -79,8 +80,11 @@ async def with_retry(
             attempt += 1
 
             if attempt < total_attempts:
-                # Calculate delay with exponential backoff
+                # Exponential backoff with jitter — without jitter, N fleet
+                # devices hit by the same network blip retry in lockstep.
+                # Re-capped after jitter so max_delay stays a hard ceiling.
                 delay = min(base_delay * (2 ** (attempt - 1)), max_delay)
+                delay = min(delay * random.uniform(0.5, 1.5), max_delay)
 
                 logger.warning(
                     f"Retry attempt {attempt}/{max_retries} after {delay:.1f}s "

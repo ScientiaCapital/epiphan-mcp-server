@@ -419,6 +419,56 @@ class TestEcho360ClientUpload:
             with pytest.raises(Echo360APIError, match="missing uploadId/uploadUrl"):
                 await client.upload_video(file_path=video)
 
+    @pytest.mark.asyncio
+    @respx.mock
+    async def test_upload_video_null_upload_id_falls_back_to_id(self, tmp_path):
+        """An explicit JSON null uploadId falls through to the id key.
+
+        Regression: `.get("uploadId", .get("id"))` returned None for an
+        explicit null, which str() turned into the truthy string "None".
+        """
+        _mock_token()
+        video = tmp_path / "lecture.mp4"
+        video.write_bytes(b"fake video content")
+
+        respx.post(f"{API}/pending-capture-uploads").mock(
+            return_value=Response(
+                200,
+                json={"uploadId": None, "id": "u9", "uploadUrl": "https://s3.example.com/signed"},
+            )
+        )
+        respx.put("https://s3.example.com/signed").mock(return_value=Response(200))
+        submit_route = respx.post(f"{API}/submitted-capture-uploads").mock(
+            return_value=Response(200, json={"uploadId": "u9", "state": "processing"})
+        )
+        respx.get(f"{API}/pending-capture-uploads/u9").mock(
+            return_value=Response(200, json={"uploadId": "u9", "state": "processing"})
+        )
+
+        async with _client() as client:
+            await client.upload_video(file_path=video)
+
+        assert submit_route.called
+        assert json.loads(submit_route.calls.last.request.content) == {"uploadId": "u9"}
+
+    @pytest.mark.asyncio
+    @respx.mock
+    async def test_upload_video_null_ids_raise(self, tmp_path):
+        """uploadId and id both null raise the clear missing-fields error."""
+        _mock_token()
+        video = tmp_path / "lecture.mp4"
+        video.write_bytes(b"fake video content")
+
+        respx.post(f"{API}/pending-capture-uploads").mock(
+            return_value=Response(
+                200,
+                json={"uploadId": None, "id": None, "uploadUrl": "https://s3.example.com/signed"},
+            )
+        )
+        async with _client() as client:
+            with pytest.raises(Echo360APIError, match="missing uploadId/uploadUrl"):
+                await client.upload_video(file_path=video)
+
 
 # ============================================================================
 # MCP Tool Tests

@@ -204,10 +204,11 @@ class EpiphanCloudClient:
             List of device objects with id, name, status, etc.
         """
         result = await self._request("GET", "/devices")
-        # Cloud API may return devices directly or wrapped in a response object
+        # Cloud API may return devices directly or wrapped in a response object.
+        # `or`-chain so an explicit `"devices": null` yields [] instead of None.
         if isinstance(result, list):
             return result
-        devices: list[dict[str, Any]] = result.get("devices", result.get("data", []))
+        devices: list[dict[str, Any]] = result.get("devices") or result.get("data") or []
         return devices
 
     async def get_device(self, device_id: str) -> dict[str, Any]:

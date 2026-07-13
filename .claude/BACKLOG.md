@@ -1,45 +1,94 @@
 # Epiphan MCP Server - Feature Backlog
 
-**Last Updated**: 2026-02-05
-**Status**: Production Ready + Pearl Discovery Tools Complete
+**Last Updated**: 2026-07-12 (end of day)
+**Status**: v1.2.0 shipped — 130 tools, 11 integrations, typed-schema surface complete
 
-> ⚠️ **Stale (flagged 2026-07-12):** counts below ("101 tools", P0 launch items) pre-date
-> current reality (115 tools; CI format/lint gates exist). Needs a cleanup pass.
+> ⚠️ **Stale:** the Implementation Status Summary and Priority Tiers tables below
+> (P0 launch items, "101 tools") pre-date current reality (130 tools; CI format/lint
+> gates exist; v1.2.0 tagged and released). Needs a cleanup pass.
 
 ## ✅ DONE: Typed-Schema Conversion — 21/21 (completed 2026-07-12 PM)
 All tool modules converted to typed Pydantic params + return models.
 `NOT_YET_CONVERTED` is empty; the schema contract meta-tests now enforce fully
 described input/output schemas server-wide, and every converted model's wire
-keys are pinned in `_MODEL_MUST_KEEP_FIELDS`. 124 tools, 1246 tests green.
+keys are pinned in `_MODEL_MUST_KEEP_FIELDS`.
 
 ## ✅ DONE: YuJa integration (shipped 2026-07-12 PM)
 `integrations/yuja.py` + `tools/yuja.py` (6 tools, born typed): static
 authToken auth, signed-URL 2-step S3 upload, audit-logged upload/delete.
 Follow-up below re: live-instance endpoint validation.
 
-## Active: New video-CMS integrations — next up Echo360
-**Echo360** (GA summer 2026, dual OAuth2+Basic auth) — confirm internal API
-spec/sandbox first. Canvas/Moodle = lighter publish-to-LMS tools later.
-Open Qs: internal Echo360 API spec/sandbox? Canvas Studio vs Files? Moodle version targeting?
+## ✅ DONE: v1.2.0 release (tagged + pushed 2026-07-12)
+21/21 typed schemas + YuJa. `pyproject.toml`/`server.json` synced; annotated
+tag with release notes on GitHub.
 
-## Follow-ups (from 2026-07-12 observers + sprint)
+## ✅ DONE: Echo360 (EchoVideo) integration (shipped 2026-07-12)
+`integrations/echo360.py` + `tools/echo360.py` (6 tools, born typed): OAuth2
+client-credentials auth with single-use refresh-token rotation (falls back to
+a fresh grant if the stored refresh token was already consumed), regional
+base URLs (US/EMEA/APAC/Canada), Capture Intake signed-URL S3 upload, 429
+rate-limit surfacing. Server now at 130 tools / 11 integrations. 38 new
+tests; full suite 1,309 passed / 7 skipped. Follow-up below re: live-instance
+endpoint validation (same situation as YuJa).
+
+## Follow-ups (from 2026-07-12 observers)
 - **[MEDIUM]** Validate YuJa list/channels endpoint paths against a live instance
   (upload flow matches YuJa's published examples; list endpoints designed from
   public docs — help-center pages are fetch-blocked). Effort: 1h with a YuJa
   sandbox token. Owner: Tim.
+- **[MEDIUM]** Validate Echo360 collection endpoints (`/courses`, `/sections`,
+  filter param names) against a live per-institution Swagger UI — Echo360
+  gates its full API reference behind institution login, so paths are
+  best-effort from public support docs. Auth flow, regional URLs, upload
+  flow, pagination, and rate limits ARE confirmed. Effort: 1-2h with an
+  Echo360 sandbox/test institution. Owner: Tim.
 - **[LOW]** Sanity-check Panopto upload against a live instance post-fix
   (sync-file → async-stream change in `upload_file_to_s3`, 2026-07-12).
   Effort: 30min. Owner: Tim.
 - **[LOW]** Process note (ARCH observer): features ship without a
   `.claude/contracts/` artifact; de-facto contract is `tests/test_tool_schemas.py`.
-  Decide whether to formalize contracts for Echo360 or retire the convention.
+  Decide whether to formalize contracts or retire the convention.
 - **[LOW]** Test-layout consistency: `layout.py`/`maintenance.py` coverage lives
   in `test_server.py` instead of dedicated files. Nicety, not urgent.
 
-## Active: GTM LMS-migration wedge (time-sensitive)
-May-2026 Canvas breach + Anthology/Blackboard fallout → LMS-migration wave. Pull
-Higher-Ed accounts (HubSpot/Apollo), flag Canvas/Blackboard shops for lecture-capture
-re-integration outreach. Owner: Tim. Fresh while breach signal holds.
+## ✅ DONE (v1): GTM Canvas/Blackboard LMS wedge — subdomain probe (2026-07-12)
+Report: `.claude/gtm/canvas-wedge-2026-07-12.md` (v2). HubSpot has 2,914
+Higher-Ed companies (358 customers, 71 open opps, 429 warm → 344 unique
+institutional domains after de-duping departmental subdomains).
+
+**Key finding: HubSpot has zero LMS signal** (no Canvas/Blackboard property;
+`web_technologies` doesn't crawl LMS subdomains) — confirmed unusable for
+this purpose. Built a free, read-only DNS/HTTPS subdomain probe instead
+(`canvas./blackboard./learn./moodle.<domain>`), documented as a reusable
+method in project memory (`lms-detection-for-gtm`).
+
+**Real probe results (344 domains): 112 Canvas / 44 Moodle / 25 Blackboard /
+2 Brightspace / 20 unconfirmed Learn-portal / 141 Unknown.** Canvas is the
+clear wedge (~4.5x Blackboard). Top-10 outreach list built from warmth ×
+deal count (Stanford, NC State, Berkeley, UW, ODU, Brown, Yale, Michigan,
+Duke, Minnesota — all warm Canvas accounts with active deals). Blackboard
+run as a separate, smaller motion (Rochester, South Carolina, Vanderbilt as
+anchors).
+
+**Caveat: Unknown (141) ≠ no LMS** — the probe only tests 4 standard
+subdomain names; big schools on non-standard hosts (UNLV=`webcampus`,
+NYU/Buffalo=Brightspace, UF=`elearning`) show as Unknown. Also:
+`HIGHER_EDUCATION` industry field in HubSpot is noisy (athletics depts, K-12
+districts, even a couple of churches mislabeled in) — recommend a
+segmentation cleanup before these counts feed a forecast. GTM Brain
+(Neo4j/AuraDB) was unreachable this pass (DNS failure, likely sleeping
+free-tier instance).
+
+### Next: GTM wedge v2 — Apollo/Clay enrichment for the 141 Unknowns
+Tim approved Apollo + Clay credit spend (2026-07-12) and directed use of the
+Epiphan AI MCP toolset (`epiphan-ai-mcp-guide-skill`) for enrichment — this
+arrived after the probe pass had already completed, so it wasn't used yet.
+Scoped for tomorrow: run Apollo tech-stack enrichment + Clay company
+enrichment on the 141 Unknown domains (and the 20 unconfirmed Learn-portal
+ones) to convert as many as possible to a known LMS; also try a second-pass
+probe with extended subdomain patterns (`elearning.`, `webcampus.`, `lms.`,
+`bb.`, `elc.`, `quercus.`, `brightspace.`) first since it's free and likely
+converts 50%+ on its own. Owner: Tim.
 
 ---
 
@@ -271,8 +320,8 @@ These methods exist in `PearlClient` but aren't MCP tools yet:
 **Document Owner**: Tim Kipper
 **Review Cadence**: Weekly
 
-## 2026-07-12 — End Day findings
-- [ ] Convert remaining 15 tool modules to typed schemas (recipe established; ~1-2h each): ai_tools, cloud, discovery, ec20, inputs, kaltura, layout, maintenance, opencast, panopto, publishers, qsys, schedule, streaming, youtube
-- [ ] Pin `fastmcp<3` in pyproject.toml before next PyPI release (FastMCP 3.0 breaking-change warning observed)
-- [ ] tests/ lint: 30 manual findings deferred (F841, SIM117, E402) — not CI-gated
-- [ ] Reply to Vadim: both critiques fixed, live-verified 5.1s vs 30.1s (5.9x) with offline devices
+## Carried-forward items (superseded or still open as of 2026-07-12 EOD)
+- [x] ~~Convert remaining 15 tool modules to typed schemas~~ — done, 21/21 complete (2026-07-12 PM)
+- [ ] Pin `fastmcp<3` in pyproject.toml before next PyPI release (FastMCP 3.0 breaking-change warning observed) — still open, not yet actioned
+- [ ] tests/ lint: 30 manual findings deferred (F841, SIM117, E402) — not CI-gated, still open
+- [ ] Reply to Vadim: both critiques fixed, live-verified 5.1s vs 30.1s (5.9x) with offline devices — confirm this was sent; not verified this session

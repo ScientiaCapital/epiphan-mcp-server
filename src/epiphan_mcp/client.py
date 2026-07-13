@@ -1030,6 +1030,10 @@ class PearlClient:
                 else 0,
             )
         except PearlAPIError as e:
+            if e.status_code is None and e.api_status is None:
+                # Transport-level failure (device unreachable): callers must
+                # not mistake an offline device for a degraded-but-online one.
+                raise
             logger.warning(f"Error getting system status: {e}")
             return SystemStatus(device_name=self.host, model="Unknown")
 

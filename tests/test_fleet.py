@@ -27,8 +27,15 @@ from .fixtures.responses import (
 # ============================================================
 
 
-def create_test_settings(devices: str = "192.168.1.100", fleet_name: str = "test") -> Settings:
-    """Create settings for testing."""
+def create_test_settings(
+    devices: str = "192.168.1.100", fleet_name: str = "test", max_retries: int = 0
+) -> Settings:
+    """Create settings for testing.
+
+    max_retries defaults to 0: offline-device tests otherwise sleep through
+    jittered retry backoff (seconds per device) without testing anything
+    retry-specific — retry behavior has its own tests in test_retry.py.
+    """
     return Settings(
         devices=devices,
         username="admin",
@@ -38,6 +45,7 @@ def create_test_settings(devices: str = "192.168.1.100", fleet_name: str = "test
         verify_ssl=False,
         fleet_name=fleet_name,
         storage_warning_percent=80.0,
+        max_retries=max_retries,
     )
 
 
@@ -452,6 +460,37 @@ class TestFleetErrorHandling:
         for device in result.devices:
             assert device["online"] is False
             assert "error" in device
+
+    async def test_fast_failing_device_reported_offline(self):
+        """A device that refuses connections must be offline — even when it fails fast.
+
+        Regression: get_system_status swallowed transport errors and returned
+        a degraded status, so fleet only marked a refused-connection device
+        offline if jittered retries happened to outlast the per-device
+        timeout. With max_retries=0 the failure is immediate and there is no
+        race: the device must still be reported offline.
+        """
+        from epiphan_mcp.server import get_fleet_status
+
+        with patch("epiphan_mcp.tools.fleet.get_settings") as mock_settings:
+            mock_settings.return_value = create_test_settings(
+                devices="192.168.1.100", max_retries=0
+            )
+
+            with respx.mock(assert_all_called=False) as router:
+                api_base = "http://192.168.1.100/api/v2.0"
+                router.get(f"{api_base}/device").mock(
+                    side_effect=ConnectError("Connection refused")
+                )
+                router.get(f"{api_base}/storages").mock(
+                    side_effect=ConnectError("Connection refused")
+                )
+
+                result = await get_fleet_status.fn()
+
+        assert result.online_devices == 0
+        assert result.devices[0]["online"] is False
+        assert "error" in result.devices[0]
 
     async def test_empty_device_list(self):
         """Test fleet operations with no devices configured."""

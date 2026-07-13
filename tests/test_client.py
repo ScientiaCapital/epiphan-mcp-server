@@ -4,7 +4,7 @@ Tests the Pearl REST API v2.0 client implementation using mocked HTTP responses.
 """
 
 import pytest
-from httpx import ConnectError, Response
+from httpx import ConnectError, ReadTimeout, Response
 
 from epiphan_mcp.client import PearlAPIError, PearlClient
 from epiphan_mcp.models import RecordingState, StreamingState
@@ -708,3 +708,89 @@ class TestClientOptionalParameters:
             )
 
         assert len(events) >= 1
+
+
+# ============================================================
+# Method-Aware Retry Tests (idempotency)
+# ============================================================
+
+
+class TestMethodAwareRetry:
+    """POST/PATCH are non-idempotent: retry only connect-phase failures.
+
+    An ambiguous failure (e.g. ReadTimeout after the request reached the
+    device) must NOT be retried for POST/PATCH — it can duplicate side
+    effects (duplicate publisher, double reboot). GET/PUT/DELETE keep the
+    full retry behavior.
+    """
+
+    @pytest.fixture
+    def retrying_client(self, mock_pearl_host: str) -> PearlClient:
+        return PearlClient(
+            host=mock_pearl_host,
+            username="admin",
+            password="pass",
+            max_retries=2,
+            retry_base_delay=0.01,
+            retry_max_delay=0.05,
+        )
+
+    async def test_post_does_not_retry_on_read_timeout(
+        self, retrying_client: PearlClient, mock_api_base: str, respx_mock
+    ):
+        """ReadTimeout after send is ambiguous — POST must fail immediately."""
+        route = respx_mock.post(f"{mock_api_base}/recorders/recorder-1/control/start").mock(
+            side_effect=ReadTimeout("timed out waiting for response")
+        )
+
+        async with retrying_client as client:
+            with pytest.raises(PearlAPIError):
+                await client._post("/recorders/recorder-1/control/start")
+
+        assert route.call_count == 1
+
+    async def test_post_retries_on_connect_error(
+        self, retrying_client: PearlClient, mock_api_base: str, respx_mock
+    ):
+        """ConnectError means the request never reached the device — safe to retry."""
+        route = respx_mock.post(f"{mock_api_base}/recorders/recorder-1/control/start")
+        route.side_effect = [
+            ConnectError("Connection refused"),
+            Response(200, json={"status": "ok"}),
+        ]
+
+        async with retrying_client as client:
+            result = await client._post("/recorders/recorder-1/control/start")
+
+        assert result == {"status": "ok"}
+        assert route.call_count == 2
+
+    async def test_patch_does_not_retry_on_read_timeout(
+        self, retrying_client: PearlClient, mock_api_base: str, respx_mock
+    ):
+        """PATCH is non-idempotent for Pearl config — same rule as POST."""
+        route = respx_mock.patch(f"{mock_api_base}/system/settings").mock(
+            side_effect=ReadTimeout("timed out waiting for response")
+        )
+
+        async with retrying_client as client:
+            with pytest.raises(PearlAPIError):
+                await client._patch("/system/settings", json={"key": "value"})
+
+        assert route.call_count == 1
+
+    async def test_get_still_retries_on_read_timeout(
+        self, retrying_client: PearlClient, mock_api_base: str, respx_mock
+    ):
+        """GET is idempotent — ambiguous timeouts remain retryable."""
+        route = respx_mock.get(f"{mock_api_base}/recorders")
+        route.side_effect = [
+            ReadTimeout("timed out waiting for response"),
+            Response(200, json={"result": []}),
+        ]
+
+        async with retrying_client as client:
+            recorders = await client.get_recorders()
+
+        assert recorders == []
+        assert route.call_count == 2

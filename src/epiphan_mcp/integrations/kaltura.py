@@ -27,6 +27,8 @@ from typing import Any
 
 import httpx
 
+from ._upload import stream_file
+
 logger = logging.getLogger(__name__)
 
 
@@ -577,27 +579,22 @@ class KalturaClient:
         logger.info(f"Created upload token {token_id}")
 
         try:
-            # Step 3: Upload file in chunks
-            with open(file_path, "rb") as f:
-                bytes_uploaded = 0
-                while True:
-                    chunk = f.read(chunk_size)
-                    if not chunk:
-                        break
+            # Step 3: Upload file in chunks (stream_file reads off the event loop)
+            bytes_uploaded = 0
+            async for chunk in stream_file(file_path, chunk_size=chunk_size):
+                is_final = len(chunk) < chunk_size or (bytes_uploaded + len(chunk) >= file_size)
 
-                    is_final = len(chunk) < chunk_size or (bytes_uploaded + len(chunk) >= file_size)
+                await self.upload_chunk(
+                    upload_token_id=token_id,
+                    file_data=chunk,
+                    resume=bytes_uploaded > 0,
+                    final_chunk=is_final,
+                    resume_at=bytes_uploaded,
+                )
 
-                    await self.upload_chunk(
-                        upload_token_id=token_id,
-                        file_data=chunk,
-                        resume=bytes_uploaded > 0,
-                        final_chunk=is_final,
-                        resume_at=bytes_uploaded,
-                    )
-
-                    bytes_uploaded += len(chunk)
-                    progress = (bytes_uploaded / file_size) * 100
-                    logger.info(f"Upload progress: {progress:.1f}%")
+                bytes_uploaded += len(chunk)
+                progress = (bytes_uploaded / file_size) * 100
+                logger.info(f"Upload progress: {progress:.1f}%")
 
             # Step 4: Attach content to entry
             await self.attach_content_to_entry(entry_id, token_id)

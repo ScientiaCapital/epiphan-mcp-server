@@ -451,6 +451,11 @@ class OpencastClient:
         url = f"{self.ingest_base}/addMediaPackage/{workflow}"
 
         try:
+            # httpx multipart requires a sync file-like object, so these
+            # reads stay on the event loop (64KB per read inside httpx) —
+            # unlike the other CMS uploads, which stream via _upload.
+            # stream_file. Acceptable until multipart streaming lands in
+            # httpx or this switches to the multi-step ingest endpoints.
             with open(file_path, "rb") as f:
                 files = {
                     "BODY": (file_path.name, f, "video/mp4"),

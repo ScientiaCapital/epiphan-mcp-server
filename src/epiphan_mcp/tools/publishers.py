@@ -117,6 +117,11 @@ async def create_publisher(
                 publisher_type=publisher_type,
                 settings=settings if settings else None,
             )
+            log_operation(
+                "create_publisher",
+                client.host,
+                details={"channel": channel_id, "name": name, "type": publisher_type},
+            )
             return PublisherCreateResult(
                 success=True,
                 device=client.host,
@@ -288,6 +293,11 @@ async def update_publisher_settings(
         async with get_client(device_id) as client:
             channel_id = f"channel-{channel}" if isinstance(channel, int) else str(channel)
             result = await client.update_publisher_settings(channel_id, publisher, settings)
+            log_operation(
+                "update_publisher_settings",
+                client.host,
+                details={"channel": channel_id, "publisher": publisher, "fields": list(settings)},
+            )
             return PublisherOperationResult(**result.model_dump())
     except PearlAPIError as e:
         return PublisherOperationResult(

@@ -12,6 +12,7 @@ from typing import Annotated, Any
 from fastmcp import FastMCP
 from pydantic import Field
 
+from ..audit import log_operation
 from ..client import PearlClient
 from ..config import Settings, get_settings
 from ..llm.providers import LLMError, get_provider
@@ -390,6 +391,13 @@ async def batch_start_recording(device_ids: DeviceIds = "all") -> BatchRecording
     # Count successes
     success_count = sum(1 for r in results if r.get("success", False))
 
+    log_operation(
+        "batch_start_recording",
+        device_ids,
+        success=success_count == len(hosts),
+        details={"total": len(hosts), "successful": success_count},
+    )
+
     return BatchRecordingResult(
         success=success_count == len(hosts),
         total_devices=len(hosts),
@@ -446,6 +454,13 @@ async def batch_stop_recording(device_ids: DeviceIds = "all") -> BatchRecordingR
 
     # Count successes
     success_count = sum(1 for r in results if r.get("success", False))
+
+    log_operation(
+        "batch_stop_recording",
+        device_ids,
+        success=success_count == len(hosts),
+        details={"total": len(hosts), "successful": success_count},
+    )
 
     return BatchRecordingResult(
         success=success_count == len(hosts),

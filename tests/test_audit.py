@@ -5,6 +5,8 @@ and that SENSITIVE_OPERATIONS is complete.
 """
 
 import logging
+import re
+from pathlib import Path
 
 from epiphan_mcp.audit import SENSITIVE_OPERATIONS, is_sensitive_operation, log_operation
 
@@ -95,3 +97,40 @@ class TestSensitiveOperationsComplete:
     def test_sensitive_operations_is_set(self):
         """SENSITIVE_OPERATIONS should be a set for O(1) lookups."""
         assert isinstance(SENSITIVE_OPERATIONS, set)
+
+
+class TestAuditPolicyEnforcement:
+    """Meta-test: SENSITIVE_OPERATIONS and log_operation call sites stay in lockstep.
+
+    This is the drift guard for the 2026-07-12 finding that the declared audit
+    policy and the actual call sites had diverged in both directions (listed
+    ops that never logged; logging ops that weren't listed).
+    """
+
+    @staticmethod
+    def _logged_operation_names() -> set[str]:
+        """Every operation name passed to log_operation() across tools/."""
+        tools_dir = Path(__file__).parent.parent / "src" / "epiphan_mcp" / "tools"
+        pattern = re.compile(r'log_operation\(\s*"([a-z_0-9]+)"')
+        names: set[str] = set()
+        for py_file in tools_dir.glob("*.py"):
+            names.update(pattern.findall(py_file.read_text()))
+        return names
+
+    def test_every_sensitive_operation_is_logged_somewhere(self):
+        """Each declared sensitive op has at least one log_operation call site."""
+        logged = self._logged_operation_names()
+        unlogged = SENSITIVE_OPERATIONS - logged
+        assert not unlogged, (
+            f"Operations declared sensitive but never audit-logged: {sorted(unlogged)}. "
+            "Add a log_operation() call to the tool, or remove the entry."
+        )
+
+    def test_every_logged_operation_is_declared_sensitive(self):
+        """Each log_operation call site is declared in SENSITIVE_OPERATIONS."""
+        logged = self._logged_operation_names()
+        undeclared = logged - SENSITIVE_OPERATIONS
+        assert not undeclared, (
+            f"Operations audit-logged but missing from SENSITIVE_OPERATIONS: "
+            f"{sorted(undeclared)}. Add them to the set in audit.py."
+        )

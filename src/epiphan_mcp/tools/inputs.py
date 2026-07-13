@@ -11,6 +11,7 @@ from typing import Annotated, Any
 from fastmcp import FastMCP
 from pydantic import Field
 
+from ..audit import log_operation
 from ..client import PearlAPIError
 from ..models import (
     InputCreateResult,
@@ -109,6 +110,11 @@ async def create_network_input(
                 name=name,
                 input_type=input_type,
                 settings=settings if settings else None,
+            )
+            log_operation(
+                "create_network_input",
+                client.host,
+                details={"name": name, "type": input_type},
             )
             return InputCreateResult(
                 success=True,
@@ -234,6 +240,11 @@ async def update_input_settings(
     try:
         async with get_client(device_id) as client:
             result = await client.update_input_settings(input_id, settings)
+            log_operation(
+                "update_input_settings",
+                client.host,
+                details={"input_id": input_id, "fields": list(settings)},
+            )
             return InputUpdateResult(**result.model_dump())
     except PearlAPIError as e:
         return InputUpdateResult(

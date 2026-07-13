@@ -24,6 +24,7 @@ from typing import Annotated
 from fastmcp import FastMCP
 from pydantic import Field
 
+from epiphan_mcp.audit import log_operation
 from epiphan_mcp.integrations.kaltura import (
     KalturaAPIError,
     KalturaAuthError,
@@ -454,6 +455,11 @@ async def upload_to_kaltura(
                 description=description,
                 category_ids=cat_ids,
                 wait_for_ready=wait_for_ready,
+            )
+            log_operation(
+                "upload_to_kaltura",
+                f"kaltura:{config['partner_id']}",
+                details={"file": path.name, "size_bytes": path.stat().st_size},
             )
             return KalturaUploadResult(
                 media=result,

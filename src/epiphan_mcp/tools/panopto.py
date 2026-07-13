@@ -20,6 +20,7 @@ from typing import Annotated
 from fastmcp import FastMCP
 from pydantic import Field
 
+from epiphan_mcp.audit import log_operation
 from epiphan_mcp.integrations.panopto import (
     PanoptoAPIError,
     PanoptoAuthError,
@@ -425,6 +426,11 @@ async def upload_to_panopto(
                 session_name=session_name or None,
                 wait_for_processing=wait_for_processing,
             )
+            log_operation(
+                "upload_to_panopto",
+                config.host,
+                details={"file": path.name, "size_bytes": path.stat().st_size},
+            )
             return PanoptoUploadResult(
                 upload=result,
                 message=f"Uploaded {path.name} to Panopto",
@@ -519,6 +525,7 @@ async def delete_panopto_session(session_id: _SessionId) -> PanoptoDeleteResult:
             client_secret=config.client_secret,
         ) as client:
             await client.delete_session(session_id)
+            log_operation("delete_panopto_session", config.host, details={"session_id": session_id})
             return PanoptoDeleteResult(message=f"Deleted session {session_id}", success=True)
     except PanoptoAuthError as e:
         return PanoptoDeleteResult(error=f"Authentication failed: {e}")

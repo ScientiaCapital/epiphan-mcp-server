@@ -23,6 +23,7 @@ from typing import Annotated, Any
 from fastmcp import FastMCP
 from pydantic import Field
 
+from epiphan_mcp.audit import log_operation
 from epiphan_mcp.integrations.opencast import (
     OpencastAPIError,
     OpencastAuthError,
@@ -358,6 +359,11 @@ async def ingest_to_opencast(
                 spatial=spatial,
                 workflow=workflow,
             )
+            log_operation(
+                "ingest_to_opencast",
+                str(config["host"]),
+                details={"file": path.name, "size_bytes": path.stat().st_size},
+            )
             return OpencastIngestResult(
                 result=result,
                 message=f"Ingested '{title}' to Opencast",
@@ -505,6 +511,7 @@ async def delete_opencast_event(event_id: _EventId) -> OpencastDeleteResult:
     try:
         async with OpencastClient(**config) as client:
             await client.delete_event(event_id)
+            log_operation("delete_opencast_event", str(config["host"]), details={"event_id": event_id})
             return OpencastDeleteResult(
                 success=True,
                 message=f"Deleted event {event_id}",

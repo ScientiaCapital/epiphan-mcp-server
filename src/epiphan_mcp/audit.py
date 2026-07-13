@@ -52,7 +52,9 @@ def log_operation(
     return None
 
 
-# Define sensitive operations that should be audited
+# Sensitive operations that must be audited. Kept in lockstep with the
+# actual log_operation() call sites by a meta-test in tests/test_audit.py —
+# adding an entry here without a matching call site (or vice versa) fails CI.
 SENSITIVE_OPERATIONS = {
     # Publisher management (can expose stream keys)
     "create_publisher",
@@ -73,12 +75,23 @@ SENSITIVE_OPERATIONS = {
     "create_scheduled_event",
     "pause_event",
     "resume_event",
-    # Cloud fleet management (destructive)
+    # Cloud fleet management (destructive / fleet-wide)
     "cloud_unpair_device",
     "cloud_delete_device",
+    "cloud_rename_device",
+    "cloud_run_command",
+    "cloud_batch_command",
+    "cloud_apply_preset",
     # CMS destructive operations
     "delete_panopto_session",
     "delete_opencast_event",
+    "delete_yuja_video",
+    # CMS outbound uploads (data leaves the network)
+    "upload_to_panopto",
+    "upload_to_kaltura",
+    "ingest_to_opencast",
+    "upload_video_to_yuja",
+    "upload_video_to_echo360",
 }
 
 

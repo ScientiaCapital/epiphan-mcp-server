@@ -20,6 +20,7 @@ from fastmcp import FastMCP
 from pydantic import Field
 
 from epiphan_mcp.audit import log_operation
+from epiphan_mcp.config import validate_integration_host
 from epiphan_mcp.integrations.yuja import (
     YuJaAPIError,
     YuJaAuthError,
@@ -86,7 +87,7 @@ def _get_yuja_config() -> _YuJaConfig:
     assert auth_token is not None
 
     return _YuJaConfig(
-        host=host,
+        host=validate_integration_host(host, "YuJa"),
         auth_token=auth_token,
         user_id=os.environ.get("YUJA_USER_ID"),
     )

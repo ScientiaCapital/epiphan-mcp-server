@@ -6,6 +6,7 @@ from typing import Annotated
 from fastmcp import FastMCP
 from pydantic import Field
 
+from ..audit import log_operation
 from ..client import PearlAPIError
 from ..models import (
     EventControlResult,
@@ -208,6 +209,11 @@ async def create_scheduled_event(
                 recorders=recorder_list,
                 publishers=publisher_list,
             )
+            log_operation(
+                "create_scheduled_event",
+                client.host,
+                details={"name": name, "start_time": start_time},
+            )
             return EventCreateResult(
                 success=True,
                 device=client.host,
@@ -255,6 +261,7 @@ async def pause_event(
     try:
         async with get_client(device_id) as client:
             result = await client.pause_event(event_id)
+            log_operation("pause_event", client.host, details={"event_id": event_id})
             return EventControlResult(**result.model_dump(), event_id=event_id)
     except PearlAPIError as e:
         return EventControlResult(
@@ -297,6 +304,7 @@ async def resume_event(
     try:
         async with get_client(device_id) as client:
             result = await client.resume_event(event_id)
+            log_operation("resume_event", client.host, details={"event_id": event_id})
             return EventControlResult(**result.model_dump(), event_id=event_id)
     except PearlAPIError as e:
         return EventControlResult(

@@ -11,6 +11,29 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 _HOSTNAME_RE = re.compile(r"^(?!-)[A-Za-z0-9-]{1,63}(?<!-)(\.[A-Za-z0-9-]{1,63})*$")
 
 
+def validate_integration_host(host: str, service: str) -> str:
+    """Fail fast on a malformed integration hostname from an env var.
+
+    Integration hosts (YuJa, Echo360, Cloud, Q-SYS) are operator-set at
+    startup, not per-call input, so this is a format check for early,
+    clear errors — the SSRF-grade validation in Settings._validate_host
+    stays reserved for caller-supplied device identifiers.
+
+    Args:
+        host: Hostname or IP from the integration's env var.
+        service: Service label for the error message (e.g., "YuJa").
+
+    Returns:
+        The validated host string.
+
+    Raises:
+        ValueError: If the host is not a plausible hostname or IP.
+    """
+    if not _HOSTNAME_RE.match(host):
+        raise ValueError(f"Invalid {service} hostname: '{host}' is not a valid IP or hostname")
+    return host
+
+
 class Settings(BaseSettings):
     """Application settings loaded from environment variables."""
 

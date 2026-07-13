@@ -19,6 +19,7 @@ from typing import Annotated, Any
 from fastmcp import FastMCP
 from pydantic import Field
 
+from epiphan_mcp.config import validate_integration_host
 from epiphan_mcp.integrations.qsys import (
     QSysAuthError,
     QSysClient,
@@ -55,7 +56,7 @@ def _get_qsys_config() -> dict[str, Any]:
         raise ValueError("Missing Q-SYS configuration. Set QSYS_CORE_IP environment variable.")
 
     return {
-        "host": host,
+        "host": validate_integration_host(host, "Q-SYS"),
         "port": int(os.environ.get("QSYS_PORT", "1710")),
         "pin": os.environ.get("QSYS_PIN", ""),
     }

@@ -6,6 +6,7 @@ from typing import Annotated
 from fastmcp import FastMCP
 from pydantic import Field
 
+from ..audit import log_operation
 from ..client import PearlAPIError
 from ..models import (
     ArchiveFilesResult,
@@ -54,6 +55,7 @@ async def start_recording(
             # Convert int to string recorder ID (e.g., 1 -> "recorder-1")
             recorder_id = f"recorder-{recorder}" if isinstance(recorder, int) else str(recorder)
             result = await client.start_recording(recorder_id)
+            log_operation("start_recording", client.host, details={"recorder": recorder_id})
             return RecordingControlResult(**result.model_dump())
     except PearlAPIError as e:
         return RecordingControlResult(
@@ -92,6 +94,7 @@ async def stop_recording(
         async with get_client(device_id) as client:
             recorder_id = f"recorder-{recorder}" if isinstance(recorder, int) else str(recorder)
             result = await client.stop_recording(recorder_id)
+            log_operation("stop_recording", client.host, details={"recorder": recorder_id})
             return RecordingControlResult(**result.model_dump())
     except PearlAPIError as e:
         return RecordingControlResult(

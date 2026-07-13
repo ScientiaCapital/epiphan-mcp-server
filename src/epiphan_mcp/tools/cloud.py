@@ -18,6 +18,7 @@ from fastmcp import FastMCP
 from pydantic import Field
 
 from epiphan_mcp.audit import log_operation
+from epiphan_mcp.config import validate_integration_host
 from epiphan_mcp.integrations.cloud import (
     EpiphanCloudAPIError,
     EpiphanCloudAuthError,
@@ -34,6 +35,7 @@ from epiphan_mcp.models import (
     CloudSettingsResult,
     CloudUserResult,
 )
+from epiphan_mcp.validation import ValidationError, validate_streaming_url
 
 _CloudDeviceId = Annotated[
     str,
@@ -85,7 +87,9 @@ def _get_cloud_config() -> _CloudConfig:
         )
     return _CloudConfig(
         token=token,
-        host=os.environ.get("EPIPHAN_CLOUD_HOST", "go.epiphan.cloud"),
+        host=validate_integration_host(
+            os.environ.get("EPIPHAN_CLOUD_HOST", "go.epiphan.cloud"), "Epiphan Cloud"
+        ),
     )
 
 
@@ -304,6 +308,7 @@ async def cloud_rename_device(
     try:
         async with EpiphanCloudClient(token=config.token, host=config.host) as client:
             await client.rename_device(device_id, new_name)
+            log_operation("cloud_rename_device", device_id, details={"new_name": new_name})
             return CloudOperationResult(
                 message=f"Renamed device {device_id} to '{new_name}'",
                 success=True,
@@ -340,6 +345,11 @@ async def cloud_run_command(device_id: _CloudDeviceId, command: _Command) -> Clo
         return CloudCommandResult(error="command is required")
 
     try:
+        _validate_command_url(command)
+    except ValidationError as e:
+        return CloudCommandResult(error=f"Invalid streaming URL in command: {e}")
+
+    try:
         config = _get_cloud_config()
     except ValueError as e:
         return CloudCommandResult(error=str(e))
@@ -347,6 +357,7 @@ async def cloud_run_command(device_id: _CloudDeviceId, command: _Command) -> Clo
     try:
         async with EpiphanCloudClient(token=config.token, host=config.host) as client:
             result = await client.run_task(device_id, command)
+            log_operation("cloud_run_command", device_id, details={"command": command})
             return CloudCommandResult(
                 result=result,
                 message=f"Executed '{command}' on device {device_id}",
@@ -355,6 +366,15 @@ async def cloud_run_command(device_id: _CloudDeviceId, command: _Command) -> Clo
         return CloudCommandResult(error=f"Authentication failed: {e}")
     except EpiphanCloudAPIError as e:
         return CloudCommandResult(error=f"API error: {e}")
+
+
+def _validate_command_url(command: str) -> None:
+    """SSRF-check the URL embedded in an rtmp.start:{url} command.
+
+    Other commands carry no URL and pass through unchanged.
+    """
+    if command.startswith("rtmp.start:"):
+        validate_streaming_url(command.removeprefix("rtmp.start:"))
 
 
 async def cloud_batch_command(
@@ -383,6 +403,11 @@ async def cloud_batch_command(
         return CloudBatchCommandResult(error="device_ids must contain at least one device ID")
 
     try:
+        _validate_command_url(command)
+    except ValidationError as e:
+        return CloudBatchCommandResult(error=f"Invalid streaming URL in command: {e}")
+
+    try:
         config = _get_cloud_config()
     except ValueError as e:
         return CloudBatchCommandResult(error=str(e))
@@ -390,6 +415,11 @@ async def cloud_batch_command(
     try:
         async with EpiphanCloudClient(token=config.token, host=config.host) as client:
             result = await client.batch_task(ids_list, command)
+            log_operation(
+                "cloud_batch_command",
+                device_ids,
+                details={"command": command, "device_count": len(ids_list)},
+            )
             return CloudBatchCommandResult(
                 result=result,
                 message=f"Executed '{command}' on {len(ids_list)} devices",
@@ -511,6 +541,11 @@ async def cloud_apply_preset(
                 device_id=device_id,
                 preset_data={"name": preset_name},
                 preset_type=preset_type,
+            )
+            log_operation(
+                "cloud_apply_preset",
+                device_id,
+                details={"preset": preset_name, "type": preset_type},
             )
             return CloudCommandResult(
                 result=result,

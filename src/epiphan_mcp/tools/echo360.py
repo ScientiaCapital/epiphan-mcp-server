@@ -20,6 +20,7 @@ from fastmcp import FastMCP
 from pydantic import Field
 
 from epiphan_mcp.audit import log_operation
+from epiphan_mcp.config import validate_integration_host
 from epiphan_mcp.integrations.echo360 import (
     Echo360APIError,
     Echo360AuthError,
@@ -85,7 +86,11 @@ def _get_echo360_config() -> _Echo360Config:
     assert client_id is not None
     assert client_secret is not None
 
-    return _Echo360Config(host=host, client_id=client_id, client_secret=client_secret)
+    return _Echo360Config(
+        host=validate_integration_host(host, "Echo360"),
+        client_id=client_id,
+        client_secret=client_secret,
+    )
 
 
 async def list_echo360_courses() -> Echo360CourseListResult:

@@ -212,9 +212,10 @@ class TestPanoptoClientFolders:
             username="user",
             password="pass",
         ) as client:
-            folders = await client.list_folders()
+            folders, truncated = await client.list_folders()
             assert len(folders) == 2
             assert folders[0]["Name"] == "Lectures"
+            assert truncated is False
 
     @pytest.mark.asyncio
     @respx.mock
@@ -239,6 +240,62 @@ class TestPanoptoClientFolders:
             await client.list_folders(search_query="Physics")
 
         assert "searchQuery=Physics" in str(route.calls[0].request.url)
+
+    @pytest.mark.asyncio
+    @respx.mock
+    async def test_list_folders_reports_truncation_from_total(self):
+        """An envelope total larger than the page marks the result truncated."""
+        respx.post("https://panopto.example.edu/Panopto/oauth2/connect/token").mock(
+            return_value=httpx.Response(
+                200,
+                json={"access_token": "token", "token_type": "Bearer", "expires_in": 3600},
+            )
+        )
+        respx.get("https://panopto.example.edu/api/v1/folders").mock(
+            return_value=httpx.Response(
+                200,
+                json={
+                    "Results": [{"Id": "f1"}, {"Id": "f2"}],
+                    "TotalNumberOfResults": 50,
+                },
+            )
+        )
+
+        async with PanoptoClient(
+            host="panopto.example.edu",
+            client_id="test-client",
+            username="user",
+            password="pass",
+        ) as client:
+            folders, truncated = await client.list_folders()
+        assert len(folders) == 2
+        assert truncated is True
+
+    @pytest.mark.asyncio
+    @respx.mock
+    async def test_list_folders_complete_page_not_truncated(self):
+        """A complete page (total == items) is not truncated."""
+        respx.post("https://panopto.example.edu/Panopto/oauth2/connect/token").mock(
+            return_value=httpx.Response(
+                200,
+                json={"access_token": "token", "token_type": "Bearer", "expires_in": 3600},
+            )
+        )
+        respx.get("https://panopto.example.edu/api/v1/folders").mock(
+            return_value=httpx.Response(
+                200,
+                json={"Results": [{"Id": "f1"}], "TotalNumberOfResults": 1},
+            )
+        )
+
+        async with PanoptoClient(
+            host="panopto.example.edu",
+            client_id="test-client",
+            username="user",
+            password="pass",
+        ) as client:
+            _folders, truncated = await client.list_folders()
+        assert truncated is False
 
     @pytest.mark.asyncio
     @respx.mock
@@ -325,8 +382,39 @@ class TestPanoptoClientSessions:
             username="user",
             password="pass",
         ) as client:
-            sessions = await client.list_sessions()
+            sessions, truncated = await client.list_sessions()
             assert len(sessions) == 2
+            assert truncated is False
+
+    @pytest.mark.asyncio
+    @respx.mock
+    async def test_list_sessions_reports_truncation_from_total(self):
+        """An envelope total larger than the page marks the result truncated."""
+        respx.post("https://panopto.example.edu/Panopto/oauth2/connect/token").mock(
+            return_value=httpx.Response(
+                200,
+                json={"access_token": "token", "token_type": "Bearer", "expires_in": 3600},
+            )
+        )
+        respx.get("https://panopto.example.edu/api/v1/sessions").mock(
+            return_value=httpx.Response(
+                200,
+                json={
+                    "Results": [{"Id": "s1"}, {"Id": "s2"}],
+                    "TotalNumberOfResults": 200,
+                },
+            )
+        )
+
+        async with PanoptoClient(
+            host="panopto.example.edu",
+            client_id="test-client",
+            username="user",
+            password="pass",
+        ) as client:
+            sessions, truncated = await client.list_sessions()
+        assert len(sessions) == 2
+        assert truncated is True
 
     @pytest.mark.asyncio
     @respx.mock
@@ -625,6 +713,33 @@ class TestPanoptoTools:
         result = await list_panopto_folders()
         assert result.count == 1
         assert result.folders[0]["Name"] == "Folder 1"
+
+    @pytest.mark.asyncio
+    @respx.mock
+    async def test_list_panopto_folders_surfaces_truncation(self):
+        """The tool exposes a truncated flag so callers know the list is partial."""
+        from epiphan_mcp.tools.panopto import list_panopto_folders
+
+        respx.post("https://panopto.example.edu/Panopto/oauth2/connect/token").mock(
+            return_value=httpx.Response(
+                200,
+                json={"access_token": "token", "token_type": "Bearer", "expires_in": 3600},
+            )
+        )
+        respx.get("https://panopto.example.edu/api/v1/folders").mock(
+            return_value=httpx.Response(
+                200,
+                json={
+                    "Results": [{"Id": "f1", "Name": "Folder 1"}],
+                    "TotalNumberOfResults": 40,
+                },
+            )
+        )
+
+        result = await list_panopto_folders()
+        assert result.error is None
+        assert result.count == 1
+        assert result.truncated is True
 
     @pytest.mark.asyncio
     @respx.mock

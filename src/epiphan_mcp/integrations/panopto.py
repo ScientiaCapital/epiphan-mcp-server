@@ -23,6 +23,7 @@ from urllib.parse import urljoin
 
 import httpx
 
+from ._pagination import extract_page
 from ._upload import stream_file
 
 logger = logging.getLogger(__name__)
@@ -72,7 +73,7 @@ class PanoptoClient:
             username="service@university.edu",
             password="secure-password"
         ) as client:
-            folders = await client.list_folders()
+            folders, truncated = await client.list_folders()
             session = await client.create_session(
                 folder_id="folder-uuid",
                 name="Lecture Recording"
@@ -250,7 +251,7 @@ class PanoptoClient:
         self,
         parent_folder_id: str | None = None,
         search_query: str | None = None,
-    ) -> list[dict[str, Any]]:
+    ) -> tuple[list[dict[str, Any]], bool]:
         """List folders accessible to the authenticated user.
 
         Args:
@@ -258,7 +259,7 @@ class PanoptoClient:
             search_query: Search folders by name
 
         Returns:
-            List of folder objects
+            Tuple of (folder objects for the first page, truncated flag)
         """
         params: dict[str, Any] = {}
         if parent_folder_id:
@@ -267,8 +268,7 @@ class PanoptoClient:
             params["searchQuery"] = search_query
 
         result = await self._request("GET", "/folders", params=params)
-        folders: list[dict[str, Any]] = result.get("Results", [])
-        return folders
+        return extract_page(result, "Results")
 
     async def get_folder(self, folder_id: str) -> dict[str, Any]:
         """Get folder details.
@@ -313,7 +313,7 @@ class PanoptoClient:
         self,
         folder_id: str | None = None,
         search_query: str | None = None,
-    ) -> list[dict[str, Any]]:
+    ) -> tuple[list[dict[str, Any]], bool]:
         """List sessions accessible to the authenticated user.
 
         Args:
@@ -321,7 +321,7 @@ class PanoptoClient:
             search_query: Search sessions by name
 
         Returns:
-            List of session objects
+            Tuple of (session objects for the first page, truncated flag)
         """
         params: dict[str, Any] = {}
         if folder_id:
@@ -330,8 +330,7 @@ class PanoptoClient:
             params["searchQuery"] = search_query
 
         result = await self._request("GET", "/sessions", params=params)
-        sessions: list[dict[str, Any]] = result.get("Results", [])
-        return sessions
+        return extract_page(result, "Results")
 
     async def get_session(self, session_id: str) -> dict[str, Any]:
         """Get session details.

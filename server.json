@@ -2,7 +2,7 @@
   "name": "epiphan-pearl",
   "display_name": "Epiphan Pearl MCP Server",
   "description": "AI-native control for Epiphan Pearl video capture devices — recording, streaming, fleet management, CMS integrations, and PTZ camera control through the Model Context Protocol.",
-  "version": "1.0.0",
+  "version": "1.2.0",
   "author": {
     "name": "Tim Kipper",
     "url": "https://github.com/tmkipper"
@@ -13,13 +13,14 @@
   },
   "license": "MIT",
   "transport": "stdio",
-  "tools_count": 113,
+  "tools_count": 124,
   "categories": ["hardware", "video", "av-control", "iot"],
   "integrations": [
     "Epiphan Pearl",
     "Panopto",
     "Kaltura",
     "Opencast",
+    "YuJa",
     "Q-SYS",
     "YouTube Live",
     "Epiphan EC20",

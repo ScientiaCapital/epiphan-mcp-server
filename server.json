@@ -29,7 +29,7 @@
     "OpenRouter (Vision LLMs)"
   ],
   "installation": {
-    "pip": "pip install epiphan-mcp (pending PyPI publish)",
+    "pip": "Not yet published to PyPI — install from source (below)",
     "source": "git clone https://github.com/tmkipper/epiphan-mcp-server.git && pip install -e '.[dev]'"
   },
   "configuration": {

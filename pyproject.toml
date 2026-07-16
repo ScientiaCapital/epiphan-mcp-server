@@ -52,6 +52,12 @@ dev = [
     "mypy>=1.0.0",
     "ruff>=0.1.0",
 ]
+# Local-model agent harness (examples/local_agent/). Talks to Ollama's
+# OpenAI-compatible endpoint over httpx — both fastmcp and httpx are already core
+# deps, so no additional packages are required. Listed for discoverability.
+local-agent = [
+    "httpx>=0.25.0,<1",
+]
 
 [project.urls]
 Homepage = "https://github.com/tmkipper/epiphan-mcp-server"

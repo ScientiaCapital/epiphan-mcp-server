@@ -26,7 +26,7 @@
 - All secrets in `.env` only — never in source
 
 ## Testing
-- Unit tests: `pytest` (618 tests, no hardware needed)
+- Unit tests: `pytest` (1,369 pass without hardware; 7 integration tests skip)
 - Integration tests: `pytest -m integration` (requires `PEARL_TEST_IP` in `.env`)
 - Type check: `mypy src/`
 - Lint: `ruff check src/`

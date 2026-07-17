@@ -1,5 +1,10 @@
 # Sprint Report: Audit, Research & Architecture
 
+> **⚠️ SUPERSEDED — historical snapshot (2026-02-08).**
+> Numbers below (113 tools, 674 tests, v1.0.0, 9 integrations) reflect that date and are
+> no longer current; the security findings listed as open have since been fixed.
+> For current status see the top-level [README](../README.md) and [CLAUDE.md](../CLAUDE.md).
+
 **Date**: 2026-02-08
 **Sprint**: Codebase Audit + Market Research + Architecture Planning
 **Status**: Complete (read-only sprint, no code changes)

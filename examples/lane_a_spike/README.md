@@ -23,7 +23,18 @@ python examples/lane_a_spike/run.py --synthetic
 
 # Against real devices in .env (PEARL_DEVICES / PEARL_USERNAME / PEARL_PASSWORD):
 python examples/lane_a_spike/run.py --live
+
+# Demo mode — durable store + poll loop + temporal history (Ctrl-C to stop):
+python examples/lane_a_spike/run.py --live --db demo.db --watch 5 --history
 ```
+
+`--live` extras: `--db PATH` makes the sink durable, so the gate's last-known state
+survives across runs — re-running against unchanged devices emits **0 facts** (the gate,
+observable live). `--watch [SECONDS]` keeps polling (default 5s); provoke a transition
+(unplug the network, upgrade firmware) and watch exactly one fact per change appear.
+`--history` prints the append-only `state_events` log — "what changed, when, from what".
+These flags are rejected with `--synthetic`: the self-test's exact-count assertions
+require a fresh in-memory store.
 
 The `--synthetic` run is the spike's self-test: it drives one device through
 online → firmware upgrade → within-band storage move → band crossing → offline →

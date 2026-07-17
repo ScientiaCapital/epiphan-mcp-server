@@ -2,7 +2,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
-[![Tests](https://img.shields.io/badge/tests-1341-brightgreen.svg)](tests/)
+[![Tests](https://img.shields.io/badge/tests-1376-brightgreen.svg)](tests/)
 [![Tools](https://img.shields.io/badge/MCP_tools-130-blue.svg)](src/epiphan_mcp/server.py)
 [![Version](https://img.shields.io/badge/version-1.2.0-blue.svg)](CHANGELOG.md)
 
@@ -41,7 +41,7 @@ Pearl Copilot exposes **130 tools** across **11 integration groups**:
 
 ### Integration maturity — read this before testing
 
-All 130 tools have **unit tests against mocked HTTP responses** (1,341 tests total). What varies is whether the underlying endpoints have been exercised against a **real** live system. Test the known-unverified areas first:
+All 130 tools have **unit tests against mocked HTTP responses** (1,376 tests total). What varies is whether the underlying endpoints have been exercised against a **real** live system. Test the known-unverified areas first:
 
 - **EC20 (all 10 tools):** the REST endpoint paths are best-effort placeholders and have **not** been validated against real camera hardware. Expect these to need correction once a camera is on the bench. See the `TODO` in `src/epiphan_mcp/integrations/ec20.py`.
 - **YuJa:** upload is validated; the list/channel endpoint paths come from public docs and are unconfirmed against a live instance.
@@ -492,7 +492,7 @@ ruff format src/
 
 ### Tests
 
-**1,341 tests** (1,334 passing, 7 skipped). All unit tests use mocked HTTP responses — no
+**1,376 tests** (1,369 passing, 7 skipped). All unit tests use mocked HTTP responses — no
 real Pearl hardware or API keys required. The 7 skipped tests are the real-hardware
 integration tests in `tests/test_integration.py`; they run only when `PEARL_DEVICES` is set:
 

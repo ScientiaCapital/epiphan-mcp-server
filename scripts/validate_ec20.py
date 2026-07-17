@@ -25,12 +25,17 @@ import sys
 from collections.abc import Awaitable
 from typing import Any
 
+from dotenv import load_dotenv
+
 from epiphan_mcp.integrations.ec20 import (
     EC20APIError,
     EC20AuthError,
     EC20Client,
     EC20ConnectionError,
 )
+
+# Pick up credentials from .env, like the server does.
+load_dotenv()
 
 # Documented path per client method, for the report (see ec20.py TODO).
 PATHS = {

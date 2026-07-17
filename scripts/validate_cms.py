@@ -27,6 +27,12 @@ import sys
 from collections.abc import Awaitable
 from typing import Any
 
+from dotenv import load_dotenv
+
+# Pick up credentials from .env, like the server does (scripts otherwise only see
+# variables exported in the shell).
+load_dotenv()
+
 
 class Report:
     def __init__(self) -> None:

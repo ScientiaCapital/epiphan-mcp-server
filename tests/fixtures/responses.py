@@ -19,6 +19,31 @@ DEVICE_RESPONSE = {
     },
 }
 
+# Spec-accurate system endpoints (Pearl v2.0 openapi):
+#   GET /system/ident     -> name, location, description
+#   GET /system/firmware  -> version, revision, product_id, product_name
+IDENT_RESPONSE = {
+    "status": "ok",
+    "result": {
+        "name": "Pearl-2-ABC123",
+        "location": "Lecture Hall 204",
+        "description": "",
+        # serial is not in the spec's ident schema; included as a best-effort
+        # extra since some firmware returns it (get_system_status reads it if present).
+        "serial": "ABC123456",
+    },
+}
+
+FIRMWARE_RESPONSE = {
+    "status": "ok",
+    "result": {
+        "version": "4.14.2",
+        "revision": "",
+        "product_id": "pearl2",
+        "product_name": "Pearl-2",
+    },
+}
+
 # ============================================================
 # Storage Responses
 # ============================================================
@@ -37,6 +62,51 @@ STORAGE_RESPONSE = {
             "mounted": True,
         },
     ],
+}
+
+# Spec-accurate storage endpoints (Pearl v2.0 openapi):
+#   GET /system/storages                 -> [{id}]
+#   GET /system/storages/{stid}/status   -> {state, total, free}
+STORAGES_LIST_RESPONSE = {
+    "status": "ok",
+    "result": [{"id": "storage-1"}],
+}
+
+STORAGE_STATUS_RESPONSE = {
+    "status": "ok",
+    "result": {
+        "state": "mounted",
+        "total": 500000000000,  # 500GB
+        "free": 400000000000,  # 400GB (20% used)
+    },
+}
+
+STORAGE_STATUS_LOW_RESPONSE = {
+    "status": "ok",
+    "result": {
+        "state": "mounted",
+        "total": 500000000000,  # 500GB
+        "free": 50000000000,  # 50GB (90% used) -> triggers storage warnings
+    },
+}
+
+# Spec-accurate single-touch endpoints (Pearl v2.0 openapi):
+#   GET  /system/singletouchcontrol                  -> [{id}]
+#   GET  /system/singletouchcontrol/{stcid}/state    -> {pressed, status, ...}
+#   POST /system/singletouchcontrol/{stcid}/control/toggle
+SINGLETOUCH_LIST_RESPONSE = {
+    "status": "ok",
+    "result": [{"id": "stc-1"}],
+}
+
+SINGLETOUCH_STATE_OFF = {
+    "status": "ok",
+    "result": {"pressed": False, "status": False},
+}
+
+SINGLETOUCH_STATE_ON = {
+    "status": "ok",
+    "result": {"pressed": False, "status": True},
 }
 
 STORAGE_LOW_SPACE_RESPONSE = {

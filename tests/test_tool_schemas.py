@@ -29,11 +29,10 @@ from epiphan_mcp import models
 from epiphan_mcp.config import Settings
 from epiphan_mcp.server import mcp
 
+from .fixtures.mocks import mock_system_routes
 from .fixtures.responses import (
     CONTROL_SUCCESS_RESPONSE,
-    DEVICE_RESPONSE,
     RECORDER_STATUS_STOPPED,
-    STORAGE_RESPONSE,
 )
 
 # Tool modules not yet converted to typed params + typed returns.
@@ -164,8 +163,7 @@ async def test_wire_compat_get_fleet_status_normal(monkeypatch):
     api = f"http://{host}/api/v2.0"
 
     with respx.mock(assert_all_called=False) as router:
-        router.get(f"{api}/device").mock(return_value=Response(200, json=DEVICE_RESPONSE))
-        router.get(f"{api}/storages").mock(return_value=Response(200, json=STORAGE_RESPONSE))
+        mock_system_routes(router, api)
         router.get(f"{api}/recorders/recorder-1/status").mock(
             return_value=Response(200, json=RECORDER_STATUS_STOPPED)
         )

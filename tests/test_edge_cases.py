@@ -21,10 +21,10 @@ from epiphan_mcp.tools.fleet import (
 )
 from epiphan_mcp.tools.recording import start_recording
 
+from .fixtures.mocks import mock_system_routes
 from .fixtures.responses import (
     DEVICE_RESPONSE,
     RECORDER_STATUS_STOPPED,
-    STORAGE_RESPONSE,
 )
 
 # ============================================================
@@ -126,10 +126,7 @@ class TestConcurrentOperations:
             respx.mock(assert_all_called=False) as router,
         ):
             api_base = "http://192.168.1.100/api/v2.0"
-            router.get(f"{api_base}/device").mock(return_value=Response(200, json=DEVICE_RESPONSE))
-            router.get(f"{api_base}/storages").mock(
-                return_value=Response(200, json=STORAGE_RESPONSE)
-            )
+            mock_system_routes(router, api_base)
             router.get(f"{api_base}/recorders/recorder-1/status").mock(
                 return_value=Response(200, json=RECORDER_STATUS_STOPPED)
             )
@@ -159,20 +156,14 @@ class TestConcurrentOperations:
         ):
             # Device 1: slow
             api_base1 = "http://192.168.1.100/api/v2.0"
-            router.get(f"{api_base1}/device").mock(side_effect=slow_response)
-            router.get(f"{api_base1}/storages").mock(
-                return_value=Response(200, json=STORAGE_RESPONSE)
-            )
+            mock_system_routes(router, api_base1, ident_side_effect=slow_response)
             router.get(f"{api_base1}/recorders/recorder-1/status").mock(
                 return_value=Response(200, json=RECORDER_STATUS_STOPPED)
             )
 
             # Device 2: fast
             api_base2 = "http://192.168.1.101/api/v2.0"
-            router.get(f"{api_base2}/device").mock(return_value=Response(200, json=DEVICE_RESPONSE))
-            router.get(f"{api_base2}/storages").mock(
-                return_value=Response(200, json=STORAGE_RESPONSE)
-            )
+            mock_system_routes(router, api_base2)
             router.get(f"{api_base2}/recorders/recorder-1/status").mock(
                 return_value=Response(200, json=RECORDER_STATUS_STOPPED)
             )
@@ -219,8 +210,7 @@ class TestTimeoutHandling:
             respx.mock(assert_all_called=False) as router,
         ):
             api_base = "http://192.168.1.100/api/v2.0"
-            router.get(f"{api_base}/device").mock(side_effect=timeout_response)
-            router.get(f"{api_base}/storages").mock(side_effect=timeout_response)
+            mock_system_routes(router, api_base, ident_side_effect=timeout_response)
 
             result = await get_fleet_status()
 
@@ -243,8 +233,7 @@ class TestTimeoutHandling:
         ):
             for ip in ["192.168.1.100", "192.168.1.101"]:
                 api_base = f"http://{ip}/api/v2.0"
-                router.get(f"{api_base}/device").mock(side_effect=timeout_response)
-                router.get(f"{api_base}/storages").mock(side_effect=timeout_response)
+                mock_system_routes(router, api_base, ident_side_effect=timeout_response)
 
             result = await get_fleet_status()
 
@@ -263,8 +252,7 @@ class TestTimeoutHandling:
             respx.mock(assert_all_called=False) as router,
         ):
             api_base = "http://192.168.1.100/api/v2.0"
-            router.get(f"{api_base}/device").mock(side_effect=ConnectError("Connection refused"))
-            router.get(f"{api_base}/storages").mock(side_effect=ConnectError("Connection refused"))
+            mock_system_routes(router, api_base, ident_side_effect=ConnectError("Connection refused"))
 
             result = await get_fleet_status()
 
@@ -296,12 +284,7 @@ class TestMalformedApiResponses:
         ):
             api_base = "http://192.168.1.100/api/v2.0"
             # Response with no 'status' field — client may raise an error
-            router.get(f"{api_base}/device").mock(
-                return_value=Response(200, json={"result": {"name": "test"}})
-            )
-            router.get(f"{api_base}/storages").mock(
-                return_value=Response(200, json=STORAGE_RESPONSE)
-            )
+            mock_system_routes(router, api_base, ident={"result": {"name": "test"}})
             router.get(f"{api_base}/recorders/recorder-1/status").mock(
                 return_value=Response(200, json=RECORDER_STATUS_STOPPED)
             )
@@ -326,11 +309,11 @@ class TestMalformedApiResponses:
             respx.mock(assert_all_called=False) as router,
         ):
             api_base = "http://192.168.1.100/api/v2.0"
-            router.get(f"{api_base}/device").mock(
-                return_value=Response(500, json={"status": "error", "message": "Internal error"})
-            )
-            router.get(f"{api_base}/storages").mock(
-                return_value=Response(500, json={"status": "error", "message": "Internal error"})
+            mock_system_routes(
+                router,
+                api_base,
+                ident={"status": "error", "message": "Internal error"},
+                ident_status=500,
             )
             router.get(f"{api_base}/recorders/recorder-1/status").mock(
                 return_value=Response(500, json={"status": "error", "message": "Internal error"})
@@ -354,12 +337,7 @@ class TestMalformedApiResponses:
             respx.mock(assert_all_called=False) as router,
         ):
             api_base = "http://192.168.1.100/api/v2.0"
-            router.get(f"{api_base}/device").mock(
-                return_value=Response(200, json={"status": "busy"})
-            )
-            router.get(f"{api_base}/storages").mock(
-                return_value=Response(200, json=STORAGE_RESPONSE)
-            )
+            mock_system_routes(router, api_base, ident={"status": "busy"})
             router.get(f"{api_base}/recorders/recorder-1/status").mock(
                 return_value=Response(200, json=RECORDER_STATUS_STOPPED)
             )
@@ -378,14 +356,8 @@ class TestMalformedApiResponses:
             respx.mock(assert_all_called=False) as router,
         ):
             api_base = "http://192.168.1.100/api/v2.0"
-            router.get(f"{api_base}/device").mock(
-                return_value=Response(
-                    200,
-                    json={"status": "error", "message": "Access denied"},
-                )
-            )
-            router.get(f"{api_base}/storages").mock(
-                return_value=Response(200, json=STORAGE_RESPONSE)
+            mock_system_routes(
+                router, api_base, ident={"status": "error", "message": "Access denied"}
             )
             router.get(f"{api_base}/recorders/recorder-1/status").mock(
                 return_value=Response(200, json=RECORDER_STATUS_STOPPED)
@@ -458,10 +430,7 @@ class TestBoundaryValues:
             respx.mock(assert_all_called=False) as router,
         ):
             api_base = "http://192.168.1.100/api/v2.0"
-            router.get(f"{api_base}/device").mock(return_value=Response(200, json=DEVICE_RESPONSE))
-            router.get(f"{api_base}/storages").mock(
-                return_value=Response(200, json=STORAGE_RESPONSE)
-            )
+            mock_system_routes(router, api_base)
             router.post(f"{api_base}/recorders/recorder-999/control/start").mock(
                 return_value=Response(
                     200,
@@ -484,10 +453,7 @@ class TestBoundaryValues:
             respx.mock(assert_all_called=False) as router,
         ):
             api_base = "http://192.168.1.101/api/v2.0"
-            router.get(f"{api_base}/device").mock(return_value=Response(200, json=DEVICE_RESPONSE))
-            router.get(f"{api_base}/storages").mock(
-                return_value=Response(200, json=STORAGE_RESPONSE)
-            )
+            mock_system_routes(router, api_base)
             router.get(f"{api_base}/recorders/recorder-1/status").mock(
                 return_value=Response(200, json=RECORDER_STATUS_STOPPED)
             )

@@ -14,20 +14,26 @@ from httpx import Response
 
 from epiphan_mcp.config import Settings
 
+from .fixtures.mocks import mock_system_routes
 from .fixtures.responses import (
     AFU_STATUS_RESPONSE,
     CONTROL_SUCCESS_RESPONSE,
-    DEVICE_RESPONSE,
     ERROR_RESPONSE,
     EVENTS_RESPONSE,
+    FIRMWARE_RESPONSE,
+    IDENT_RESPONSE,
     INPUTS_RESPONSE,
     LAYOUTS_RESPONSE,
     PUBLISHER_STATUS_STOPPED,
     PUBLISHER_STATUS_STREAMING,
     RECORDER_STATUS_RECORDING,
     RECORDER_STATUS_STOPPED,
-    STORAGE_LOW_SPACE_RESPONSE,
-    STORAGE_RESPONSE,
+    SINGLETOUCH_LIST_RESPONSE,
+    SINGLETOUCH_STATE_OFF,
+    SINGLETOUCH_STATE_ON,
+    STORAGE_STATUS_LOW_RESPONSE,
+    STORAGE_STATUS_RESPONSE,
+    STORAGES_LIST_RESPONSE,
 )
 
 # ============================================================
@@ -66,11 +72,17 @@ class TestGetDeviceStatus:
             mock_settings.return_value = create_test_settings(mock_pearl_host)
 
             with respx.mock(assert_all_called=False) as router:
-                router.get(f"{api_base}/device").mock(
-                    return_value=Response(200, json=DEVICE_RESPONSE)
+                router.get(f"{api_base}/system/ident").mock(
+                    return_value=Response(200, json=IDENT_RESPONSE)
                 )
-                router.get(f"{api_base}/storages").mock(
-                    return_value=Response(200, json=STORAGE_RESPONSE)
+                router.get(f"{api_base}/system/firmware").mock(
+                    return_value=Response(200, json=FIRMWARE_RESPONSE)
+                )
+                router.get(f"{api_base}/system/storages").mock(
+                    return_value=Response(200, json=STORAGES_LIST_RESPONSE)
+                )
+                router.get(f"{api_base}/system/storages/storage-1/status").mock(
+                    return_value=Response(200, json=STORAGE_STATUS_RESPONSE)
                 )
                 # Note: server passes int (1), client expects str
                 router.get(f"{api_base}/recorders/recorder-1/status").mock(
@@ -95,11 +107,17 @@ class TestGetDeviceStatus:
             mock_settings.return_value = create_test_settings(mock_pearl_host)
 
             with respx.mock(assert_all_called=False) as router:
-                router.get(f"{api_base}/device").mock(
-                    return_value=Response(200, json=DEVICE_RESPONSE)
+                router.get(f"{api_base}/system/ident").mock(
+                    return_value=Response(200, json=IDENT_RESPONSE)
                 )
-                router.get(f"{api_base}/storages").mock(
-                    return_value=Response(200, json=STORAGE_RESPONSE)
+                router.get(f"{api_base}/system/firmware").mock(
+                    return_value=Response(200, json=FIRMWARE_RESPONSE)
+                )
+                router.get(f"{api_base}/system/storages").mock(
+                    return_value=Response(200, json=STORAGES_LIST_RESPONSE)
+                )
+                router.get(f"{api_base}/system/storages/storage-1/status").mock(
+                    return_value=Response(200, json=STORAGE_STATUS_RESPONSE)
                 )
                 router.get(f"{api_base}/recorders/recorder-1/status").mock(
                     return_value=Response(200, json=RECORDER_STATUS_RECORDING)
@@ -132,11 +150,14 @@ class TestGetDeviceStatus:
             mock_settings.return_value = create_test_settings(mock_pearl_host)
 
             with respx.mock(assert_all_called=False) as router:
-                router.get(f"{api_base}/device").mock(
+                router.get(f"{api_base}/system/ident").mock(
                     return_value=Response(200, json=ERROR_RESPONSE)
                 )
-                router.get(f"{api_base}/storages").mock(
-                    return_value=Response(200, json=STORAGE_RESPONSE)
+                router.get(f"{api_base}/system/firmware").mock(
+                    return_value=Response(200, json=FIRMWARE_RESPONSE)
+                )
+                router.get(f"{api_base}/system/storages").mock(
+                    return_value=Response(200, json=STORAGES_LIST_RESPONSE)
                 )
                 router.get(f"{api_base}/recorders/recorder-1/status").mock(
                     return_value=Response(200, json=RECORDER_STATUS_STOPPED)
@@ -643,11 +664,17 @@ class TestGetFleetStatus:
             mock_settings.return_value = create_test_settings(mock_pearl_host)
 
             with respx.mock(assert_all_called=False) as router:
-                router.get(f"{api_base}/device").mock(
-                    return_value=Response(200, json=DEVICE_RESPONSE)
+                router.get(f"{api_base}/system/ident").mock(
+                    return_value=Response(200, json=IDENT_RESPONSE)
                 )
-                router.get(f"{api_base}/storages").mock(
-                    return_value=Response(200, json=STORAGE_RESPONSE)
+                router.get(f"{api_base}/system/firmware").mock(
+                    return_value=Response(200, json=FIRMWARE_RESPONSE)
+                )
+                router.get(f"{api_base}/system/storages").mock(
+                    return_value=Response(200, json=STORAGES_LIST_RESPONSE)
+                )
+                router.get(f"{api_base}/system/storages/storage-1/status").mock(
+                    return_value=Response(200, json=STORAGE_STATUS_RESPONSE)
                 )
                 router.get(f"{api_base}/recorders/recorder-1/status").mock(
                     return_value=Response(200, json=RECORDER_STATUS_STOPPED)
@@ -672,11 +699,17 @@ class TestGetFleetStatus:
             mock_settings.return_value = create_test_settings(mock_pearl_host)
 
             with respx.mock(assert_all_called=False) as router:
-                router.get(f"{api_base}/device").mock(
-                    return_value=Response(200, json=DEVICE_RESPONSE)
+                router.get(f"{api_base}/system/ident").mock(
+                    return_value=Response(200, json=IDENT_RESPONSE)
                 )
-                router.get(f"{api_base}/storages").mock(
-                    return_value=Response(200, json=STORAGE_RESPONSE)
+                router.get(f"{api_base}/system/firmware").mock(
+                    return_value=Response(200, json=FIRMWARE_RESPONSE)
+                )
+                router.get(f"{api_base}/system/storages").mock(
+                    return_value=Response(200, json=STORAGES_LIST_RESPONSE)
+                )
+                router.get(f"{api_base}/system/storages/storage-1/status").mock(
+                    return_value=Response(200, json=STORAGE_STATUS_RESPONSE)
                 )
                 router.get(f"{api_base}/recorders/recorder-1/status").mock(
                     return_value=Response(200, json=RECORDER_STATUS_RECORDING)
@@ -697,11 +730,8 @@ class TestGetFleetStatus:
             mock_settings.return_value = create_test_settings(mock_pearl_host)
 
             with respx.mock(assert_all_called=False) as router:
-                router.get(f"{api_base}/device").mock(
-                    return_value=Response(200, json=DEVICE_RESPONSE)
-                )
-                router.get(f"{api_base}/storages").mock(
-                    return_value=Response(200, json=STORAGE_LOW_SPACE_RESPONSE)
+                mock_system_routes(
+                    router, api_base, storage_status=STORAGE_STATUS_LOW_RESPONSE
                 )
                 router.get(f"{api_base}/recorders/recorder-1/status").mock(
                     return_value=Response(200, json=RECORDER_STATUS_STOPPED)
@@ -737,10 +767,13 @@ class TestGetFleetStatus:
             mock_settings.return_value = create_test_settings(mock_pearl_host)
 
             with respx.mock(assert_all_called=False) as router:
-                router.get(f"{api_base}/device").mock(
+                router.get(f"{api_base}/system/ident").mock(
                     side_effect=ConnectError("Connection refused")
                 )
-                router.get(f"{api_base}/storages").mock(
+                router.get(f"{api_base}/system/firmware").mock(
+                    side_effect=ConnectError("Connection refused")
+                )
+                router.get(f"{api_base}/system/storages").mock(
                     side_effect=ConnectError("Connection refused")
                 )
 
@@ -770,9 +803,15 @@ class TestSingleTouchStart:
             mock_settings.return_value = create_test_settings(mock_pearl_host)
 
             with respx.mock(assert_all_called=False) as router:
-                router.post(f"{api_base}/singletouch/control/start").mock(
-                    return_value=Response(200, json=CONTROL_SUCCESS_RESPONSE)
+                router.get(f"{api_base}/system/singletouchcontrol").mock(
+                    return_value=Response(200, json=SINGLETOUCH_LIST_RESPONSE)
                 )
+                router.get(f"{api_base}/system/singletouchcontrol/stc-1/state").mock(
+                    return_value=Response(200, json=SINGLETOUCH_STATE_OFF)
+                )
+                router.post(
+                    f"{api_base}/system/singletouchcontrol/stc-1/control/toggle"
+                ).mock(return_value=Response(200, json=CONTROL_SUCCESS_RESPONSE))
 
                 result = await single_touch_start.fn(device_id="default")
 
@@ -789,7 +828,7 @@ class TestSingleTouchStart:
             mock_settings.return_value = create_test_settings(mock_pearl_host)
 
             with respx.mock(assert_all_called=False) as router:
-                router.post(f"{api_base}/singletouch/control/start").mock(
+                router.get(f"{api_base}/system/singletouchcontrol").mock(
                     return_value=Response(200, json=ERROR_RESPONSE)
                 )
 
@@ -824,9 +863,15 @@ class TestSingleTouchStop:
             mock_settings.return_value = create_test_settings(mock_pearl_host)
 
             with respx.mock(assert_all_called=False) as router:
-                router.post(f"{api_base}/singletouch/control/stop").mock(
-                    return_value=Response(200, json=CONTROL_SUCCESS_RESPONSE)
+                router.get(f"{api_base}/system/singletouchcontrol").mock(
+                    return_value=Response(200, json=SINGLETOUCH_LIST_RESPONSE)
                 )
+                router.get(f"{api_base}/system/singletouchcontrol/stc-1/state").mock(
+                    return_value=Response(200, json=SINGLETOUCH_STATE_ON)
+                )
+                router.post(
+                    f"{api_base}/system/singletouchcontrol/stc-1/control/toggle"
+                ).mock(return_value=Response(200, json=CONTROL_SUCCESS_RESPONSE))
 
                 result = await single_touch_stop.fn(device_id="default")
 
@@ -843,7 +888,7 @@ class TestSingleTouchStop:
             mock_settings.return_value = create_test_settings(mock_pearl_host)
 
             with respx.mock(assert_all_called=False) as router:
-                router.post(f"{api_base}/singletouch/control/stop").mock(
+                router.get(f"{api_base}/system/singletouchcontrol").mock(
                     return_value=Response(200, json=ERROR_RESPONSE)
                 )
 
@@ -1137,11 +1182,17 @@ class TestServerErrorBranches:
             mock_settings.return_value = create_test_settings(mock_pearl_host)
 
             with respx.mock(assert_all_called=False) as router:
-                router.get(f"{api_base}/device").mock(
-                    return_value=Response(200, json=DEVICE_RESPONSE)
+                router.get(f"{api_base}/system/ident").mock(
+                    return_value=Response(200, json=IDENT_RESPONSE)
                 )
-                router.get(f"{api_base}/storages").mock(
-                    return_value=Response(200, json=STORAGE_RESPONSE)
+                router.get(f"{api_base}/system/firmware").mock(
+                    return_value=Response(200, json=FIRMWARE_RESPONSE)
+                )
+                router.get(f"{api_base}/system/storages").mock(
+                    return_value=Response(200, json=STORAGES_LIST_RESPONSE)
+                )
+                router.get(f"{api_base}/system/storages/storage-1/status").mock(
+                    return_value=Response(200, json=STORAGE_STATUS_RESPONSE)
                 )
                 # Recorder returns error
                 router.get(f"{api_base}/recorders/recorder-1/status").mock(
@@ -1408,11 +1459,17 @@ class TestPredictStorageFull:
             mock_settings.return_value = create_test_settings(mock_pearl_host)
 
             with respx.mock(assert_all_called=False) as router:
-                router.get(f"{api_base}/device").mock(
-                    return_value=Response(200, json=DEVICE_RESPONSE)
+                router.get(f"{api_base}/system/ident").mock(
+                    return_value=Response(200, json=IDENT_RESPONSE)
                 )
-                router.get(f"{api_base}/storages").mock(
-                    return_value=Response(200, json=STORAGE_RESPONSE)
+                router.get(f"{api_base}/system/firmware").mock(
+                    return_value=Response(200, json=FIRMWARE_RESPONSE)
+                )
+                router.get(f"{api_base}/system/storages").mock(
+                    return_value=Response(200, json=STORAGES_LIST_RESPONSE)
+                )
+                router.get(f"{api_base}/system/storages/storage-1/status").mock(
+                    return_value=Response(200, json=STORAGE_STATUS_RESPONSE)
                 )
                 router.get(f"{api_base}/recorders/recorder-1/status").mock(
                     return_value=Response(200, json=RECORDER_STATUS_RECORDING)
@@ -1436,11 +1493,17 @@ class TestPredictStorageFull:
             mock_settings.return_value = create_test_settings(mock_pearl_host)
 
             with respx.mock(assert_all_called=False) as router:
-                router.get(f"{api_base}/device").mock(
-                    return_value=Response(200, json=DEVICE_RESPONSE)
+                router.get(f"{api_base}/system/ident").mock(
+                    return_value=Response(200, json=IDENT_RESPONSE)
                 )
-                router.get(f"{api_base}/storages").mock(
-                    return_value=Response(200, json=STORAGE_RESPONSE)
+                router.get(f"{api_base}/system/firmware").mock(
+                    return_value=Response(200, json=FIRMWARE_RESPONSE)
+                )
+                router.get(f"{api_base}/system/storages").mock(
+                    return_value=Response(200, json=STORAGES_LIST_RESPONSE)
+                )
+                router.get(f"{api_base}/system/storages/storage-1/status").mock(
+                    return_value=Response(200, json=STORAGE_STATUS_RESPONSE)
                 )
                 router.get(f"{api_base}/recorders/recorder-1/status").mock(
                     return_value=Response(200, json=RECORDER_STATUS_STOPPED)
@@ -1462,11 +1525,8 @@ class TestPredictStorageFull:
             mock_settings.return_value = create_test_settings(mock_pearl_host)
 
             with respx.mock(assert_all_called=False) as router:
-                router.get(f"{api_base}/device").mock(
-                    return_value=Response(200, json=DEVICE_RESPONSE)
-                )
-                router.get(f"{api_base}/storages").mock(
-                    return_value=Response(200, json=STORAGE_LOW_SPACE_RESPONSE)
+                mock_system_routes(
+                    router, api_base, storage_status=STORAGE_STATUS_LOW_RESPONSE
                 )
                 router.get(f"{api_base}/recorders/recorder-1/status").mock(
                     return_value=Response(200, json=RECORDER_STATUS_RECORDING)
@@ -1487,11 +1547,17 @@ class TestPredictStorageFull:
             mock_settings.return_value = create_test_settings(mock_pearl_host)
 
             with respx.mock(assert_all_called=False) as router:
-                router.get(f"{api_base}/device").mock(
-                    return_value=Response(200, json=DEVICE_RESPONSE)
+                router.get(f"{api_base}/system/ident").mock(
+                    return_value=Response(200, json=IDENT_RESPONSE)
                 )
-                router.get(f"{api_base}/storages").mock(
-                    return_value=Response(200, json=STORAGE_RESPONSE)
+                router.get(f"{api_base}/system/firmware").mock(
+                    return_value=Response(200, json=FIRMWARE_RESPONSE)
+                )
+                router.get(f"{api_base}/system/storages").mock(
+                    return_value=Response(200, json=STORAGES_LIST_RESPONSE)
+                )
+                router.get(f"{api_base}/system/storages/storage-1/status").mock(
+                    return_value=Response(200, json=STORAGE_STATUS_RESPONSE)
                 )
                 # Recorder returns error
                 router.get(f"{api_base}/recorders/recorder-1/status").mock(
@@ -1534,11 +1600,17 @@ class TestGetDeviceHealthScore:
             mock_settings.return_value = create_test_settings(mock_pearl_host)
 
             with respx.mock(assert_all_called=False) as router:
-                router.get(f"{api_base}/device").mock(
-                    return_value=Response(200, json=DEVICE_RESPONSE)
+                router.get(f"{api_base}/system/ident").mock(
+                    return_value=Response(200, json=IDENT_RESPONSE)
                 )
-                router.get(f"{api_base}/storages").mock(
-                    return_value=Response(200, json=STORAGE_RESPONSE)
+                router.get(f"{api_base}/system/firmware").mock(
+                    return_value=Response(200, json=FIRMWARE_RESPONSE)
+                )
+                router.get(f"{api_base}/system/storages").mock(
+                    return_value=Response(200, json=STORAGES_LIST_RESPONSE)
+                )
+                router.get(f"{api_base}/system/storages/storage-1/status").mock(
+                    return_value=Response(200, json=STORAGE_STATUS_RESPONSE)
                 )
                 router.get(f"{api_base}/recorders/recorder-1/status").mock(
                     return_value=Response(200, json=RECORDER_STATUS_STOPPED)
@@ -1562,11 +1634,8 @@ class TestGetDeviceHealthScore:
             mock_settings.return_value = create_test_settings(mock_pearl_host)
 
             with respx.mock(assert_all_called=False) as router:
-                router.get(f"{api_base}/device").mock(
-                    return_value=Response(200, json=DEVICE_RESPONSE)
-                )
-                router.get(f"{api_base}/storages").mock(
-                    return_value=Response(200, json=STORAGE_LOW_SPACE_RESPONSE)
+                mock_system_routes(
+                    router, api_base, storage_status=STORAGE_STATUS_LOW_RESPONSE
                 )
                 router.get(f"{api_base}/recorders/recorder-1/status").mock(
                     return_value=Response(200, json=RECORDER_STATUS_STOPPED)
@@ -1590,11 +1659,17 @@ class TestGetDeviceHealthScore:
             mock_settings.return_value = create_test_settings(mock_pearl_host)
 
             with respx.mock(assert_all_called=False) as router:
-                router.get(f"{api_base}/device").mock(
-                    return_value=Response(200, json=DEVICE_RESPONSE)
+                router.get(f"{api_base}/system/ident").mock(
+                    return_value=Response(200, json=IDENT_RESPONSE)
                 )
-                router.get(f"{api_base}/storages").mock(
-                    return_value=Response(200, json=STORAGE_RESPONSE)
+                router.get(f"{api_base}/system/firmware").mock(
+                    return_value=Response(200, json=FIRMWARE_RESPONSE)
+                )
+                router.get(f"{api_base}/system/storages").mock(
+                    return_value=Response(200, json=STORAGES_LIST_RESPONSE)
+                )
+                router.get(f"{api_base}/system/storages/storage-1/status").mock(
+                    return_value=Response(200, json=STORAGE_STATUS_RESPONSE)
                 )
                 router.get(f"{api_base}/recorders/recorder-1/status").mock(
                     return_value=Response(200, json=RECORDER_STATUS_RECORDING)
@@ -1618,11 +1693,17 @@ class TestGetDeviceHealthScore:
 
             with respx.mock(assert_all_called=False) as router:
                 # Device and storage work
-                router.get(f"{api_base}/device").mock(
-                    return_value=Response(200, json=DEVICE_RESPONSE)
+                router.get(f"{api_base}/system/ident").mock(
+                    return_value=Response(200, json=IDENT_RESPONSE)
                 )
-                router.get(f"{api_base}/storages").mock(
-                    return_value=Response(200, json=STORAGE_RESPONSE)
+                router.get(f"{api_base}/system/firmware").mock(
+                    return_value=Response(200, json=FIRMWARE_RESPONSE)
+                )
+                router.get(f"{api_base}/system/storages").mock(
+                    return_value=Response(200, json=STORAGES_LIST_RESPONSE)
+                )
+                router.get(f"{api_base}/system/storages/storage-1/status").mock(
+                    return_value=Response(200, json=STORAGE_STATUS_RESPONSE)
                 )
                 # Recorder returns error
                 router.get(f"{api_base}/recorders/recorder-1/status").mock(
@@ -1751,9 +1832,7 @@ class TestGetStorageReport:
             mock_settings.return_value = create_test_settings(mock_pearl_host)
 
             with respx.mock(assert_all_called=False) as router:
-                router.get(f"{api_base}/storages").mock(
-                    return_value=Response(200, json=STORAGE_RESPONSE)
-                )
+                mock_system_routes(router, api_base)
 
                 result = await get_storage_report.fn(device_id="default")
 
@@ -1775,8 +1854,8 @@ class TestGetStorageReport:
             mock_settings.return_value = create_test_settings(mock_pearl_host)
 
             with respx.mock(assert_all_called=False) as router:
-                router.get(f"{api_base}/storages").mock(
-                    return_value=Response(200, json=STORAGE_LOW_SPACE_RESPONSE)
+                mock_system_routes(
+                    router, api_base, storage_status=STORAGE_STATUS_LOW_RESPONSE
                 )
 
                 result = await get_storage_report.fn(device_id="default")
@@ -1794,7 +1873,7 @@ class TestGetStorageReport:
             mock_settings.return_value = create_test_settings(mock_pearl_host)
 
             with respx.mock(assert_all_called=False) as router:
-                router.get(f"{api_base}/storages").mock(
+                router.get(f"{api_base}/system/storages").mock(
                     return_value=Response(200, json=ERROR_RESPONSE)
                 )
 

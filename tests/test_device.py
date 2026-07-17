@@ -9,11 +9,10 @@ from epiphan_mcp.config import Settings
 from epiphan_mcp.tools.device import get_device_status, list_devices
 
 from .conftest import patch_settings
+from .fixtures.mocks import mock_system_routes
 from .fixtures.responses import (
-    DEVICE_RESPONSE,
     RECORDER_STATUS_RECORDING,
     RECORDER_STATUS_STOPPED,
-    STORAGE_RESPONSE,
 )
 
 # ============================================================
@@ -32,13 +31,7 @@ class TestGetDeviceStatus:
     ):
         """Test successful device status retrieval."""
         # Mock device info endpoint
-        respx_mock.get(f"{mock_api_base}/device").mock(
-            return_value=Response(200, json=DEVICE_RESPONSE)
-        )
-        # Mock storage endpoint
-        respx_mock.get(f"{mock_api_base}/storages").mock(
-            return_value=Response(200, json=STORAGE_RESPONSE)
-        )
+        mock_system_routes(respx_mock, mock_api_base)
         # Mock recorder status
         respx_mock.get(f"{mock_api_base}/recorders/recorder-1/status").mock(
             return_value=Response(200, json=RECORDER_STATUS_STOPPED)
@@ -62,12 +55,7 @@ class TestGetDeviceStatus:
         respx_mock,
     ):
         """Test device status when actively recording."""
-        respx_mock.get(f"{mock_api_base}/device").mock(
-            return_value=Response(200, json=DEVICE_RESPONSE)
-        )
-        respx_mock.get(f"{mock_api_base}/storages").mock(
-            return_value=Response(200, json=STORAGE_RESPONSE)
-        )
+        mock_system_routes(respx_mock, mock_api_base)
         respx_mock.get(f"{mock_api_base}/recorders/recorder-1/status").mock(
             return_value=Response(200, json=RECORDER_STATUS_RECORDING)
         )
@@ -86,12 +74,7 @@ class TestGetDeviceStatus:
     ):
         """Test device status with 401 authentication error."""
         # get_system_status handles errors gracefully, so we need to fail recorder status
-        respx_mock.get(f"{mock_api_base}/device").mock(
-            return_value=Response(200, json=DEVICE_RESPONSE)
-        )
-        respx_mock.get(f"{mock_api_base}/storages").mock(
-            return_value=Response(200, json=STORAGE_RESPONSE)
-        )
+        mock_system_routes(respx_mock, mock_api_base)
         respx_mock.get(f"{mock_api_base}/recorders/recorder-1/status").mock(
             return_value=Response(401, json={"error": "Unauthorized"})
         )
@@ -112,12 +95,7 @@ class TestGetDeviceStatus:
     ):
         """Test device status with connection error (device offline)."""
         # get_system_status handles errors gracefully, so we need to fail recorder status
-        respx_mock.get(f"{mock_api_base}/device").mock(
-            return_value=Response(200, json=DEVICE_RESPONSE)
-        )
-        respx_mock.get(f"{mock_api_base}/storages").mock(
-            return_value=Response(200, json=STORAGE_RESPONSE)
-        )
+        mock_system_routes(respx_mock, mock_api_base)
         respx_mock.get(f"{mock_api_base}/recorders/recorder-1/status").mock(
             side_effect=ConnectError("Connection refused")
         )
@@ -137,12 +115,7 @@ class TestGetDeviceStatus:
     ):
         """Test device status with timeout."""
         # get_system_status handles errors gracefully, so we need to fail recorder status
-        respx_mock.get(f"{mock_api_base}/device").mock(
-            return_value=Response(200, json=DEVICE_RESPONSE)
-        )
-        respx_mock.get(f"{mock_api_base}/storages").mock(
-            return_value=Response(200, json=STORAGE_RESPONSE)
-        )
+        mock_system_routes(respx_mock, mock_api_base)
         respx_mock.get(f"{mock_api_base}/recorders/recorder-1/status").mock(
             side_effect=TimeoutException("Request timed out")
         )
@@ -174,12 +147,7 @@ class TestGetDeviceStatus:
         respx_mock,
     ):
         """Test getting device status using numeric index."""
-        respx_mock.get(f"{mock_api_base}/device").mock(
-            return_value=Response(200, json=DEVICE_RESPONSE)
-        )
-        respx_mock.get(f"{mock_api_base}/storages").mock(
-            return_value=Response(200, json=STORAGE_RESPONSE)
-        )
+        mock_system_routes(respx_mock, mock_api_base)
         respx_mock.get(f"{mock_api_base}/recorders/recorder-1/status").mock(
             return_value=Response(200, json=RECORDER_STATUS_STOPPED)
         )

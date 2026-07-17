@@ -9,6 +9,7 @@ from httpx import ConnectError, ReadTimeout, Response
 from epiphan_mcp.client import PearlAPIError, PearlClient
 from epiphan_mcp.models import RecordingState, StreamingState
 
+from .fixtures.mocks import mock_system_routes
 from .fixtures.responses import (
     BUSY_RESPONSE,
     ERROR_RESPONSE,
@@ -467,10 +468,9 @@ class TestErrorHandling:
         self, pearl_client: PearlClient, mock_api_base: str, respx_mock
     ):
         """Test that get_system_status handles errors gracefully."""
-        # get_system_status catches errors and returns partial status
-        respx_mock.get(f"{mock_api_base}/device").mock(
-            return_value=Response(200, json=ERROR_RESPONSE)
-        )
+        # get_system_status catches API-level errors and returns partial status.
+        # /system/ident is the first call it makes.
+        mock_system_routes(respx_mock, mock_api_base, ident=ERROR_RESPONSE)
 
         async with pearl_client as client:
             # This should not raise, but return a default status
@@ -495,7 +495,7 @@ class TestBinaryResponses:
         """Test _handle_response with non-JSON content type from _get()."""
         # Mock an endpoint that normally returns JSON but returns binary
         mock_binary = b"\x00\x01\x02\x03"
-        respx_mock.get(f"{mock_api_base}/device").mock(
+        respx_mock.get(f"{mock_api_base}/system/ident").mock(
             return_value=Response(
                 200,
                 content=mock_binary,
@@ -506,7 +506,7 @@ class TestBinaryResponses:
         async with pearl_client as client:
             # This calls _get() which uses _handle_response()
             # The non-JSON path returns {"status": "ok", "result": content}
-            result = await client._get("/device")
+            result = await client._get("/system/ident")
 
         assert result["status"] == "ok"
         assert result["result"] == mock_binary

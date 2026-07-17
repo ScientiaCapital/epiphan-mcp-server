@@ -575,7 +575,12 @@ class PearlClient:
         """
         Get available layouts for a channel.
 
-        GET /channels/{cid}/layouts
+        SPEC MISMATCH (unverified): the Pearl v2.0 spec has NO endpoint to
+        enumerate all layouts for a channel — it only exposes the currently
+        active layout (via `active_layout` on GET /channels) and
+        `PUT /channels/{cid}/layouts/active` to activate one. This
+        `GET /channels/{cid}/layouts` may be undocumented-but-real on the device
+        or may 404; confirm against real hardware. See docs/PEARL_API_AUDIT.md.
 
         Args:
             channel_id: Channel ID
@@ -979,7 +984,9 @@ class PearlClient:
         """
         Get storage information.
 
-        GET /storages
+        GET /system/storages returns a list of storage ids; capacity is fetched
+        per-storage from GET /system/storages/{stid}/status (fields: state,
+        total, free) — matches the official Pearl v2.0 spec.
 
         Args:
             ids: Optional list of storage IDs to filter
@@ -987,10 +994,31 @@ class PearlClient:
         Returns:
             List of StorageInfo objects.
         """
-        params = {"ids": ",".join(ids)} if ids else None
-        data = await self._get("/storages", params=params)
-        result = data.get("result", [])
-        return [StorageInfo.model_validate(s) for s in result]
+        listing = await self._get("/system/storages")
+        entries = listing.get("result", [])
+        wanted = set(ids) if ids else None
+
+        storages: list[StorageInfo] = []
+        for entry in entries:
+            sid = entry.get("id")
+            if sid is None or (wanted is not None and str(sid) not in wanted):
+                continue
+            status = await self._get(f"/system/storages/{sid}/status")
+            s = status.get("result", {})
+            total = int(s.get("total", 0) or 0)
+            free = int(s.get("free", 0) or 0)
+            used = max(total - free, 0)
+            storages.append(
+                StorageInfo(
+                    id=str(sid),
+                    total_bytes=total,
+                    free_bytes=free,
+                    used_bytes=used,
+                    percent_used=(used / total * 100) if total else 0,
+                    mounted=str(s.get("state", "")).lower() not in ("", "unmounted"),
+                )
+            )
+        return storages
 
     # ========== System ==========
 
@@ -998,31 +1026,29 @@ class PearlClient:
         """
         Get system status.
 
-        GET /system/status (mapped from System status endpoints)
+        Combines documented Pearl v2.0 system endpoints (there is no single
+        endpoint with all fields):
+          - GET /system/ident     -> device name
+          - GET /system/firmware  -> product_name (model), version
+          - GET /system/storages  -> storage capacity (via get_storages)
 
         Returns:
             SystemStatus with device information.
         """
-        # The v2.0 API uses different endpoints for system info
-        # Combine data from multiple sources
         try:
-            # Get device identity
-            identity_data = await self._get("/device")
-            # Get storage info
-            storage_data = await self._get("/storages")
+            ident = (await self._get("/system/ident")).get("result", {})
+            firmware = (await self._get("/system/firmware")).get("result", {})
+            storages = await self.get_storages()
 
-            result = identity_data.get("result", {})
-            storages = storage_data.get("result", [])
-
-            # Calculate total storage
-            total_bytes = sum(s.get("total_bytes", 0) for s in storages)
-            free_bytes = sum(s.get("free_bytes", 0) for s in storages)
+            total_bytes = sum(s.total_bytes for s in storages)
+            free_bytes = sum(s.free_bytes for s in storages)
 
             return SystemStatus(
-                device_name=result.get("name", self.host),
-                model=result.get("model", "Unknown"),
-                serial_number=result.get("serial", ""),
-                firmware_version=result.get("firmware", ""),
+                device_name=ident.get("name", self.host),
+                model=firmware.get("product_name", "Unknown"),
+                # Serial number is not exposed by these v2.0 endpoints.
+                serial_number=ident.get("serial", ""),
+                firmware_version=firmware.get("version", ""),
                 storage_total_gb=total_bytes / (1024**3) if total_bytes else 0,
                 storage_free_gb=free_bytes / (1024**3) if free_bytes else 0,
                 storage_used_percent=((total_bytes - free_bytes) / total_bytes * 100)
@@ -1203,36 +1229,61 @@ class PearlClient:
 
     # ========== Single Touch Control ==========
 
+    async def _set_single_touch(self, desired: bool, action: str) -> OperationResult:
+        """Drive every single-touch-control object to the desired on/off state.
+
+        The Pearl v2.0 API models single-touch as per-object *toggle* endpoints,
+        not global start/stop:
+          - GET  /system/singletouchcontrol                     -> list of {id}
+          - GET  /system/singletouchcontrol/{stcid}/state       -> {status: bool, ...}
+          - POST /system/singletouchcontrol/{stcid}/control/toggle
+        We read each object's state and toggle only those not already in the
+        desired state, giving deterministic start/stop on top of toggle.
+        """
+        listing = await self._get("/system/singletouchcontrol")
+        objects = listing.get("result", [])
+
+        toggled = 0
+        for obj in objects:
+            stcid = obj.get("id")
+            if stcid is None:
+                continue
+            state = (
+                await self._get(f"/system/singletouchcontrol/{stcid}/state")
+            ).get("result", {})
+            if bool(state.get("status")) != desired:
+                await self._post(f"/system/singletouchcontrol/{stcid}/control/toggle")
+                toggled += 1
+
+        return OperationResult(
+            success=True,
+            message=f"Single touch {action} ({toggled} control(s) toggled)",
+            device=self.host,
+            details={"toggled": toggled, "controls": len(objects)},
+        )
+
     async def single_touch_start(self) -> OperationResult:
         """
         Start all recorders and publishers with single touch.
 
-        POST /singletouch/control/start
+        Toggles every single-touch control that is not already active. See
+        _set_single_touch for the underlying Pearl v2.0 endpoints.
 
         Returns:
             OperationResult with status.
         """
         logger.info("Single touch start - starting all recorders and streams")
-        await self._post("/singletouch/control/start")
-        return OperationResult(
-            success=True,
-            message="All recorders and streams started",
-            device=self.host,
-        )
+        return await self._set_single_touch(desired=True, action="started")
 
     async def single_touch_stop(self) -> OperationResult:
         """
         Stop all recorders and publishers with single touch.
 
-        POST /singletouch/control/stop
+        Toggles every single-touch control that is currently active. See
+        _set_single_touch for the underlying Pearl v2.0 endpoints.
 
         Returns:
             OperationResult with status.
         """
         logger.info("Single touch stop - stopping all recorders and streams")
-        await self._post("/singletouch/control/stop")
-        return OperationResult(
-            success=True,
-            message="All recorders and streams stopped",
-            device=self.host,
-        )
+        return await self._set_single_touch(desired=False, action="stopped")

@@ -19,6 +19,8 @@ from .fixtures.responses import (
     CHANNELS_RESPONSE,
     CONTROL_SUCCESS_RESPONSE,
     DEVICE_RESPONSE,
+    FIRMWARE_RESPONSE,
+    IDENT_RESPONSE,
     INPUTS_RESPONSE,
     LAYOUTS_RESPONSE,
     PUBLISHER_STATUS_STOPPED,
@@ -27,7 +29,11 @@ from .fixtures.responses import (
     RECORDER_STATUS_RECORDING,
     RECORDER_STATUS_STOPPED,
     RECORDERS_RESPONSE,
+    SINGLETOUCH_LIST_RESPONSE,
+    SINGLETOUCH_STATE_OFF,
     STORAGE_RESPONSE,
+    STORAGE_STATUS_RESPONSE,
+    STORAGES_LIST_RESPONSE,
 )
 
 # ============================================================
@@ -233,10 +239,18 @@ def respx_mock():
 
 @pytest.fixture
 def mock_device_routes(respx_mock, mock_api_base: str):
-    """Set up mock routes for device/system endpoints."""
-    respx_mock.get(f"{mock_api_base}/device").mock(return_value=Response(200, json=DEVICE_RESPONSE))
-    respx_mock.get(f"{mock_api_base}/storages").mock(
-        return_value=Response(200, json=STORAGE_RESPONSE)
+    """Set up mock routes for device/system endpoints (Pearl v2.0 spec paths)."""
+    respx_mock.get(f"{mock_api_base}/system/ident").mock(
+        return_value=Response(200, json=IDENT_RESPONSE)
+    )
+    respx_mock.get(f"{mock_api_base}/system/firmware").mock(
+        return_value=Response(200, json=FIRMWARE_RESPONSE)
+    )
+    respx_mock.get(f"{mock_api_base}/system/storages").mock(
+        return_value=Response(200, json=STORAGES_LIST_RESPONSE)
+    )
+    respx_mock.get(f"{mock_api_base}/system/storages/storage-1/status").mock(
+        return_value=Response(200, json=STORAGE_STATUS_RESPONSE)
     )
     return respx_mock
 
@@ -364,11 +378,19 @@ def mock_system_routes(respx_mock, mock_api_base: str):
 
 @pytest.fixture
 def mock_singletouch_routes(respx_mock, mock_api_base: str):
-    """Set up mock routes for single touch control."""
-    respx_mock.post(f"{mock_api_base}/singletouch/control/start").mock(
-        return_value=Response(200, json=CONTROL_SUCCESS_RESPONSE)
+    """Set up mock routes for single touch control (Pearl v2.0 toggle model).
+
+    Defaults the control to OFF so single_touch_start will toggle it and
+    single_touch_stop is a no-op; tests that need the inverse can re-mock the
+    /state route.
+    """
+    respx_mock.get(f"{mock_api_base}/system/singletouchcontrol").mock(
+        return_value=Response(200, json=SINGLETOUCH_LIST_RESPONSE)
     )
-    respx_mock.post(f"{mock_api_base}/singletouch/control/stop").mock(
+    respx_mock.get(f"{mock_api_base}/system/singletouchcontrol/stc-1/state").mock(
+        return_value=Response(200, json=SINGLETOUCH_STATE_OFF)
+    )
+    respx_mock.post(f"{mock_api_base}/system/singletouchcontrol/stc-1/control/toggle").mock(
         return_value=Response(200, json=CONTROL_SUCCESS_RESPONSE)
     )
     return respx_mock

@@ -14,12 +14,13 @@ from httpx import ConnectError, Response
 
 from epiphan_mcp.config import Settings
 
+from .fixtures.mocks import mock_system_routes
 from .fixtures.responses import (
     CONTROL_SUCCESS_RESPONSE,
     DEVICE_RESPONSE,
     RECORDER_STATUS_RECORDING,
     RECORDER_STATUS_STOPPED,
-    STORAGE_RESPONSE,
+    STORAGE_STATUS_LOW_RESPONSE,
 )
 
 # ============================================================
@@ -93,10 +94,7 @@ class TestFleetStatusParallel:
                 # Set up delayed responses for all devices
                 for i in range(4):
                     api_base = f"http://192.168.1.{100 + i}/api/v2.0"
-                    router.get(f"{api_base}/device").mock(side_effect=delayed_response)
-                    router.get(f"{api_base}/storages").mock(
-                        return_value=Response(200, json=STORAGE_RESPONSE)
-                    )
+                    mock_system_routes(router, api_base, ident_side_effect=delayed_response)
                     router.get(f"{api_base}/recorders/recorder-1/status").mock(
                         return_value=Response(200, json=RECORDER_STATUS_STOPPED)
                     )
@@ -125,33 +123,18 @@ class TestFleetStatusParallel:
             with respx.mock(assert_all_called=False) as router:
                 # Device 1: Success
                 api_base1 = "http://192.168.1.100/api/v2.0"
-                router.get(f"{api_base1}/device").mock(
-                    return_value=Response(200, json=DEVICE_RESPONSE)
-                )
-                router.get(f"{api_base1}/storages").mock(
-                    return_value=Response(200, json=STORAGE_RESPONSE)
-                )
+                mock_system_routes(router, api_base1)
                 router.get(f"{api_base1}/recorders/recorder-1/status").mock(
                     return_value=Response(200, json=RECORDER_STATUS_STOPPED)
                 )
 
                 # Device 2: Connection error
                 api_base2 = "http://192.168.1.101/api/v2.0"
-                router.get(f"{api_base2}/device").mock(
-                    side_effect=ConnectError("Connection refused")
-                )
-                router.get(f"{api_base2}/storages").mock(
-                    side_effect=ConnectError("Connection refused")
-                )
+                mock_system_routes(router, api_base2, ident_side_effect=ConnectError("Connection refused"))
 
                 # Device 3: Success
                 api_base3 = "http://192.168.1.102/api/v2.0"
-                router.get(f"{api_base3}/device").mock(
-                    return_value=Response(200, json=DEVICE_RESPONSE)
-                )
-                router.get(f"{api_base3}/storages").mock(
-                    return_value=Response(200, json=STORAGE_RESPONSE)
-                )
+                mock_system_routes(router, api_base3)
                 router.get(f"{api_base3}/recorders/recorder-1/status").mock(
                     return_value=Response(200, json=RECORDER_STATUS_RECORDING)
                 )
@@ -185,17 +168,11 @@ class TestFleetStatusParallel:
             with respx.mock(assert_all_called=False) as router:
                 # Device 1: Will timeout
                 api_base1 = "http://192.168.1.100/api/v2.0"
-                router.get(f"{api_base1}/device").mock(side_effect=timeout_response)
-                router.get(f"{api_base1}/storages").mock(side_effect=timeout_response)
+                mock_system_routes(router, api_base1, ident_side_effect=timeout_response)
 
                 # Device 2: Success
                 api_base2 = "http://192.168.1.101/api/v2.0"
-                router.get(f"{api_base2}/device").mock(
-                    return_value=Response(200, json=DEVICE_RESPONSE)
-                )
-                router.get(f"{api_base2}/storages").mock(
-                    return_value=Response(200, json=STORAGE_RESPONSE)
-                )
+                mock_system_routes(router, api_base2)
                 router.get(f"{api_base2}/recorders/recorder-1/status").mock(
                     return_value=Response(200, json=RECORDER_STATUS_STOPPED)
                 )
@@ -379,10 +356,6 @@ class TestParallelTiming:
             await asyncio.sleep(delay_per_device)
             return Response(200, json=DEVICE_RESPONSE)
 
-        async def delayed_storage_response(*args, **kwargs):
-            await asyncio.sleep(delay_per_device)
-            return Response(200, json=STORAGE_RESPONSE)
-
         async def delayed_recorder_response(*args, **kwargs):
             await asyncio.sleep(delay_per_device)
             return Response(200, json=RECORDER_STATUS_STOPPED)
@@ -393,8 +366,7 @@ class TestParallelTiming:
             with respx.mock(assert_all_called=False) as router:
                 for i in range(num_devices):
                     api_base = f"http://192.168.1.{100 + i}/api/v2.0"
-                    router.get(f"{api_base}/device").mock(side_effect=delayed_device_response)
-                    router.get(f"{api_base}/storages").mock(side_effect=delayed_storage_response)
+                    mock_system_routes(router, api_base, ident_side_effect=delayed_device_response)
                     router.get(f"{api_base}/recorders/recorder-1/status").mock(
                         side_effect=delayed_recorder_response
                     )
@@ -442,12 +414,7 @@ class TestFleetErrorHandling:
                 # Both devices fail
                 for i in [100, 101]:
                     api_base = f"http://192.168.1.{i}/api/v2.0"
-                    router.get(f"{api_base}/device").mock(
-                        side_effect=ConnectError("Connection refused")
-                    )
-                    router.get(f"{api_base}/storages").mock(
-                        side_effect=ConnectError("Connection refused")
-                    )
+                    mock_system_routes(router, api_base, ident_side_effect=ConnectError("Connection refused"))
 
                 result = await get_fleet_status.fn()
 
@@ -479,12 +446,7 @@ class TestFleetErrorHandling:
 
             with respx.mock(assert_all_called=False) as router:
                 api_base = "http://192.168.1.100/api/v2.0"
-                router.get(f"{api_base}/device").mock(
-                    side_effect=ConnectError("Connection refused")
-                )
-                router.get(f"{api_base}/storages").mock(
-                    side_effect=ConnectError("Connection refused")
-                )
+                mock_system_routes(router, api_base, ident_side_effect=ConnectError("Connection refused"))
 
                 result = await get_fleet_status.fn()
 
@@ -523,12 +485,7 @@ class TestFleetErrorHandling:
 
             with respx.mock(assert_all_called=False) as router:
                 api_base = "http://192.168.1.100/api/v2.0"
-                router.get(f"{api_base}/device").mock(
-                    return_value=Response(200, json=DEVICE_RESPONSE)
-                )
-                router.get(f"{api_base}/storages").mock(
-                    return_value=Response(200, json=STORAGE_RESPONSE)
-                )
+                mock_system_routes(router, api_base)
                 router.get(f"{api_base}/recorders/recorder-1/status").mock(
                     return_value=Response(200, json=RECORDER_STATUS_STOPPED)
                 )
@@ -561,12 +518,7 @@ class TestFleetHealthScores:
                 # Both devices healthy
                 for i in [100, 101]:
                     api_base = f"http://192.168.1.{i}/api/v2.0"
-                    router.get(f"{api_base}/device").mock(
-                        return_value=Response(200, json=DEVICE_RESPONSE)
-                    )
-                    router.get(f"{api_base}/storages").mock(
-                        return_value=Response(200, json=STORAGE_RESPONSE)
-                    )
+                    mock_system_routes(router, api_base)
                     router.get(f"{api_base}/recorders/recorder-1/status").mock(
                         return_value=Response(200, json=RECORDER_STATUS_STOPPED)
                     )
@@ -594,34 +546,12 @@ class TestFleetHealthScores:
         """Verify health score decreases when storage is high."""
         from epiphan_mcp.server import get_fleet_status
 
-        # Create a response with high storage usage - use correct API format
-        high_storage_response = {
-            "status": "ok",
-            "result": [
-                {
-                    "id": "storage-1",
-                    "name": "Internal Storage",
-                    "type": "internal",
-                    "total_bytes": 500000000000,  # 500GB
-                    "used_bytes": 450000000000,  # 90% used
-                    "free_bytes": 50000000000,  # 50GB (10% free)
-                    "percent_used": 90.0,
-                    "mounted": True,
-                }
-            ],
-        }
-
         with patch("epiphan_mcp.tools.fleet.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(devices="192.168.1.100")
 
             with respx.mock(assert_all_called=False) as router:
                 api_base = "http://192.168.1.100/api/v2.0"
-                router.get(f"{api_base}/device").mock(
-                    return_value=Response(200, json=DEVICE_RESPONSE)
-                )
-                router.get(f"{api_base}/storages").mock(
-                    return_value=Response(200, json=high_storage_response)
-                )
+                mock_system_routes(router, api_base, storage_status=STORAGE_STATUS_LOW_RESPONSE)
                 router.get(f"{api_base}/recorders/recorder-1/status").mock(
                     return_value=Response(200, json=RECORDER_STATUS_STOPPED)
                 )
@@ -644,12 +574,7 @@ class TestFleetHealthScores:
 
             with respx.mock(assert_all_called=False) as router:
                 api_base = "http://192.168.1.100/api/v2.0"
-                router.get(f"{api_base}/device").mock(
-                    side_effect=ConnectError("Connection refused")
-                )
-                router.get(f"{api_base}/storages").mock(
-                    side_effect=ConnectError("Connection refused")
-                )
+                mock_system_routes(router, api_base, ident_side_effect=ConnectError("Connection refused"))
 
                 result = await get_fleet_status.fn()
 
@@ -678,12 +603,7 @@ class TestFleetHealthReport:
             with respx.mock(assert_all_called=False) as router:
                 for i in [100, 101]:
                     api_base = f"http://192.168.1.{i}/api/v2.0"
-                    router.get(f"{api_base}/device").mock(
-                        return_value=Response(200, json=DEVICE_RESPONSE)
-                    )
-                    router.get(f"{api_base}/storages").mock(
-                        return_value=Response(200, json=STORAGE_RESPONSE)
-                    )
+                    mock_system_routes(router, api_base)
                     router.get(f"{api_base}/recorders/recorder-1/status").mock(
                         return_value=Response(200, json=RECORDER_STATUS_STOPPED)
                     )
@@ -712,47 +632,20 @@ class TestFleetHealthReport:
         """Verify report identifies unhealthy devices needing attention."""
         from epiphan_mcp.server import fleet_health_report
 
-        # High storage response (90% used) - correct API format
-        high_storage_response = {
-            "status": "ok",
-            "result": [
-                {
-                    "id": "storage-1",
-                    "name": "Internal Storage",
-                    "type": "internal",
-                    "total_bytes": 500000000000,
-                    "used_bytes": 450000000000,
-                    "free_bytes": 50000000000,
-                    "percent_used": 90.0,
-                    "mounted": True,
-                }
-            ],
-        }
-
         with patch("epiphan_mcp.tools.fleet.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(devices="192.168.1.100,192.168.1.101")
 
             with respx.mock(assert_all_called=False) as router:
                 # Device 1: Healthy
                 api_base1 = "http://192.168.1.100/api/v2.0"
-                router.get(f"{api_base1}/device").mock(
-                    return_value=Response(200, json=DEVICE_RESPONSE)
-                )
-                router.get(f"{api_base1}/storages").mock(
-                    return_value=Response(200, json=STORAGE_RESPONSE)
-                )
+                mock_system_routes(router, api_base1)
                 router.get(f"{api_base1}/recorders/recorder-1/status").mock(
                     return_value=Response(200, json=RECORDER_STATUS_STOPPED)
                 )
 
-                # Device 2: Unhealthy (high storage)
+                # Device 2: Unhealthy (storage nearly full)
                 api_base2 = "http://192.168.1.101/api/v2.0"
-                router.get(f"{api_base2}/device").mock(
-                    return_value=Response(200, json=DEVICE_RESPONSE)
-                )
-                router.get(f"{api_base2}/storages").mock(
-                    return_value=Response(200, json=high_storage_response)
-                )
+                mock_system_routes(router, api_base2, storage_status=STORAGE_STATUS_LOW_RESPONSE)
                 router.get(f"{api_base2}/recorders/recorder-1/status").mock(
                     return_value=Response(200, json=RECORDER_STATUS_STOPPED)
                 )
@@ -802,12 +695,7 @@ class TestFleetHealthReport:
 
             with respx.mock(assert_all_called=False) as router:
                 api_base = "http://192.168.1.100/api/v2.0"
-                router.get(f"{api_base}/device").mock(
-                    return_value=Response(200, json=DEVICE_RESPONSE)
-                )
-                router.get(f"{api_base}/storages").mock(
-                    return_value=Response(200, json=STORAGE_RESPONSE)
-                )
+                mock_system_routes(router, api_base)
                 router.get(f"{api_base}/recorders/recorder-1/status").mock(
                     return_value=Response(200, json=RECORDER_STATUS_STOPPED)
                 )
@@ -918,12 +806,7 @@ class TestSuggestMaintenanceWindow:
             with respx.mock(assert_all_called=False) as router:
                 for i in [100, 101]:
                     api_base = f"http://192.168.1.{i}/api/v2.0"
-                    router.get(f"{api_base}/device").mock(
-                        return_value=Response(200, json=DEVICE_RESPONSE)
-                    )
-                    router.get(f"{api_base}/storages").mock(
-                        return_value=Response(200, json=STORAGE_RESPONSE)
-                    )
+                    mock_system_routes(router, api_base)
                     router.get(f"{api_base}/recorders/recorder-1/status").mock(
                         return_value=Response(200, json=RECORDER_STATUS_STOPPED)
                     )
@@ -973,12 +856,7 @@ class TestPredictFleetIssues:
             with respx.mock(assert_all_called=False) as router:
                 for i in [100, 101]:
                     api_base = f"http://192.168.1.{i}/api/v2.0"
-                    router.get(f"{api_base}/device").mock(
-                        return_value=Response(200, json=DEVICE_RESPONSE)
-                    )
-                    router.get(f"{api_base}/storages").mock(
-                        return_value=Response(200, json=STORAGE_RESPONSE)
-                    )
+                    mock_system_routes(router, api_base)
                     router.get(f"{api_base}/recorders/recorder-1/status").mock(
                         return_value=Response(200, json=RECORDER_STATUS_STOPPED)
                     )
@@ -1012,24 +890,14 @@ class TestPredictFleetIssues:
             with respx.mock(assert_all_called=False) as router:
                 # Device 1: Healthy
                 api_base1 = "http://192.168.1.100/api/v2.0"
-                router.get(f"{api_base1}/device").mock(
-                    return_value=Response(200, json=DEVICE_RESPONSE)
-                )
-                router.get(f"{api_base1}/storages").mock(
-                    return_value=Response(200, json=STORAGE_RESPONSE)
-                )
+                mock_system_routes(router, api_base1)
                 router.get(f"{api_base1}/recorders/recorder-1/status").mock(
                     return_value=Response(200, json=RECORDER_STATUS_STOPPED)
                 )
 
                 # Device 2: Offline
                 api_base2 = "http://192.168.1.101/api/v2.0"
-                router.get(f"{api_base2}/device").mock(
-                    side_effect=ConnectError("Connection refused")
-                )
-                router.get(f"{api_base2}/storages").mock(
-                    side_effect=ConnectError("Connection refused")
-                )
+                mock_system_routes(router, api_base2, ident_side_effect=ConnectError("Connection refused"))
 
                 # Mock the LLM provider
                 with patch("epiphan_mcp.tools.fleet.get_provider") as mock_provider:
@@ -1073,12 +941,7 @@ class TestGenerateShiftHandoff:
             with respx.mock(assert_all_called=False) as router:
                 for i in [100, 101]:
                     api_base = f"http://192.168.1.{i}/api/v2.0"
-                    router.get(f"{api_base}/device").mock(
-                        return_value=Response(200, json=DEVICE_RESPONSE)
-                    )
-                    router.get(f"{api_base}/storages").mock(
-                        return_value=Response(200, json=STORAGE_RESPONSE)
-                    )
+                    mock_system_routes(router, api_base)
                     router.get(f"{api_base}/recorders/recorder-1/status").mock(
                         return_value=Response(200, json=RECORDER_STATUS_RECORDING)
                     )
@@ -1105,34 +968,12 @@ class TestGenerateShiftHandoff:
         """Verify handoff includes attention items for unhealthy devices."""
         from epiphan_mcp.server import generate_shift_handoff
 
-        # High storage response
-        high_storage_response = {
-            "status": "ok",
-            "result": [
-                {
-                    "id": "storage-1",
-                    "name": "Internal Storage",
-                    "type": "internal",
-                    "total_bytes": 500000000000,
-                    "used_bytes": 450000000000,
-                    "free_bytes": 50000000000,
-                    "percent_used": 90.0,
-                    "mounted": True,
-                }
-            ],
-        }
-
         with patch("epiphan_mcp.tools.fleet.get_settings") as mock_settings:
             mock_settings.return_value = create_test_settings(devices="192.168.1.100")
 
             with respx.mock(assert_all_called=False) as router:
                 api_base = "http://192.168.1.100/api/v2.0"
-                router.get(f"{api_base}/device").mock(
-                    return_value=Response(200, json=DEVICE_RESPONSE)
-                )
-                router.get(f"{api_base}/storages").mock(
-                    return_value=Response(200, json=high_storage_response)
-                )
+                mock_system_routes(router, api_base, storage_status=STORAGE_STATUS_LOW_RESPONSE)
                 router.get(f"{api_base}/recorders/recorder-1/status").mock(
                     return_value=Response(200, json=RECORDER_STATUS_STOPPED)
                 )
@@ -1173,12 +1014,7 @@ class TestGenerateShiftHandoff:
 
             with respx.mock(assert_all_called=False) as router:
                 api_base = "http://192.168.1.100/api/v2.0"
-                router.get(f"{api_base}/device").mock(
-                    return_value=Response(200, json=DEVICE_RESPONSE)
-                )
-                router.get(f"{api_base}/storages").mock(
-                    return_value=Response(200, json=STORAGE_RESPONSE)
-                )
+                mock_system_routes(router, api_base)
                 router.get(f"{api_base}/recorders/recorder-1/status").mock(
                     return_value=Response(200, json=RECORDER_STATUS_STOPPED)
                 )

@@ -374,6 +374,45 @@ class TestEC20ClientTracking:
             mock_client.post.assert_called_once()
             assert result["tracking"]["enabled"] is False
 
+    @pytest.mark.asyncio
+    async def test_enable_tracking_rejects_body_mode(self):
+        """'body' is not a documented EC20 mode; only presenter/zone are valid."""
+        async with EC20Client(host="192.168.1.100") as client:
+            with pytest.raises(ValueError, match="tracking mode"):
+                await client.enable_tracking(mode="body")
+
+    @pytest.mark.asyncio
+    async def test_save_preset_rejects_out_of_range(self):
+        """EC20 supports presets 0-11; higher IDs must be rejected."""
+        async with EC20Client(host="192.168.1.100") as client:
+            with pytest.raises(ValueError, match="0-11"):
+                await client.save_preset(preset_id=12, name="Too high")
+            with pytest.raises(ValueError, match="0-11"):
+                await client.save_preset(preset_id=-1, name="Negative")
+
+    @pytest.mark.asyncio
+    async def test_goto_preset_rejects_out_of_range(self):
+        """goto_preset must enforce the 0-11 range too."""
+        async with EC20Client(host="192.168.1.100") as client:
+            with pytest.raises(ValueError, match="0-11"):
+                await client.goto_preset(preset_id=255)
+
+    @pytest.mark.asyncio
+    async def test_preset_boundary_values_allowed(self):
+        """Presets 0 and 11 are the valid boundaries."""
+        mock_response = {"success": True}
+
+        with patch("httpx.AsyncClient") as mock_client_class:
+            mock_client = AsyncMock()
+            mock_client.post = AsyncMock(return_value=make_response(mock_response))
+            mock_client_class.return_value = mock_client
+
+            async with EC20Client(host="192.168.1.100") as client:
+                await client.save_preset(preset_id=0, name="Home")
+                await client.save_preset(preset_id=11, name="Last")
+                await client.goto_preset(preset_id=0)
+                await client.goto_preset(preset_id=11)
+
 
 # ============================================================================
 # EC20Client Error Handling Tests

@@ -7,19 +7,26 @@ This module provides an async HTTP client for EC20 PTZ cameras, enabling:
 - Camera status and position retrieval
 - Preview image capture
 
-The EC20 supports multiple control protocols:
-- REST API (HTTP) - used by this client
-- VISCA over IP - alternative for legacy systems
-- ONVIF - open standard
+The EC20 exposes a REST API (used by this client) as a first-class control
+method, alongside VISCA over IP, ONVIF, and NDI (per Epiphan tech specs). On
+current firmware the API is served over **HTTP port 80 only — HTTPS/443 is
+disabled** (Epiphan EC20 Q-SYS plugin README, v1.0), so `use_https=True` is
+likely unsupported.
 
-TODO: Replace all endpoint paths with actual endpoints discovered from
-hardware — every path below is a best-effort placeholder:
-The actual endpoints will be documented after accessing the EC20 web interface
-at http://<camera-ip>. Common patterns include:
-- /api/ptz/position - Get/set PTZ position
-- /api/ptz/preset - Manage presets
-- /api/tracking - AI tracking control
-- /api/status - Camera status
+TODO: The endpoint PATHS below are best-effort placeholders — Epiphan does not
+publish a REST endpoint reference; paths must be captured from the camera web UI
+(http://<camera-ip>) browser dev-tools, then confirmed with scripts/validate_ec20.py.
+
+However, several CAPABILITY facts ARE documented (Q-SYS plugin README) and are
+already reflected in this client's validation/behaviour:
+- Presets are numbered 0-11 (NOT 1-255). Requires firmware >= 3.3.40.
+- AI auto-tracking modes are "presenter" and "zone" only (plus an Auto-Zoom
+  toggle). There is no "body" mode.
+- Preview is a live MJPEG stream; get_preview() returns a single best-effort frame.
+- PTZ is documented as directional + speed and zoom as in/out + speed; the
+  absolute pan/tilt/zoom modelled here is UNVERIFIED and must be confirmed
+  against hardware.
+Sources: EC20 tech specs; Epiphan EC20 Q-SYS plugin README (Carrier Labs, 2026-05).
 
 Example:
     ```python
@@ -67,6 +74,20 @@ class EC20AuthError(EC20APIError):
     in the tool layer keep catching auth failures while callers that care
     can distinguish them.
     """
+
+
+# EC20 supports presets 0-11 (per Q-SYS plugin README; requires firmware >= 3.3.40).
+PRESET_ID_MIN = 0
+PRESET_ID_MAX = 11
+
+
+def _validate_preset_id(preset_id: int) -> None:
+    """Raise ValueError if preset_id is outside the EC20's documented 0-11 range."""
+    if not PRESET_ID_MIN <= preset_id <= PRESET_ID_MAX:
+        raise ValueError(
+            f"Invalid preset_id: {preset_id}. "
+            f"EC20 supports presets {PRESET_ID_MIN}-{PRESET_ID_MAX}."
+        )
 
 
 class EC20Client:
@@ -347,31 +368,35 @@ class EC20Client:
         """Move camera to saved preset position.
 
         Args:
-            preset_id: ID of preset to recall
+            preset_id: ID of preset to recall (0-11, per EC20 spec)
 
         Returns:
             Result of preset recall operation
 
         Raises:
+            ValueError: preset_id out of range
             EC20ConnectionError: Connection failed
             EC20APIError: API error
         """
+        _validate_preset_id(preset_id)
         return await self._post("/api/ptz/preset/goto", data={"preset_id": preset_id})
 
     async def save_preset(self, preset_id: int, name: str) -> dict[str, Any]:
         """Save current position as preset.
 
         Args:
-            preset_id: ID for the preset (1-255)
+            preset_id: ID for the preset (0-11, per EC20 spec)
             name: Name for the preset
 
         Returns:
             Result of preset save operation
 
         Raises:
+            ValueError: preset_id out of range
             EC20ConnectionError: Connection failed
             EC20APIError: API error
         """
+        _validate_preset_id(preset_id)
         return await self._post(
             "/api/ptz/preset/save",
             data={"preset_id": preset_id, "name": name},
@@ -385,7 +410,7 @@ class EC20Client:
         """Enable AI tracking.
 
         Args:
-            mode: Tracking mode - "presenter", "zone", or "body"
+            mode: Tracking mode - "presenter" or "zone" (per EC20 spec)
 
         Returns:
             Result with tracking status
@@ -395,7 +420,7 @@ class EC20Client:
             EC20ConnectionError: Connection failed
             EC20APIError: API error
         """
-        valid_modes = {"presenter", "zone", "body"}
+        valid_modes = {"presenter", "zone"}
         if mode not in valid_modes:
             raise ValueError(f"Invalid tracking mode: {mode}. Must be one of {valid_modes}")
 
@@ -418,10 +443,14 @@ class EC20Client:
     # =========================================================================
 
     async def get_preview(self) -> bytes:
-        """Get camera preview image.
+        """Get a single camera preview frame.
+
+        Note: the EC20 exposes a live MJPEG *stream*; this returns a single
+        best-effort frame from it. The exact endpoint is unverified (see the
+        module TODO) — confirm with scripts/validate_ec20.py against hardware.
 
         Returns:
-            JPEG image bytes
+            JPEG image bytes (one frame)
 
         Raises:
             EC20ConnectionError: Connection failed

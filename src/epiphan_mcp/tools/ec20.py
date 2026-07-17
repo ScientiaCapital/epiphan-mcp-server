@@ -76,7 +76,7 @@ _ZoomLevel = Annotated[
 ]
 _PresetId = Annotated[
     int,
-    Field(description="Preset ID (1-255)."),
+    Field(ge=0, le=11, description="Preset ID (0-11, per EC20 spec)."),
 ]
 _PresetName = Annotated[
     str,
@@ -84,7 +84,7 @@ _PresetName = Annotated[
 ]
 _TrackingMode = Annotated[
     str,
-    Field(description="Tracking mode: 'presenter' (default), 'zone', or 'body'."),
+    Field(description="Tracking mode: 'presenter' (default) or 'zone'."),
 ]
 
 
@@ -280,7 +280,7 @@ async def ec20_goto_preset(
 
     Args:
         camera_id: EC20 camera identifier
-        preset_id: ID of preset to recall (1-255)
+        preset_id: ID of preset to recall (0-11)
 
     Returns:
         Recalled preset ID and raw command result.
@@ -332,7 +332,7 @@ async def ec20_save_preset(
 
     Args:
         camera_id: EC20 camera identifier
-        preset_id: ID for the preset (1-255)
+        preset_id: ID for the preset (0-11)
         name: Name for the preset
 
     Returns:
@@ -431,7 +431,7 @@ async def ec20_enable_tracking(
 
     Args:
         camera_id: EC20 camera identifier
-        mode: Tracking mode - "presenter", "zone", or "body"
+        mode: Tracking mode - "presenter" or "zone"
 
     Returns:
         Enabled tracking mode and raw command result.

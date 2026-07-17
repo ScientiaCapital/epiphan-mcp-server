@@ -307,9 +307,10 @@ class Echo360Client:
     async def list_courses(self) -> tuple[list[dict[str, Any]], bool]:
         """List courses visible to the API client.
 
-        UNVERIFIED endpoint path — inferred from the documented
-        ``/sections/{sectionId}/...`` sub-resource and CRUD support for
-        courses; validate against a live Swagger instance.
+        Path likely correct but UNCONFIRMED: courses is a documented first-class
+        object (the API can "retrieve, create, update, and delete ... courses,
+        sections, and schedules"), so ``GET /courses`` is the REST convention —
+        confirm against a live Swagger instance (``<host>/api-documentation``).
 
         Returns:
             Tuple of (course objects for the first page, truncated flag)
@@ -320,10 +321,9 @@ class Echo360Client:
     async def list_sections(self, course_id: str | None = None) -> tuple[list[dict[str, Any]], bool]:
         """List sections, optionally filtered to one course.
 
-        UNVERIFIED endpoint path and filter param — the
-        ``/sections/{sectionId}`` resource itself is confirmed in the LMS
-        linking docs; the collection GET and ``courseId`` filter are
-        inferred REST convention.
+        Path CONFIRMED: ``GET /public/api/v1/sections`` is documented (EchoVideo
+        LMS-linking API docs — "retrieves all section IDs"). The ``courseId``
+        filter param is still inferred REST convention (unconfirmed).
 
         Args:
             course_id: Optional course ID to filter sections by

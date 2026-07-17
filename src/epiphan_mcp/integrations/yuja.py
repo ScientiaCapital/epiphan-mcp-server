@@ -174,6 +174,12 @@ class YuJaClient:
     ) -> tuple[list[dict[str, Any]], bool]:
         """List videos accessible to the API token.
 
+        UNVERIFIED: the ``/services/media/video(s)`` family is confirmed to
+        exist, but public docs only show *scoped* variants
+        (``.../videos/user/{id}``, ``.../video/group/{id}``). This bare
+        account-wide list may need a ``/user/{id}`` or ``/group/{id}`` scope —
+        confirm against the YuJa API guide (§5.2.x) with a real token.
+
         Args:
             search_query: Optional search term to filter videos by title
 
@@ -215,6 +221,11 @@ class YuJaClient:
 
     async def list_channels(self) -> tuple[list[dict[str, Any]], bool]:
         """List media channels accessible to the API token.
+
+        HIGHEST-RISK UNVERIFIED path: Media Channels is a real product feature,
+        but no public page confirms ``GET /services/channels``. Validate against
+        the YuJa API guide (§5.2.x) with a real token before relying on this;
+        the path may differ (e.g. require a scope) or return 404.
 
         Returns:
             Tuple of (channel objects for the first page, truncated flag)

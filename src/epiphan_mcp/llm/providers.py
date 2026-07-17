@@ -469,6 +469,12 @@ def get_provider(settings: LLMSettings | None = None) -> LLMProvider:
         logger.info("Using Ollama LLM provider (local models)")
         return OllamaProvider(settings=settings)
 
+    if settings.llm_provider not in ("openrouter", "mock"):
+        logger.warning(
+            f"Unknown LLM_PROVIDER={settings.llm_provider!r} — expected "
+            "'openrouter', 'ollama', or 'mock'. Falling back to OpenRouter/mock."
+        )
+
     if not settings.openrouter_api_key:
         logger.warning(
             "No OPENROUTER_API_KEY configured, using mock provider. "

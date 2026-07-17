@@ -362,20 +362,39 @@ class TestSingleTouchOperations:
     """Tests for single touch control operations."""
 
     async def test_single_touch_start(self, pearl_client: PearlClient, mock_singletouch_routes):
-        """Test single touch start (all recorders + streams)."""
+        """Start toggles an idle (pressed=False) control on."""
         async with pearl_client as client:
             result = await client.single_touch_start()
 
         assert result.success is True
         assert "started" in result.message.lower()
+        # The fixture control is OFF (pressed=False), so start must toggle it.
+        assert result.details["toggled"] == 1
 
-    async def test_single_touch_stop(self, pearl_client: PearlClient, mock_singletouch_routes):
-        """Test single touch stop."""
+    async def test_single_touch_stop_already_off_is_noop(
+        self, pearl_client: PearlClient, mock_singletouch_routes
+    ):
+        """Stopping an already-off control toggles nothing (skip branch)."""
         async with pearl_client as client:
             result = await client.single_touch_stop()
 
         assert result.success is True
         assert "stopped" in result.message.lower()
+        # Control is already OFF, so no toggle should fire.
+        assert result.details["toggled"] == 0
+
+    async def test_single_touch_no_controls_fails(
+        self, pearl_client: PearlClient, respx_mock, mock_api_base: str
+    ):
+        """No configured controls must fail, not silently report success."""
+        respx_mock.get(f"{mock_api_base}/system/singletouchcontrol").mock(
+            return_value=Response(200, json={"status": "ok", "result": []})
+        )
+        async with pearl_client as client:
+            result = await client.single_touch_start()
+
+        assert result.success is False
+        assert "no single-touch controls" in result.message.lower()
 
 
 # ============================================================
@@ -479,6 +498,21 @@ class TestErrorHandling:
         # Should have host but unknown model
         assert status.device_name == pearl_client.host
         assert status.model == "Unknown"
+
+    async def test_system_status_reraises_transport_error(
+        self, pearl_client: PearlClient, mock_api_base: str, respx_mock
+    ):
+        """Transport-level failure (device unreachable) must propagate, NOT degrade.
+
+        Fleet offline-detection depends on this: an unreachable device must not be
+        mistaken for a degraded-but-online one. /system/ident is the first call.
+        """
+        mock_system_routes(
+            respx_mock, mock_api_base, ident_side_effect=ConnectError("refused")
+        )
+        async with pearl_client as client:
+            with pytest.raises(PearlAPIError):
+                await client.get_system_status()
 
 
 # ============================================================

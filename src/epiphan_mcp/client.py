@@ -1008,6 +1008,15 @@ class PearlClient:
             total = int(s.get("total", 0) or 0)
             free = int(s.get("free", 0) or 0)
             used = max(total - free, 0)
+            is_mounted = str(s.get("state", "")).lower() not in ("", "unmounted")
+            # A listed, mounted storage reporting total=0 means the /status payload was
+            # empty or unrecognized — don't let that pass as a silent 0-byte disk, which
+            # would read as "healthy, 0% used" in fleet health scoring.
+            if total == 0 and is_mounted:
+                logger.warning(
+                    f"Storage {sid} on {self.host}: /status returned no capacity "
+                    f"(result={s!r}); reporting as unavailable"
+                )
             storages.append(
                 StorageInfo(
                     id=str(sid),
@@ -1015,7 +1024,7 @@ class PearlClient:
                     free_bytes=free,
                     used_bytes=used,
                     percent_used=(used / total * 100) if total else 0,
-                    mounted=str(s.get("state", "")).lower() not in ("", "unmounted"),
+                    mounted=is_mounted,
                 )
             )
         return storages
@@ -1035,33 +1044,43 @@ class PearlClient:
         Returns:
             SystemStatus with device information.
         """
+        # Identity first: /system/ident is the reachability probe. A transport-level
+        # failure here means the device is offline and MUST propagate (callers must
+        # not mistake an offline device for a degraded-but-online one).
         try:
             ident = (await self._get("/system/ident")).get("result", {})
             firmware = (await self._get("/system/firmware")).get("result", {})
-            storages = await self.get_storages()
-
-            total_bytes = sum(s.total_bytes for s in storages)
-            free_bytes = sum(s.free_bytes for s in storages)
-
-            return SystemStatus(
-                device_name=ident.get("name", self.host),
-                model=firmware.get("product_name", "Unknown"),
-                # Serial number is not exposed by these v2.0 endpoints.
-                serial_number=ident.get("serial", ""),
-                firmware_version=firmware.get("version", ""),
-                storage_total_gb=total_bytes / (1024**3) if total_bytes else 0,
-                storage_free_gb=free_bytes / (1024**3) if free_bytes else 0,
-                storage_used_percent=((total_bytes - free_bytes) / total_bytes * 100)
-                if total_bytes
-                else 0,
-            )
         except PearlAPIError as e:
             if e.status_code is None and e.api_status is None:
-                # Transport-level failure (device unreachable): callers must
-                # not mistake an offline device for a degraded-but-online one.
                 raise
-            logger.warning(f"Error getting system status: {e}")
+            logger.warning(f"Error getting device identity for {self.host}: {e}")
             return SystemStatus(device_name=self.host, model="Unknown")
+
+        # Identity succeeded => device is online. A storage read failure should degrade
+        # only the storage fields, not discard the identity/firmware we already have.
+        try:
+            storages = await self.get_storages()
+        except PearlAPIError as e:
+            if e.status_code is None and e.api_status is None:
+                raise  # device went unreachable mid-call -> offline
+            logger.warning(f"Storage unreadable for {self.host}: {e}")
+            storages = []
+
+        total_bytes = sum(s.total_bytes for s in storages)
+        free_bytes = sum(s.free_bytes for s in storages)
+
+        return SystemStatus(
+            device_name=ident.get("name", self.host),
+            model=firmware.get("product_name", "Unknown"),
+            # Serial number is not exposed by these v2.0 endpoints.
+            serial_number=ident.get("serial", ""),
+            firmware_version=firmware.get("version", ""),
+            storage_total_gb=total_bytes / (1024**3) if total_bytes else 0,
+            storage_free_gb=free_bytes / (1024**3) if free_bytes else 0,
+            storage_used_percent=((total_bytes - free_bytes) / total_bytes * 100)
+            if total_bytes
+            else 0,
+        )
 
     async def reboot(self) -> OperationResult:
         """
@@ -1235,13 +1254,31 @@ class PearlClient:
         The Pearl v2.0 API models single-touch as per-object *toggle* endpoints,
         not global start/stop:
           - GET  /system/singletouchcontrol                     -> list of {id}
-          - GET  /system/singletouchcontrol/{stcid}/state       -> {status: bool, ...}
+          - GET  /system/singletouchcontrol/{stcid}/state       -> {pressed, status, ...}
           - POST /system/singletouchcontrol/{stcid}/control/toggle
-        We read each object's state and toggle only those not already in the
-        desired state, giving deterministic start/stop on top of toggle.
+        We read each object's ``pressed`` flag (the documented activation state; note
+        ``status`` is a *health* flag — whether recorders/publishers started OK — not
+        the on/off state) and toggle only those not already in the desired state,
+        giving deterministic start/stop on top of toggle.
         """
         listing = await self._get("/system/singletouchcontrol")
         objects = listing.get("result", [])
+
+        # A missing/empty/wrong-shaped listing means we cannot confirm the operation.
+        # Reporting success here would be a silent no-op at exactly the moment single
+        # touch exists to prevent (e.g. starting recording before a live event).
+        if not isinstance(objects, list) or not objects:
+            logger.error(
+                "single-touch: /system/singletouchcontrol returned no controls "
+                f"(result type={type(listing.get('result')).__name__}) on {self.host}; "
+                "cannot confirm start/stop"
+            )
+            return OperationResult(
+                success=False,
+                message="No single-touch controls found — device may not support "
+                "single touch or the endpoint path is wrong",
+                device=self.host,
+            )
 
         toggled = 0
         for obj in objects:
@@ -1251,7 +1288,8 @@ class PearlClient:
             state = (
                 await self._get(f"/system/singletouchcontrol/{stcid}/state")
             ).get("result", {})
-            if bool(state.get("status")) != desired:
+            # 'pressed' = currently activated (on/off). NOT 'status' (health flag).
+            if bool(state.get("pressed")) != desired:
                 await self._post(f"/system/singletouchcontrol/{stcid}/control/toggle")
                 toggled += 1
 

@@ -99,14 +99,17 @@ SINGLETOUCH_LIST_RESPONSE = {
     "result": [{"id": "stc-1"}],
 }
 
+# 'pressed' is the activation flag the adapter gates on; 'status' is a health flag
+# (recorders/publishers started OK) and is deliberately set to the opposite value so a
+# test that mistakenly reads 'status' instead of 'pressed' would fail.
 SINGLETOUCH_STATE_OFF = {
     "status": "ok",
-    "result": {"pressed": False, "status": False},
+    "result": {"pressed": False, "status": True},
 }
 
 SINGLETOUCH_STATE_ON = {
     "status": "ok",
-    "result": {"pressed": False, "status": True},
+    "result": {"pressed": True, "status": False},
 }
 
 STORAGE_LOW_SPACE_RESPONSE = {

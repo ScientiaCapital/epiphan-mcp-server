@@ -809,7 +809,7 @@ class TestSingleTouchStart:
                 router.get(f"{api_base}/system/singletouchcontrol/stc-1/state").mock(
                     return_value=Response(200, json=SINGLETOUCH_STATE_OFF)
                 )
-                router.post(
+                toggle = router.post(
                     f"{api_base}/system/singletouchcontrol/stc-1/control/toggle"
                 ).mock(return_value=Response(200, json=CONTROL_SUCCESS_RESPONSE))
 
@@ -817,6 +817,8 @@ class TestSingleTouchStart:
 
         assert result.success is True
         assert "started" in result.message.lower()
+        # An idle (pressed=False) control must actually be toggled on.
+        assert toggle.called
 
     async def test_single_touch_start_api_error(self, mock_pearl_host: str):
         """Test single touch start with API error."""
@@ -869,7 +871,7 @@ class TestSingleTouchStop:
                 router.get(f"{api_base}/system/singletouchcontrol/stc-1/state").mock(
                     return_value=Response(200, json=SINGLETOUCH_STATE_ON)
                 )
-                router.post(
+                toggle = router.post(
                     f"{api_base}/system/singletouchcontrol/stc-1/control/toggle"
                 ).mock(return_value=Response(200, json=CONTROL_SUCCESS_RESPONSE))
 
@@ -877,6 +879,8 @@ class TestSingleTouchStop:
 
         assert result.success is True
         assert "stopped" in result.message.lower()
+        # An active (pressed=True) control must actually be toggled off.
+        assert toggle.called
 
     async def test_single_touch_stop_api_error(self, mock_pearl_host: str):
         """Test single touch stop with API error."""

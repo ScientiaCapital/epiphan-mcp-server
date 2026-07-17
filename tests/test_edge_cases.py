@@ -275,7 +275,8 @@ class TestMalformedApiResponses:
     """
 
     async def test_response_missing_status_field_in_fleet(self):
-        """Response missing 'status' field should result in device marked offline."""
+        """A 200 body without a 'status' field defaults to 'ok' (client._handle_response),
+        so the device is treated as online — fleet still succeeds and reports it."""
         settings = create_test_settings(devices="192.168.1.100")
 
         with (
@@ -283,7 +284,7 @@ class TestMalformedApiResponses:
             respx.mock(assert_all_called=False) as router,
         ):
             api_base = "http://192.168.1.100/api/v2.0"
-            # Response with no 'status' field — client may raise an error
+            # No 'status' field -> _handle_response treats it as ok (not an error).
             mock_system_routes(router, api_base, ident={"result": {"name": "test"}})
             router.get(f"{api_base}/recorders/recorder-1/status").mock(
                 return_value=Response(200, json=RECORDER_STATUS_STOPPED)
@@ -291,9 +292,9 @@ class TestMalformedApiResponses:
 
             result = await get_fleet_status()
 
-        # Fleet status should succeed even if device response is unexpected
         assert result.success is True
         assert result.total_devices == 1
+        assert result.devices[0]["online"] is True
 
     async def test_response_http_error_all_endpoints(self):
         """HTTP 500 on all endpoints should still report device with degraded status.
@@ -324,9 +325,11 @@ class TestMalformedApiResponses:
         assert result.success is True
         assert result.total_devices == 1
         device = result.devices[0]
-        # Client falls back to default status — device shows as online
-        # but with minimal data (no recorder access)
+        # An API-level (non-transport) error degrades, it does NOT go offline: the
+        # device must still be reported online, with zeroed/degraded storage.
         assert device["host"] == "192.168.1.100"
+        assert device["online"] is True
+        assert device["storage_percent"] == 0
 
     async def test_api_busy_response(self):
         """API 'busy' response should be handled gracefully."""

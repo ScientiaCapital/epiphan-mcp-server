@@ -45,6 +45,9 @@ you ──▶ agent.py ──▶ Ollama (local model)
 ## Usage
 
 ```bash
+# Self-test: is Ollama up, is the model pulled, does MCP connect? (no query needed)
+python examples/local_agent/agent.py --check
+
 # No Ollama, no hardware — just show what the model would be given (wiring check):
 python examples/local_agent/agent.py --dry-run --profile smoke "start recording"
 
@@ -56,6 +59,7 @@ Flags:
 
 | Flag | Default | Notes |
 |------|---------|-------|
+| `--check` | off | Self-test Ollama + model + MCP connectivity, then exit. No query needed. |
 | `--profile` | `core` | Which tool subset to expose: `smoke`, `core`, or `all`. |
 | `--model` | `qwen2.5:14b` | Any Ollama model that supports tool calling. |
 | `--ollama-url` | `http://localhost:11434` | Ollama base URL. |
@@ -91,6 +95,19 @@ Model notes:
 - **GLM-4 9B** is workable on the 24 GB box but more variable than Qwen.
 
 Pull alternates with e.g. `ollama pull deepseek-r1:14b`, then pass `--model deepseek-r1:14b`.
+
+### On an 8 GB machine (e.g. M1) — smoke test only
+
+```bash
+ollama pull qwen2.5:3b
+python examples/local_agent/agent.py --check --model qwen2.5:3b            # verify setup
+python examples/local_agent/agent.py --profile smoke --model qwen2.5:3b \
+    "what's the status of my pearl?"
+```
+
+Expect the `smoke` profile (5 tools) to connect and drive one or two tool calls.
+A 3B model is unreliable at multi-step tool use — this box is for proving the wiring
+works, not for real operation. Do real work on the 24 GB machine with `qwen2.5:14b`.
 
 ## Limitations
 

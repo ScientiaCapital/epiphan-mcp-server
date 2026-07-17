@@ -200,11 +200,56 @@ async def run_agent(
             return 1
 
 
+async def check_setup(profile: str, model: str, ollama_url: str) -> int:
+    """Fast self-test: is Ollama up, is the model pulled, does MCP connect?"""
+    ok = True
+
+    async with httpx.AsyncClient(base_url=ollama_url, timeout=10.0) as http:
+        try:
+            resp = await http.get("/v1/models")  # OpenAI-compatible model listing
+            resp.raise_for_status()
+            models = [m.get("id", "") for m in resp.json().get("data", [])]
+            print(f"PASS  Ollama reachable at {ollama_url} ({len(models)} model(s))")
+            if any(m == model or m.startswith(f"{model}:") for m in models):
+                print(f"PASS  model '{model}' is available")
+            else:
+                print(f"FAIL  model '{model}' not found (have: {', '.join(models) or 'none'})")
+                print(f"      -> run: ollama pull {model}")
+                ok = False
+        except Exception as e:  # noqa: BLE001
+            print(f"FAIL  Ollama not reachable at {ollama_url}: {e}")
+            print("      -> is `ollama serve` running?")
+            ok = False
+
+    try:
+        async with Client(mcp) as mcp_client:
+            all_tools = await mcp_client.list_tools()
+            wanted = select(profile, [t.name for t in all_tools])
+            n = len(all_tools) if wanted is None else len(wanted)
+            print(
+                f"PASS  MCP server connected: {len(all_tools)} tools, "
+                f"{n} exposed in profile '{profile}'"
+            )
+    except Exception as e:  # noqa: BLE001
+        print(f"FAIL  MCP server error: {e}")
+        ok = False
+
+    print("\n" + ("All checks passed — ready to drive." if ok else "Some checks failed."))
+    return 0 if ok else 1
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         description="Drive the Epiphan Pearl MCP server with a local Ollama model.",
     )
-    parser.add_argument("query", help="What you want the agent to do.")
+    parser.add_argument(
+        "query", nargs="?", default=None, help="What you want the agent to do."
+    )
+    parser.add_argument(
+        "--check",
+        action="store_true",
+        help="Self-test: verify Ollama, the model, and MCP connectivity, then exit.",
+    )
     parser.add_argument(
         "--profile",
         default="core",
@@ -231,6 +276,12 @@ def main() -> int:
         help="Show the tools/prompt the model would receive; don't call Ollama.",
     )
     args = parser.parse_args()
+
+    if args.check:
+        return asyncio.run(check_setup(args.profile, args.model, args.ollama_url))
+
+    if not args.query:
+        parser.error("a query is required (or pass --check for a self-test)")
 
     return asyncio.run(
         run_agent(

@@ -96,6 +96,8 @@ def isolated_llm_env(monkeypatch):
     # Remove any LLM-related env vars
     env_vars_to_clear = [
         "OPENROUTER_API_KEY",
+        "LLM_PROVIDER",
+        "OLLAMA_BASE_URL",
         "LLM_MOCK_MODE",
         "LLM_VISION_MODEL",
         "LLM_TEXT_MODEL",

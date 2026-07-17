@@ -120,39 +120,32 @@ class LLMProvider(ABC):
         pass
 
 
-class OpenRouterProvider(LLMProvider):
+class _OpenAICompatibleProvider(LLMProvider):
     """
-    OpenRouter API provider for multi-model access.
+    Shared base for providers speaking the OpenAI Chat Completions API.
 
-    OpenRouter provides a unified API to access 300+ models from different
-    providers (Anthropic, Google, DeepSeek, etc.) with a single API key.
-
-    Can be used as an async context manager for automatic resource cleanup:
-
-        async with OpenRouterProvider() as provider:
-            result = await provider.analyze_image(...)
+    Both OpenRouter (cloud) and Ollama (local) expose an OpenAI-compatible
+    ``/chat/completions`` endpoint with the same request/response shape, so the
+    request building, error mapping, and response parsing live here. Subclasses
+    provide the base URL / headers (``_build_client``), a display name for error
+    messages (``provider_name``), and any readiness check (``_preflight``).
     """
 
-    def __init__(
-        self,
-        api_key: str | None = None,
-        base_url: str | None = None,
-        settings: LLMSettings | None = None,
-    ):
-        """
-        Initialize OpenRouter provider.
+    provider_name: str = "LLM"
 
-        Args:
-            api_key: OpenRouter API key (or from settings)
-            base_url: API base URL (or from settings)
-            settings: LLM settings instance
-        """
+    def __init__(self, settings: LLMSettings | None = None):
         self._settings = settings or get_llm_settings()
-        self._api_key = api_key or self._settings.openrouter_api_key
-        self._base_url = base_url or self._settings.openrouter_base_url
         self._client: httpx.AsyncClient | None = None
 
-    async def __aenter__(self) -> "OpenRouterProvider":
+    def _build_client(self) -> httpx.AsyncClient:
+        """Construct the HTTP client (base URL + headers). Subclass overrides."""
+        raise NotImplementedError
+
+    def _preflight(self) -> None:
+        """Raise if the provider is not ready to make a request. Optional override."""
+        return None
+
+    async def __aenter__(self) -> "_OpenAICompatibleProvider":
         """Enter async context manager."""
         return self
 
@@ -169,15 +162,7 @@ class OpenRouterProvider(LLMProvider):
     def client(self) -> httpx.AsyncClient:
         """Get or create HTTP client."""
         if self._client is None:
-            self._client = httpx.AsyncClient(
-                base_url=self._base_url,
-                headers={
-                    "Authorization": f"Bearer {self._api_key}",
-                    "HTTP-Referer": "https://github.com/tmkipper/epiphan-mcp-server",
-                    "X-Title": "Epiphan Pearl MCP Server",
-                },
-                timeout=60.0,
-            )
+            self._client = self._build_client()
         return self._client
 
     async def close(self) -> None:
@@ -185,6 +170,31 @@ class OpenRouterProvider(LLMProvider):
         if self._client is not None:
             await self._client.aclose()
             self._client = None
+
+    async def _post_chat(self, payload: dict[str, object]) -> str:
+        """POST a chat-completions payload and return the message content."""
+        try:
+            response = await self.client.post("/chat/completions", json=payload)
+        except httpx.ConnectError as e:
+            raise LLMConnectionError(
+                f"Failed to connect to {self.provider_name}: {e}"
+            ) from e
+        except httpx.TimeoutException as e:
+            raise LLMConnectionError(
+                f"Timeout connecting to {self.provider_name}: {e}"
+            ) from e
+
+        try:
+            response.raise_for_status()
+        except httpx.HTTPStatusError as e:
+            raise LLMAPIError(
+                f"{self.provider_name} API error: {e.response.text}",
+                status_code=e.response.status_code,
+            ) from e
+
+        data = response.json()
+        content: str = data["choices"][0]["message"]["content"]
+        return content
 
     async def analyze_image(
         self,
@@ -194,17 +204,14 @@ class OpenRouterProvider(LLMProvider):
         max_tokens: int = 1000,
     ) -> str:
         """
-        Analyze image using a vision model via OpenRouter.
+        Analyze image using a vision model via the OpenAI-compatible endpoint.
 
         Raises:
             ImageValidationError: If image data is invalid
-            LLMConnectionError: If connection to OpenRouter fails
-            LLMAPIError: If OpenRouter returns an error response
+            LLMConnectionError: If connection to the provider fails
+            LLMAPIError: If the provider returns an error response
         """
-        if not self._api_key:
-            raise LLMAPIError(
-                "OpenRouter API key not configured. Set OPENROUTER_API_KEY environment variable."
-            )
+        self._preflight()
 
         # Validate image and get media type
         media_type = validate_image(image_data)
@@ -217,48 +224,29 @@ class OpenRouterProvider(LLMProvider):
 
         logger.debug(f"Analyzing image with model {model}")
 
-        try:
-            response = await self.client.post(
-                "/chat/completions",
-                json={
-                    "model": model,
-                    "max_tokens": max_tokens,
-                    "messages": [
-                        {
-                            "role": "user",
-                            "content": [
-                                {
-                                    "type": "image_url",
-                                    "image_url": {
-                                        "url": f"data:{media_type};base64,{image_b64}",
-                                    },
+        return await self._post_chat(
+            {
+                "model": model,
+                "max_tokens": max_tokens,
+                "messages": [
+                    {
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "image_url",
+                                "image_url": {
+                                    "url": f"data:{media_type};base64,{image_b64}",
                                 },
-                                {
-                                    "type": "text",
-                                    "text": prompt,
-                                },
-                            ],
-                        }
-                    ],
-                },
-            )
-        except httpx.ConnectError as e:
-            raise LLMConnectionError(f"Failed to connect to OpenRouter: {e}") from e
-        except httpx.TimeoutException as e:
-            raise LLMConnectionError(f"Timeout connecting to OpenRouter: {e}") from e
-
-        try:
-            response.raise_for_status()
-        except httpx.HTTPStatusError as e:
-            raise LLMAPIError(
-                f"OpenRouter API error: {e.response.text}",
-                status_code=e.response.status_code,
-            ) from e
-
-        data = response.json()
-
-        content: str = data["choices"][0]["message"]["content"]
-        return content
+                            },
+                            {
+                                "type": "text",
+                                "text": prompt,
+                            },
+                        ],
+                    }
+                ],
+            }
+        )
 
     async def complete(
         self,
@@ -267,53 +255,117 @@ class OpenRouterProvider(LLMProvider):
         max_tokens: int = 1000,
     ) -> str:
         """
-        Text completion via OpenRouter.
+        Text completion via the OpenAI-compatible endpoint.
 
         Raises:
-            LLMConnectionError: If connection to OpenRouter fails
-            LLMAPIError: If OpenRouter returns an error response
+            LLMConnectionError: If connection to the provider fails
+            LLMAPIError: If the provider returns an error response
         """
-        if not self._api_key:
-            raise LLMAPIError(
-                "OpenRouter API key not configured. Set OPENROUTER_API_KEY environment variable."
-            )
+        self._preflight()
 
         model = model or self._settings.default_text_model
         max_tokens = min(max_tokens, self._settings.max_tokens_per_request)
 
         logger.debug(f"Text completion with model {model}")
 
-        try:
-            response = await self.client.post(
-                "/chat/completions",
-                json={
-                    "model": model,
-                    "max_tokens": max_tokens,
-                    "messages": [
-                        {
-                            "role": "user",
-                            "content": prompt,
-                        }
-                    ],
-                },
-            )
-        except httpx.ConnectError as e:
-            raise LLMConnectionError(f"Failed to connect to OpenRouter: {e}") from e
-        except httpx.TimeoutException as e:
-            raise LLMConnectionError(f"Timeout connecting to OpenRouter: {e}") from e
+        return await self._post_chat(
+            {
+                "model": model,
+                "max_tokens": max_tokens,
+                "messages": [
+                    {
+                        "role": "user",
+                        "content": prompt,
+                    }
+                ],
+            }
+        )
 
-        try:
-            response.raise_for_status()
-        except httpx.HTTPStatusError as e:
+
+class OpenRouterProvider(_OpenAICompatibleProvider):
+    """
+    OpenRouter API provider for multi-model access.
+
+    OpenRouter provides a unified API to access 300+ models from different
+    providers (Anthropic, Google, DeepSeek, etc.) with a single API key.
+
+    Can be used as an async context manager for automatic resource cleanup:
+
+        async with OpenRouterProvider() as provider:
+            result = await provider.analyze_image(...)
+    """
+
+    provider_name = "OpenRouter"
+
+    def __init__(
+        self,
+        api_key: str | None = None,
+        base_url: str | None = None,
+        settings: LLMSettings | None = None,
+    ):
+        """
+        Initialize OpenRouter provider.
+
+        Args:
+            api_key: OpenRouter API key (or from settings)
+            base_url: API base URL (or from settings)
+            settings: LLM settings instance
+        """
+        super().__init__(settings)
+        self._api_key = api_key or self._settings.openrouter_api_key
+        self._base_url = base_url or self._settings.openrouter_base_url
+
+    def _preflight(self) -> None:
+        if not self._api_key:
             raise LLMAPIError(
-                f"OpenRouter API error: {e.response.text}",
-                status_code=e.response.status_code,
-            ) from e
+                "OpenRouter API key not configured. Set OPENROUTER_API_KEY environment variable."
+            )
 
-        data = response.json()
+    def _build_client(self) -> httpx.AsyncClient:
+        return httpx.AsyncClient(
+            base_url=self._base_url,
+            headers={
+                "Authorization": f"Bearer {self._api_key}",
+                "HTTP-Referer": "https://github.com/tmkipper/epiphan-mcp-server",
+                "X-Title": "Epiphan Pearl MCP Server",
+            },
+            timeout=60.0,
+        )
 
-        content: str = data["choices"][0]["message"]["content"]
-        return content
+
+class OllamaProvider(_OpenAICompatibleProvider):
+    """
+    Ollama provider for local models (no API key, nothing leaves the machine).
+
+    Ollama exposes an OpenAI-compatible endpoint at ``/v1/chat/completions``, so
+    this reuses the shared request/response handling. The model must be pulled
+    locally (e.g. ``ollama pull qwen2.5vl:7b`` for vision, ``qwen2.5:14b`` for
+    text) and named via the ``LLM_*_MODEL`` env vars using Ollama tags.
+
+        async with OllamaProvider() as provider:
+            result = await provider.analyze_image(...)
+    """
+
+    provider_name = "Ollama"
+
+    def __init__(
+        self,
+        base_url: str | None = None,
+        settings: LLMSettings | None = None,
+    ):
+        """
+        Initialize Ollama provider.
+
+        Args:
+            base_url: Ollama OpenAI-compatible base URL (or from settings)
+            settings: LLM settings instance
+        """
+        super().__init__(settings)
+        self._base_url = base_url or self._settings.ollama_base_url
+
+    def _build_client(self) -> httpx.AsyncClient:
+        # Ollama ignores auth; no OpenRouter-style headers needed.
+        return httpx.AsyncClient(base_url=self._base_url, timeout=60.0)
 
 
 class MockProvider(LLMProvider):
@@ -396,8 +448,10 @@ def get_provider(settings: LLMSettings | None = None) -> LLMProvider:
     """
     Get appropriate LLM provider based on configuration.
 
-    Returns MockProvider if mock_mode is enabled or no API key is configured.
-    Returns OpenRouterProvider otherwise.
+    Selection order:
+      1. ``LLM_MOCK_MODE=true`` -> MockProvider (no network).
+      2. ``LLM_PROVIDER=ollama`` -> OllamaProvider (local, no API key).
+      3. OpenRouter if an API key is set; otherwise MockProvider fallback.
 
     Args:
         settings: Optional settings override
@@ -411,10 +465,15 @@ def get_provider(settings: LLMSettings | None = None) -> LLMProvider:
         logger.info("Using mock LLM provider (LLM_MOCK_MODE=true)")
         return MockProvider()
 
+    if settings.llm_provider == "ollama":
+        logger.info("Using Ollama LLM provider (local models)")
+        return OllamaProvider(settings=settings)
+
     if not settings.openrouter_api_key:
         logger.warning(
             "No OPENROUTER_API_KEY configured, using mock provider. "
-            "Set OPENROUTER_API_KEY for real AI analysis."
+            "Set OPENROUTER_API_KEY for real AI analysis, or LLM_PROVIDER=ollama "
+            "for local models."
         )
         return MockProvider()
 

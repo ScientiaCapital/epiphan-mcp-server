@@ -727,3 +727,144 @@ class TestOpenRouterEdgeCases:
         except LLMConnectionError as e:
             assert e.__cause__ is not None
             assert isinstance(e.__cause__, httpx.ConnectError)
+
+
+# Ollama's OpenAI-compatible endpoint (local models).
+OLLAMA_URL = "http://localhost:11434/v1/chat/completions"
+
+
+class TestOllamaProvider:
+    """Tests for the local OllamaProvider (no API key required)."""
+
+    @pytest.fixture
+    def valid_jpeg(self):
+        """Valid JPEG image data for testing."""
+        return b"\xff\xd8\xff" + b"\x00" * 200
+
+    def test_default_base_url_is_local(self, isolated_llm_env):
+        """OllamaProvider should default to the local Ollama endpoint."""
+        from epiphan_mcp.llm.providers import OllamaProvider
+
+        provider = OllamaProvider()
+        assert provider._base_url == "http://localhost:11434/v1"
+
+    def test_client_has_no_openrouter_headers(self, isolated_llm_env):
+        """Ollama needs no auth; must not send OpenRouter-specific headers."""
+        from epiphan_mcp.llm.providers import OllamaProvider
+
+        provider = OllamaProvider()
+        headers = provider.client.headers
+        assert "HTTP-Referer" not in headers
+        assert "X-Title" not in headers
+
+    @pytest.mark.asyncio
+    async def test_analyze_image_no_api_key_needed(
+        self, isolated_llm_env, valid_jpeg, respx_mock
+    ):
+        """analyze_image should work with no API key configured."""
+        import httpx
+
+        from epiphan_mcp.llm.providers import OllamaProvider
+
+        respx_mock.post(OLLAMA_URL).mock(
+            return_value=httpx.Response(
+                200,
+                json={"choices": [{"message": {"content": "A lecture slide."}}]},
+            )
+        )
+
+        provider = OllamaProvider()
+        result = await provider.analyze_image(valid_jpeg, "Describe this image")
+        assert result == "A lecture slide."
+
+    @pytest.mark.asyncio
+    async def test_complete_returns_content(self, isolated_llm_env, respx_mock):
+        """complete should parse choices[0].message.content."""
+        import httpx
+
+        from epiphan_mcp.llm.providers import OllamaProvider
+
+        respx_mock.post(OLLAMA_URL).mock(
+            return_value=httpx.Response(
+                200,
+                json={"choices": [{"message": {"content": "Start recording."}}]},
+            )
+        )
+
+        provider = OllamaProvider()
+        result = await provider.complete("What should I do?")
+        assert result == "Start recording."
+
+    @pytest.mark.asyncio
+    async def test_connection_error_names_ollama(
+        self, isolated_llm_env, valid_jpeg, respx_mock
+    ):
+        """Connection failures should raise LLMConnectionError mentioning Ollama."""
+        import httpx
+
+        from epiphan_mcp.llm.providers import LLMConnectionError, OllamaProvider
+
+        respx_mock.post(OLLAMA_URL).mock(
+            side_effect=httpx.ConnectError("Connection refused")
+        )
+
+        provider = OllamaProvider()
+        with pytest.raises(LLMConnectionError, match="Ollama"):
+            await provider.analyze_image(valid_jpeg, "Describe this image")
+
+    @pytest.mark.asyncio
+    async def test_api_error_has_status_code(self, isolated_llm_env, respx_mock):
+        """HTTP errors should raise LLMAPIError with the status code."""
+        import httpx
+
+        from epiphan_mcp.llm.providers import LLMAPIError, OllamaProvider
+
+        respx_mock.post(OLLAMA_URL).mock(
+            return_value=httpx.Response(404, json={"error": "model not found"})
+        )
+
+        provider = OllamaProvider()
+        with pytest.raises(LLMAPIError) as exc_info:
+            await provider.complete("hi")
+        assert exc_info.value.status_code == 404
+
+    @pytest.mark.asyncio
+    async def test_context_manager_closes_client(self, isolated_llm_env):
+        """Should work as an async context manager and clean up."""
+        from epiphan_mcp.llm.providers import OllamaProvider
+
+        async with OllamaProvider() as provider:
+            _ = provider.client
+            assert provider._client is not None
+        assert provider._client is None
+
+
+class TestGetProviderOllama:
+    """Tests for the get_provider Ollama branch."""
+
+    def test_returns_ollama_when_selected(self, isolated_llm_env):
+        """LLM_PROVIDER=ollama should yield an OllamaProvider (no key needed)."""
+        from epiphan_mcp.llm.providers import OllamaProvider
+
+        settings = LLMSettings(llm_provider="ollama")
+        provider = get_provider(settings)
+        assert isinstance(provider, OllamaProvider)
+
+    def test_mock_mode_wins_over_ollama(self, isolated_llm_env):
+        """LLM_MOCK_MODE should take priority over the ollama selection."""
+        from epiphan_mcp.llm.providers import MockProvider
+
+        settings = LLMSettings(llm_provider="ollama", mock_mode=True)
+        provider = get_provider(settings)
+        assert isinstance(provider, MockProvider)
+
+    def test_custom_ollama_base_url(self, isolated_llm_env):
+        """OLLAMA_BASE_URL should flow through to the provider."""
+        from epiphan_mcp.llm.providers import OllamaProvider
+
+        settings = LLMSettings(
+            llm_provider="ollama", ollama_base_url="http://host.docker.internal:11434/v1"
+        )
+        provider = get_provider(settings)
+        assert isinstance(provider, OllamaProvider)
+        assert provider._base_url == "http://host.docker.internal:11434/v1"

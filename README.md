@@ -418,22 +418,34 @@ YOUTUBE_REFRESH_TOKEN=your_refresh_token
 
 ### AI Analysis (Optional)
 
-The AI Analysis tools run against a **mock provider by default** (`LLM_MOCK_MODE=true`), so
-they work with no key. For real analysis they currently call **OpenRouter** (a hosted gateway).
+The AI Analysis tools support three backends via `LLM_PROVIDER`:
+
+- **`ollama`** — local models, no API key, nothing leaves the machine (recommended).
+- **`openrouter`** — hosted cloud gateway (needs `OPENROUTER_API_KEY`).
+- **`mock`** — fake responses; also the automatic fallback when no key is set.
+
+**Local (Ollama)** — verified working with `qwen2.5vl:7b` (vision/OCR) and `qwen2.5:14b` (text):
 
 ```bash
+LLM_PROVIDER=ollama
+OLLAMA_BASE_URL=http://localhost:11434/v1   # default
+LLM_VISION_MODEL=qwen2.5vl:7b               # ollama pull qwen2.5vl:7b
+LLM_OCR_MODEL=qwen2.5vl:7b
+LLM_TEXT_MODEL=qwen2.5:14b                  # ollama pull qwen2.5:14b
+```
+
+**Cloud (OpenRouter):**
+
+```bash
+LLM_PROVIDER=openrouter
 OPENROUTER_API_KEY=sk-or-v1-your-key-here
 LLM_VISION_MODEL=google/gemini-2.0-flash-001
 LLM_OCR_MODEL=qwen/qwen2.5-vl-72b-instruct
 LLM_TEXT_MODEL=deepseek/deepseek-chat-v3-0324
-LLM_MOCK_MODE=true  # default; set false to use OpenRouter
 ```
 
-> **Note:** We are moving AI analysis toward **local models** (Ollama) to avoid cloud
-> dependencies and per-token cost. The `OpenRouterProvider` already accepts a `base_url`,
-> so it can be pointed at Ollama's OpenAI-compatible endpoint
-> (`http://localhost:11434/v1`). For the *model-drives-the-tools* use case, see
-> [`examples/local_agent/`](examples/local_agent/).
+> For the *model-drives-the-tools* use case (a local model calling the 130 tools),
+> see [`examples/local_agent/`](examples/local_agent/).
 
 ## Supported Devices
 

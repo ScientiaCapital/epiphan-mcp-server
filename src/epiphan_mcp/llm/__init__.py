@@ -8,12 +8,14 @@ from epiphan_mcp.llm.providers import (
     LLMConnectionError,
     LLMError,
     LLMProvider,
+    OllamaProvider,
     OpenRouterProvider,
 )
 
 __all__ = [
     "LLMProvider",
     "OpenRouterProvider",
+    "OllamaProvider",
     "VideoAnalyzer",
     "LLMSettings",
     "get_llm_settings",

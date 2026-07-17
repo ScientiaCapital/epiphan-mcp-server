@@ -77,6 +77,14 @@ class LLMSettings(BaseSettings):
         populate_by_name=True,  # Allow both field name and alias in constructor
     )
 
+    # Provider selection
+    llm_provider: str = Field(
+        default="openrouter",
+        validation_alias="LLM_PROVIDER",
+        description="Which LLM backend to use: 'openrouter' (cloud), 'ollama' (local), "
+        "or 'mock'. Ollama needs no API key.",
+    )
+
     # OpenRouter configuration
     # Use validation_alias for env var names (allows constructor args to work)
     openrouter_api_key: str | None = Field(
@@ -88,6 +96,13 @@ class LLMSettings(BaseSettings):
         default="https://openrouter.ai/api/v1",
         validation_alias="OPENROUTER_BASE_URL",
         description="OpenRouter API base URL",
+    )
+
+    # Ollama configuration (local models — no API key required)
+    ollama_base_url: str = Field(
+        default="http://localhost:11434/v1",
+        validation_alias="OLLAMA_BASE_URL",
+        description="Ollama OpenAI-compatible base URL (local models)",
     )
 
     # Model selection - defaults optimized for AV production
@@ -134,7 +149,11 @@ class LLMSettings(BaseSettings):
     @property
     def is_configured(self) -> bool:
         """Check if LLM is properly configured."""
-        return self.openrouter_api_key is not None or self.mock_mode
+        return (
+            self.openrouter_api_key is not None
+            or self.mock_mode
+            or self.llm_provider == "ollama"
+        )
 
 
 @lru_cache

@@ -17,12 +17,12 @@ MCP (Model Context Protocol) server wrapping Epiphan Pearl's REST API v2.0, enab
 
 ```
 src/epiphan_mcp/
-├── server.py         # FastMCP server entrypoint (~69 lines, registers all tools)
+├── server.py         # FastMCP server entrypoint (registers all tools)
 ├── client.py         # Pearl REST API v2.0 client
 ├── models.py         # Pydantic models
 ├── config.py         # pydantic-settings config
 ├── integrations/     # Panopto, Kaltura, Opencast, YuJa, Q-SYS, YouTube, EC20, Cloud
-└── tools/            # 20 tool modules with register() + discovery cache
+└── tools/            # 23 tool modules with register() + discovery cache
     ├── discovery.py  # Dynamic recorder/channel auto-detection
     └── ...           # recording, streaming, layout, fleet, ai_tools, etc.
 tests/                # 1,376 tests (unit + integration)
@@ -52,7 +52,6 @@ PEARL_USERNAME=admin
 PEARL_PASSWORD=your_password
 PEARL_USE_HTTPS=false
 PEARL_TIMEOUT=30.0
-PEARL_TEST_IP=192.168.1.100   # for integration tests
 EC20_DEVICES=192.168.1.50
 EC20_USERNAME=admin
 EC20_PASSWORD=your_ec20_password

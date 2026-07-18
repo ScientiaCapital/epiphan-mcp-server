@@ -16,7 +16,7 @@ pip install -e ".[dev]"
 Everything below runs against mocked HTTP, so it works before you touch a device.
 
 ```bash
-pytest            # 1,341 tests (1,334 pass, 7 skip — the 7 need real hardware)
+pytest            # 1,376 tests (1,369 pass, 7 skip — the 7 need real hardware)
 mypy src/         # strict type check, should be clean
 ruff check src/   # lint, should be clean
 ```

@@ -14,7 +14,7 @@ when needed. Verified 2026-07-16.
 
 Note: **there is no EC20 repo** in the org — no public EC20 API spec exists on GitHub.
 
-## Pearl (encoder) — core integration (52 tools)
+## Pearl (encoder) — core integration (54 tools: 52 core + 2 discovery)
 
 - **Swagger UI**: https://epiphan-video.github.io/pearl_api_swagger_ui/
 - **OpenAPI spec (raw)**: https://epiphan-video.github.io/pearl_api_swagger_ui/api/v2.0/openapi.yml — **vendored at [`docs/api/pearl_openapi_v2.0.yml`](api/pearl_openapi_v2.0.yml)**

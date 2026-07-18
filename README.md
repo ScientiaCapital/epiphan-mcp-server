@@ -369,8 +369,8 @@ EC20_TIMEOUT=30.0
 ### Epiphan Cloud (Optional)
 
 ```bash
-EPIPHAN_CLOUD_API_URL=https://go.epiphan.cloud/api/v2
-EPIPHAN_CLOUD_API_TOKEN=your_bearer_token
+EPIPHAN_CLOUD_TOKEN=your_bearer_token
+EPIPHAN_CLOUD_HOST=go.epiphan.cloud   # optional; defaults to go.epiphan.cloud
 ```
 
 ### Panopto CMS (Optional)

@@ -5,7 +5,7 @@ MCP server for controlling Epiphan Pearl video capture devices
 through natural language AI assistants.
 """
 
-__version__ = "1.0.0"
+__version__ = "1.2.0"
 
 from .retry import with_retry
 from .server import mcp

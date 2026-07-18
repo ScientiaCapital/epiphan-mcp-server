@@ -20,11 +20,17 @@ Deliberately NOT modelled (no such command exists on the device): absolute
 pan/tilt/zoom positioning, position queries, and named / enumerable presets.
 The camera is a stateless directional device.
 
-Two areas are wired best-effort and flagged UNVERIFIED until re-checked against
-hardware (device was mid-network-change when captured): the exact ``set_ai_vip``
-argument grammar, and preview — which is an MJPEG **WebSocket** stream at
-``/ws/mjpeg`` with no single-frame HTTP endpoint, so ``get_preview`` fails
-explicitly rather than hit a fabricated URL.
+Live read-only validation (2026-07-18, unit at 192.168.8.11) confirmed:
+- ``get_status`` returns real device data; Digest ``admin``/``admin`` works.
+- Preview is genuinely WebSocket-only (``/ws/mjpeg``); there is no single-frame
+  HTTP endpoint, so ``get_preview`` fails explicitly rather than hit a fake URL.
+- ``get_target_status`` (the exact command the camera web UI uses) returns 404
+  on this firmware/model (VX752A, SOC v3.0.30) — the AI target-status read is
+  simply absent here, so ``get_tracking_status`` surfaces that 404.
+- ``set_ai_vip`` is the correct tracking endpoint but requires a VIP-target
+  argument: called bare it returns ``{"Result":"Failed","Msg":"vip is null"}``.
+  The exact target-argument grammar is still UNVERIFIED (needs a destructive
+  pass) — ``enable_tracking`` sends a best-effort flag until then.
 
 Capability facts (Epiphan EC20 Q-SYS plugin README): presets 0-11 (firmware
 >= 3.3.40); AI tracking modes are "presenter" and "zone" only; API is HTTP
@@ -302,9 +308,11 @@ class EC20Client:
         Args:
             mode: "presenter" or "zone" (per Q-SYS plugin README).
 
-        Note: the exact ``set_ai_vip`` argument grammar is UNVERIFIED against
-        hardware; zone-mode additionally requires a ``tracking.area.*`` bounding
-        box that this method does not yet set. Confirm with validate_ec20.py.
+        Note: ``set_ai_vip`` is the correct endpoint (verified live) but expects
+        a VIP-target argument — called with just a flag it returns
+        ``{"Result":"Failed","Msg":"vip is null"}``. The exact target grammar is
+        UNVERIFIED (needs a destructive pass); zone-mode additionally requires a
+        ``tracking.area.*`` bounding box this method does not yet set.
         """
         if mode not in _TRACKING_MODES:
             raise ValueError(
@@ -317,7 +325,13 @@ class EC20Client:
         return await self._vip("set_ai_vip", 0)
 
     async def get_tracking_status(self) -> dict[str, Any]:
-        """Get AI tracking / target status."""
+        """Get AI tracking / target status.
+
+        Uses ``get_target_status`` — the exact command the camera web UI issues.
+        Note: this returns 404 on some firmware/models (e.g. VX752A / SOC
+        v3.0.30), where the target-status read is not exposed; callers get an
+        EC20APIError in that case.
+        """
         return await self._param("get_target_status")
 
     async def _vip(self, *parts: str | int) -> dict[str, Any]:

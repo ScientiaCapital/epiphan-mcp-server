@@ -1,11 +1,12 @@
 #!/usr/bin/env python
-"""Validate the EC20 camera REST endpoints against real hardware.
+"""Validate the EC20 camera CGI endpoints against real hardware.
 
-The EC20 client's endpoint PATHS are best-effort placeholders (Epiphan publishes
-no REST reference). This script exercises each one against a real camera and
-reports which respond, so paths can be confirmed or corrected in one run.
+The EC20 uses an HTTP-Digest CGI API (param.cgi / ptzctrl.cgi / vip), captured
+from live hardware. This script exercises each client method against a real
+camera and reports which respond, so the paths stay confirmed over firmware
+revisions.
 
-Read-only by default (status / position / presets / preview). Pass --destructive
+Read-only by default (status / tracking-status / preview). Pass --destructive
 to also exercise movement, presets, and tracking (these MOVE the camera).
 
 Usage:
@@ -37,20 +38,20 @@ from epiphan_mcp.integrations.ec20 import (
 # Pick up credentials from .env, like the server does.
 load_dotenv()
 
-# Documented path per client method, for the report (see ec20.py TODO).
+# Real endpoint per client method (captured from live hardware + web-UI JS).
 PATHS = {
-    "get_status": "GET /api/status",
-    "get_position": "GET /api/ptz/position",
-    "get_presets": "GET /api/ptz/presets",
-    "get_preview": "GET /api/preview",
-    "pan": "POST /api/ptz/pan",
-    "tilt": "POST /api/ptz/tilt",
-    "zoom": "POST /api/ptz/zoom",
-    "home": "POST /api/ptz/home",
-    "save_preset": "POST /api/ptz/preset/save",
-    "goto_preset": "POST /api/ptz/preset/goto",
-    "enable_tracking": "POST /api/tracking/enable",
-    "disable_tracking": "POST /api/tracking/disable",
+    "get_status": "GET /cgi-bin/param.cgi?get_device_conf+get_system_conf",
+    "get_tracking_status": "GET /cgi-bin/param.cgi?get_target_status",
+    "get_preview": "(unsupported: MJPEG WebSocket /ws/mjpeg)",
+    "move": "GET /cgi-bin/ptzctrl.cgi?ptzcmd&<dir>&<pan>&<tilt>",
+    "stop": "GET /cgi-bin/ptzctrl.cgi?ptzcmd&ptzstop",
+    "zoom": "GET /cgi-bin/ptzctrl.cgi?ptzcmd&zoom<in|out>&<speed>",
+    "zoom_stop": "GET /cgi-bin/ptzctrl.cgi?ptzcmd&zoomstop",
+    "home": "GET /cgi-bin/ptzctrl.cgi?ptzcmd&home",
+    "save_preset": "GET /cgi-bin/ptzctrl.cgi?ptzcmd&posset&<id>",
+    "goto_preset": "GET /cgi-bin/ptzctrl.cgi?ptzcmd&poscall&<id>",
+    "enable_tracking": "GET /cgi-bin/vip?set_ai_vip&1",
+    "disable_tracking": "GET /cgi-bin/vip?set_ai_vip&0",
 }
 
 
@@ -103,18 +104,20 @@ async def run(args: argparse.Namespace) -> int:
     print("Read-only probes:")
     async with factory() as c:
         await rep.probe("get_status", c.get_status())
-        await rep.probe("get_position", c.get_position())
-        await rep.probe("get_presets", c.get_presets())
+        await rep.probe("get_tracking_status", c.get_tracking_status())
+        # get_preview is expected to fail (no HTTP frame endpoint) — reported for record.
         await rep.probe("get_preview", c.get_preview())
 
     if args.destructive:
         print("\nDestructive probes (camera will move):")
         async with factory() as c:
-            await rep.probe("pan", c.pan(degrees=5, speed=30))
-            await rep.probe("tilt", c.tilt(degrees=5, speed=30))
-            await rep.probe("zoom", c.zoom(level=2))
+            # Nudge left briefly then stop, so the camera doesn't run away.
+            await rep.probe("move", c.move("left", pan_speed=8, tilt_speed=8))
+            await rep.probe("stop", c.stop())
+            await rep.probe("zoom", c.zoom("in", speed=2))
+            await rep.probe("zoom_stop", c.zoom_stop())
             await rep.probe("home", c.home())
-            await rep.probe("save_preset", c.save_preset(preset_id=0, name="validate"))
+            await rep.probe("save_preset", c.save_preset(preset_id=0))
             await rep.probe("goto_preset", c.goto_preset(preset_id=0))
             await rep.probe("enable_tracking", c.enable_tracking(mode="presenter"))
             await rep.probe("disable_tracking", c.disable_tracking())
@@ -123,8 +126,8 @@ async def run(args: argparse.Namespace) -> int:
               "movement/presets/tracking.)")
 
     print(f"\nSummary: {rep.ok} passed, {rep.fail} failed/unreachable.")
-    print("Any FAIL/ERR means that path is wrong or unsupported — capture the real "
-          "path from the camera web UI dev-tools and update integrations/ec20.py.")
+    print("get_preview is expected to FAIL (preview is a WebSocket MJPEG stream). "
+          "Any OTHER FAIL/ERR means that path needs correcting in integrations/ec20.py.")
     return 0 if rep.fail == 0 else 1
 
 

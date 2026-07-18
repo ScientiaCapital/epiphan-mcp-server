@@ -1,15 +1,19 @@
 """Tests for EC20 PTZ camera integration.
 
-Tests cover:
-- EC20Client HTTP connection handling
-- PTZ control (pan, tilt, zoom)
-- Preset management
-- AI tracking control
-- Status retrieval
-- MCP tool wrappers
+The EC20's real control API was captured from live hardware (unit EP6601037,
+firmware "SOC v3.0.30 - ARM 6.1.84SEpiphan") and its web-UI JS bundle:
 
-Note: EC20 REST API endpoints are placeholders until discovered from real hardware.
-The actual endpoints will be filled in after accessing the EC20 web interface.
+- Auth is HTTP **Digest** (MD5), NOT Basic.
+- Control is a **CGI** interface, NOT REST:
+    * config/status: GET /cgi-bin/param.cgi?<cmd>  -> line-based key="value" body
+    * PTZ:           GET /cgi-bin/ptzctrl.cgi?ptzcmd&<action>[&<arg>...] -> JSON
+    * AI tracking:   GET /cgi-bin/vip?set_ai_vip&<arg>
+- PTZ is **directional** (move/stop, zoom in/out/stop, home) + numeric presets
+  0-11 (poscall/posset). There is NO absolute-position or position-query command,
+  and no preset-enumeration command.
+
+Tests assert the exact real URLs the client builds and that it parses the two
+real response shapes (key="value" and JSON).
 """
 
 from unittest.mock import AsyncMock, patch
@@ -20,46 +24,36 @@ import pytest
 from epiphan_mcp.config import Settings
 from epiphan_mcp.integrations.ec20 import (
     EC20APIError,
+    EC20AuthError,
     EC20Client,
     EC20ConnectionError,
 )
 
-# ============================================================================
-# Mock Response Helpers
-# ============================================================================
+HOST = "192.168.8.5"
+BASE = f"http://{HOST}"
 
 
-def make_response(
-    data: dict,
-    status_code: int = 200,
-) -> httpx.Response:
-    """Create a mock httpx.Response."""
-    return httpx.Response(
-        status_code=status_code,
-        json=data,
-    )
+def _last_url(route) -> str:
+    """Return the raw URL string of the most recent call on a respx route."""
+    return str(route.calls.last.request.url)
 
 
 # ============================================================================
-# EC20Client Initialization Tests
+# Initialization
 # ============================================================================
 
 
 class TestEC20ClientInit:
-    """Tests for EC20Client initialization."""
-
     def test_client_init_defaults(self):
-        """Test client initialization with defaults."""
-        client = EC20Client(host="192.168.1.100")
-        assert client.host == "192.168.1.100"
+        client = EC20Client(host=HOST)
+        assert client.host == HOST
         assert client.username == "admin"
         assert client.password == ""
         assert client.timeout == 30.0
         assert client.use_https is False
-        assert "http://192.168.1.100" in client.base_url
+        assert client.base_url == BASE
 
     def test_client_init_custom(self):
-        """Test client initialization with custom values."""
         client = EC20Client(
             host="10.0.0.50",
             username="operator",
@@ -67,445 +61,276 @@ class TestEC20ClientInit:
             use_https=True,
             timeout=60.0,
         )
-        assert client.host == "10.0.0.50"
+        assert client.base_url == "https://10.0.0.50"
         assert client.username == "operator"
-        assert client.password == "secret123"
-        assert client.use_https is True
         assert client.timeout == 60.0
-        assert "https://10.0.0.50" in client.base_url
 
 
 # ============================================================================
-# EC20Client Connection Tests
+# Connection / auth
 # ============================================================================
 
 
 class TestEC20ClientConnection:
-    """Tests for EC20Client connection handling."""
+    async def test_uses_digest_auth(self):
+        """The EC20 firmware demands HTTP Digest; Basic auth returns 401."""
+        async with EC20Client(host=HOST, password="admin") as client:
+            assert isinstance(client._client.auth, httpx.DigestAuth)
 
-    @pytest.mark.asyncio
-    async def test_context_manager_creates_client(self):
-        """Test that async context manager creates HTTP client."""
-        with patch("httpx.AsyncClient") as mock_client_class:
-            mock_client = AsyncMock()
-            mock_client_class.return_value = mock_client
+    async def test_no_auth_when_no_credentials(self):
+        async with EC20Client(host=HOST, username="", password="") as client:
+            assert client._client.auth is None
 
-            async with EC20Client(host="192.168.1.100") as client:
-                assert client._client is not None
-
-    @pytest.mark.asyncio
-    async def test_context_manager_closes_client(self):
-        """Test that async context manager closes HTTP client."""
-        with patch("httpx.AsyncClient") as mock_client_class:
-            mock_client = AsyncMock()
-            mock_client_class.return_value = mock_client
-
-            async with EC20Client(host="192.168.1.100"):
-                pass
-
-            mock_client.aclose.assert_called_once()
+    async def test_context_manager_closes(self, respx_mock):
+        respx_mock.get(url__regex=r".*param\.cgi.*").mock(
+            return_value=httpx.Response(200, text='devname="Epiphan EC20"\n')
+        )
+        client = EC20Client(host=HOST, password="admin")
+        async with client:
+            pass
+        assert client._client is None
 
 
 # ============================================================================
-# EC20Client Status Tests
+# Status  (param.cgi, key="value" body)
 # ============================================================================
 
 
 class TestEC20ClientStatus:
-    """Tests for EC20Client status methods."""
+    async def test_get_status_parses_key_value_body(self, respx_mock):
+        device = (
+            'devname="Epiphan EC20"\n'
+            'devtype="VX752A"\n'
+            'versioninfo="SOC v3.0.30 - ARM 6.1.84SEpiphan"\n'
+            'serial_num="EP6601037"\n'
+            'device_model="ESP1895"\n'
+        )
+        system = 'workmode="rtspserver"\ntallymode="redclosegreenclose"\n'
+        dev_route = respx_mock.get(url__regex=r".*param\.cgi\?get_device_conf$").mock(
+            return_value=httpx.Response(200, text=device)
+        )
+        sys_route = respx_mock.get(url__regex=r".*param\.cgi\?get_system_conf$").mock(
+            return_value=httpx.Response(200, text=system)
+        )
 
-    @pytest.mark.asyncio
-    async def test_get_status_returns_camera_info(self):
-        """Test get_status returns camera status information."""
-        mock_response = {
-            "model": "EC20",
-            "firmware": "1.0.0",
-            "serial": "EC20-12345",
-            "ptz": {
-                "pan": 0.0,
-                "tilt": 0.0,
-                "zoom": 1,
-            },
-            "tracking": {
-                "enabled": False,
-                "mode": "off",
-            },
-        }
+        async with EC20Client(host=HOST, password="admin") as client:
+            status = await client.get_status()
 
-        with patch("httpx.AsyncClient") as mock_client_class:
-            mock_client = AsyncMock()
-            mock_client.get = AsyncMock(return_value=make_response(mock_response))
-            mock_client_class.return_value = mock_client
+        assert dev_route.called and sys_route.called
+        assert status["devname"] == "Epiphan EC20"
+        assert status["device_model"] == "ESP1895"
+        assert status["serial_num"] == "EP6601037"
+        assert status["workmode"] == "rtspserver"
 
-            async with EC20Client(host="192.168.1.100") as client:
-                status = await client.get_status()
-
-            assert status["model"] == "EC20"
-            assert "ptz" in status
-            assert "tracking" in status
-
-    @pytest.mark.asyncio
-    async def test_get_position_returns_ptz_values(self):
-        """Test get_position returns current PTZ position."""
-        mock_response = {
-            "pan": 45.0,
-            "tilt": -10.0,
-            "zoom": 5,
-        }
-
-        with patch("httpx.AsyncClient") as mock_client_class:
-            mock_client = AsyncMock()
-            mock_client.get = AsyncMock(return_value=make_response(mock_response))
-            mock_client_class.return_value = mock_client
-
-            async with EC20Client(host="192.168.1.100") as client:
-                position = await client.get_position()
-
-            assert position["pan"] == 45.0
-            assert position["tilt"] == -10.0
-            assert position["zoom"] == 5
+    async def test_get_status_redacts_password(self, respx_mock):
+        """get_system_conf echoes userpasswd in plaintext; it must be redacted."""
+        respx_mock.get(url__regex=r".*get_device_conf$").mock(
+            return_value=httpx.Response(200, text='devname="Epiphan EC20"\n')
+        )
+        respx_mock.get(url__regex=r".*get_system_conf$").mock(
+            return_value=httpx.Response(
+                200, text='username="admin"\nuserpasswd="admin"\nguestpasswd="guest"\n'
+            )
+        )
+        async with EC20Client(host=HOST, password="admin") as client:
+            status = await client.get_status()
+        assert status["userpasswd"] == "***"
+        assert status["guestpasswd"] == "***"
+        assert status["username"] == "admin"
 
 
 # ============================================================================
-# EC20Client PTZ Control Tests
+# PTZ directional control  (ptzctrl.cgi?ptzcmd&...)
 # ============================================================================
 
 
 class TestEC20ClientPTZ:
-    """Tests for EC20Client PTZ control methods."""
+    @pytest.fixture
+    def ptz_route(self, respx_mock):
+        return respx_mock.get(url__regex=r".*ptzctrl\.cgi.*").mock(
+            return_value=httpx.Response(200, json={"Response": {"Result": "OK"}})
+        )
 
-    @pytest.mark.asyncio
-    async def test_pan_sends_correct_request(self):
-        """Test pan method sends correct API request."""
-        mock_response = {"success": True, "pan": 30.0}
+    @pytest.mark.parametrize("direction", ["up", "down", "left", "right"])
+    async def test_move_builds_directional_url(self, ptz_route, direction):
+        async with EC20Client(host=HOST, password="admin") as client:
+            result = await client.move(direction, pan_speed=12, tilt_speed=10)
+        assert f"ptzcmd&{direction}&12&10" in _last_url(ptz_route)
+        assert result["Response"]["Result"] == "OK"
 
-        with patch("httpx.AsyncClient") as mock_client_class:
-            mock_client = AsyncMock()
-            mock_client.post = AsyncMock(return_value=make_response(mock_response))
-            mock_client_class.return_value = mock_client
+    async def test_move_rejects_bad_direction(self):
+        async with EC20Client(host=HOST, password="admin") as client:
+            with pytest.raises(ValueError, match="direction"):
+                await client.move("northwest")
 
-            async with EC20Client(host="192.168.1.100") as client:
-                await client.pan(degrees=30.0, speed=50)
+    async def test_stop_builds_ptzstop_url(self, ptz_route):
+        async with EC20Client(host=HOST, password="admin") as client:
+            await client.stop()
+        assert "ptzcmd&ptzstop" in _last_url(ptz_route)
 
-            # Verify the request was made with correct parameters
-            mock_client.post.assert_called_once()
-            call_args = mock_client.post.call_args
-            assert "pan" in call_args[0][0].lower() or "ptz" in call_args[0][0].lower()
+    async def test_zoom_in_and_out(self, ptz_route):
+        async with EC20Client(host=HOST, password="admin") as client:
+            await client.zoom("in", speed=5)
+            assert "ptzcmd&zoomin&5" in _last_url(ptz_route)
+            await client.zoom("out", speed=3)
+            assert "ptzcmd&zoomout&3" in _last_url(ptz_route)
 
-    @pytest.mark.asyncio
-    async def test_tilt_sends_correct_request(self):
-        """Test tilt method sends correct API request."""
-        mock_response = {"success": True, "tilt": -15.0}
+    async def test_zoom_rejects_bad_direction(self):
+        async with EC20Client(host=HOST, password="admin") as client:
+            with pytest.raises(ValueError, match="direction"):
+                await client.zoom("sideways")
 
-        with patch("httpx.AsyncClient") as mock_client_class:
-            mock_client = AsyncMock()
-            mock_client.post = AsyncMock(return_value=make_response(mock_response))
-            mock_client_class.return_value = mock_client
+    async def test_zoom_stop(self, ptz_route):
+        async with EC20Client(host=HOST, password="admin") as client:
+            await client.zoom_stop()
+        assert "ptzcmd&zoomstop" in _last_url(ptz_route)
 
-            async with EC20Client(host="192.168.1.100") as client:
-                await client.tilt(degrees=-15.0, speed=30)
-
-            mock_client.post.assert_called_once()
-
-    @pytest.mark.asyncio
-    async def test_zoom_sends_correct_request(self):
-        """Test zoom method sends correct API request."""
-        mock_response = {"success": True, "zoom": 10}
-
-        with patch("httpx.AsyncClient") as mock_client_class:
-            mock_client = AsyncMock()
-            mock_client.post = AsyncMock(return_value=make_response(mock_response))
-            mock_client_class.return_value = mock_client
-
-            async with EC20Client(host="192.168.1.100") as client:
-                await client.zoom(level=10)
-
-            mock_client.post.assert_called_once()
-
-    @pytest.mark.asyncio
-    async def test_zoom_validates_range(self):
-        """Test zoom method validates level is within valid range."""
-        with patch("httpx.AsyncClient") as mock_client_class:
-            mock_client = AsyncMock()
-            mock_client_class.return_value = mock_client
-
-            async with EC20Client(host="192.168.1.100") as client:
-                # Level must be 1-36 (20 optical + 16 digital)
-                with pytest.raises(ValueError, match="1.*36"):
-                    await client.zoom(level=0)
-
-                with pytest.raises(ValueError, match="1.*36"):
-                    await client.zoom(level=37)
-
-    @pytest.mark.asyncio
-    async def test_home_returns_camera_to_default(self):
-        """Test home method returns camera to default position."""
-        mock_response = {"success": True, "pan": 0.0, "tilt": 0.0, "zoom": 1}
-
-        with patch("httpx.AsyncClient") as mock_client_class:
-            mock_client = AsyncMock()
-            mock_client.post = AsyncMock(return_value=make_response(mock_response))
-            mock_client_class.return_value = mock_client
-
-            async with EC20Client(host="192.168.1.100") as client:
-                result = await client.home()
-
-            mock_client.post.assert_called_once()
-            assert result["pan"] == 0.0
-            assert result["tilt"] == 0.0
+    async def test_home(self, ptz_route):
+        async with EC20Client(host=HOST, password="admin") as client:
+            await client.home()
+        assert "ptzcmd&home" in _last_url(ptz_route)
 
 
 # ============================================================================
-# EC20Client Preset Tests
+# Presets  (numeric 0-11 via poscall/posset)
 # ============================================================================
 
 
 class TestEC20ClientPresets:
-    """Tests for EC20Client preset methods."""
+    @pytest.fixture
+    def ptz_route(self, respx_mock):
+        return respx_mock.get(url__regex=r".*ptzctrl\.cgi.*").mock(
+            return_value=httpx.Response(200, json={"Response": {"Result": "OK"}})
+        )
 
-    @pytest.mark.asyncio
-    async def test_get_presets_returns_list(self):
-        """Test get_presets returns list of saved presets."""
-        mock_response = {
-            "presets": [
-                {"id": 1, "name": "Podium", "pan": 0, "tilt": 0, "zoom": 5},
-                {"id": 2, "name": "Whiteboard", "pan": -45, "tilt": 10, "zoom": 3},
-                {"id": 3, "name": "Wide", "pan": 0, "tilt": 0, "zoom": 1},
-            ]
-        }
+    async def test_goto_preset_uses_poscall(self, ptz_route):
+        async with EC20Client(host=HOST, password="admin") as client:
+            await client.goto_preset(3)
+        assert "ptzcmd&poscall&3" in _last_url(ptz_route)
 
-        with patch("httpx.AsyncClient") as mock_client_class:
-            mock_client = AsyncMock()
-            mock_client.get = AsyncMock(return_value=make_response(mock_response))
-            mock_client_class.return_value = mock_client
+    async def test_save_preset_uses_posset(self, ptz_route):
+        async with EC20Client(host=HOST, password="admin") as client:
+            await client.save_preset(7)
+        assert "ptzcmd&posset&7" in _last_url(ptz_route)
 
-            async with EC20Client(host="192.168.1.100") as client:
-                presets = await client.get_presets()
+    @pytest.mark.parametrize("bad", [-1, 12, 255])
+    async def test_preset_range_validation(self, bad):
+        async with EC20Client(host=HOST, password="admin") as client:
+            with pytest.raises(ValueError, match="0-11"):
+                await client.goto_preset(bad)
+            with pytest.raises(ValueError, match="0-11"):
+                await client.save_preset(bad)
 
-            assert len(presets) == 3
-            assert presets[0]["name"] == "Podium"
-
-    @pytest.mark.asyncio
-    async def test_goto_preset_moves_to_saved_position(self):
-        """Test goto_preset moves camera to saved preset position."""
-        mock_response = {"success": True, "preset_id": 1}
-
-        with patch("httpx.AsyncClient") as mock_client_class:
-            mock_client = AsyncMock()
-            mock_client.post = AsyncMock(return_value=make_response(mock_response))
-            mock_client_class.return_value = mock_client
-
-            async with EC20Client(host="192.168.1.100") as client:
-                result = await client.goto_preset(preset_id=1)
-
-            mock_client.post.assert_called_once()
-            assert result["preset_id"] == 1
-
-    @pytest.mark.asyncio
-    async def test_save_preset_stores_current_position(self):
-        """Test save_preset saves current position as preset."""
-        mock_response = {"success": True, "preset_id": 5, "name": "New Preset"}
-
-        with patch("httpx.AsyncClient") as mock_client_class:
-            mock_client = AsyncMock()
-            mock_client.post = AsyncMock(return_value=make_response(mock_response))
-            mock_client_class.return_value = mock_client
-
-            async with EC20Client(host="192.168.1.100") as client:
-                result = await client.save_preset(preset_id=5, name="New Preset")
-
-            mock_client.post.assert_called_once()
-            assert result["name"] == "New Preset"
+    @pytest.mark.parametrize("ok", [0, 11])
+    async def test_preset_boundaries_allowed(self, ptz_route, ok):
+        async with EC20Client(host=HOST, password="admin") as client:
+            await client.goto_preset(ok)
+            await client.save_preset(ok)
 
 
 # ============================================================================
-# EC20Client AI Tracking Tests
+# AI tracking  (vip?set_ai_vip / param.cgi?get_target_status)
 # ============================================================================
 
 
 class TestEC20ClientTracking:
-    """Tests for EC20Client AI tracking methods."""
+    async def test_enable_tracking_hits_vip(self, respx_mock):
+        route = respx_mock.get(url__regex=r".*/cgi-bin/vip.*").mock(
+            return_value=httpx.Response(200, json={"Response": {"Result": "OK"}})
+        )
+        async with EC20Client(host=HOST, password="admin") as client:
+            await client.enable_tracking(mode="presenter")
+        assert "set_ai_vip" in _last_url(route)
 
-    @pytest.mark.asyncio
-    async def test_enable_tracking_with_presenter_mode(self):
-        """Test enable_tracking with presenter mode."""
-        mock_response = {"success": True, "tracking": {"enabled": True, "mode": "presenter"}}
-
-        with patch("httpx.AsyncClient") as mock_client_class:
-            mock_client = AsyncMock()
-            mock_client.post = AsyncMock(return_value=make_response(mock_response))
-            mock_client_class.return_value = mock_client
-
-            async with EC20Client(host="192.168.1.100") as client:
-                result = await client.enable_tracking(mode="presenter")
-
-            mock_client.post.assert_called_once()
-            assert result["tracking"]["enabled"] is True
-            assert result["tracking"]["mode"] == "presenter"
-
-    @pytest.mark.asyncio
-    async def test_enable_tracking_with_zone_mode(self):
-        """Test enable_tracking with zone mode."""
-        mock_response = {"success": True, "tracking": {"enabled": True, "mode": "zone"}}
-
-        with patch("httpx.AsyncClient") as mock_client_class:
-            mock_client = AsyncMock()
-            mock_client.post = AsyncMock(return_value=make_response(mock_response))
-            mock_client_class.return_value = mock_client
-
-            async with EC20Client(host="192.168.1.100") as client:
-                result = await client.enable_tracking(mode="zone")
-
-            assert result["tracking"]["mode"] == "zone"
-
-    @pytest.mark.asyncio
-    async def test_disable_tracking(self):
-        """Test disable_tracking stops AI tracking."""
-        mock_response = {"success": True, "tracking": {"enabled": False, "mode": "off"}}
-
-        with patch("httpx.AsyncClient") as mock_client_class:
-            mock_client = AsyncMock()
-            mock_client.post = AsyncMock(return_value=make_response(mock_response))
-            mock_client_class.return_value = mock_client
-
-            async with EC20Client(host="192.168.1.100") as client:
-                result = await client.disable_tracking()
-
-            mock_client.post.assert_called_once()
-            assert result["tracking"]["enabled"] is False
-
-    @pytest.mark.asyncio
-    async def test_enable_tracking_rejects_body_mode(self):
-        """'body' is not a documented EC20 mode; only presenter/zone are valid."""
-        async with EC20Client(host="192.168.1.100") as client:
-            with pytest.raises(ValueError, match="tracking mode"):
+    async def test_enable_tracking_rejects_bad_mode(self):
+        async with EC20Client(host=HOST, password="admin") as client:
+            with pytest.raises(ValueError, match="mode"):
                 await client.enable_tracking(mode="body")
 
-    @pytest.mark.asyncio
-    async def test_save_preset_rejects_out_of_range(self):
-        """EC20 supports presets 0-11; higher IDs must be rejected."""
-        async with EC20Client(host="192.168.1.100") as client:
-            with pytest.raises(ValueError, match="0-11"):
-                await client.save_preset(preset_id=12, name="Too high")
-            with pytest.raises(ValueError, match="0-11"):
-                await client.save_preset(preset_id=-1, name="Negative")
-
-    @pytest.mark.asyncio
-    async def test_goto_preset_rejects_out_of_range(self):
-        """goto_preset must enforce the 0-11 range too."""
-        async with EC20Client(host="192.168.1.100") as client:
-            with pytest.raises(ValueError, match="0-11"):
-                await client.goto_preset(preset_id=255)
-
-    @pytest.mark.asyncio
-    async def test_preset_boundary_values_allowed(self):
-        """Presets 0 and 11 are the valid boundaries."""
-        mock_response = {"success": True}
-
-        with patch("httpx.AsyncClient") as mock_client_class:
-            mock_client = AsyncMock()
-            mock_client.post = AsyncMock(return_value=make_response(mock_response))
-            mock_client_class.return_value = mock_client
-
-            async with EC20Client(host="192.168.1.100") as client:
-                await client.save_preset(preset_id=0, name="Home")
-                await client.save_preset(preset_id=11, name="Last")
-                await client.goto_preset(preset_id=0)
-                await client.goto_preset(preset_id=11)
-
-
-# ============================================================================
-# EC20Client Error Handling Tests
-# ============================================================================
-
-
-class TestEC20ClientErrors:
-    """Tests for EC20Client error handling."""
-
-    @pytest.mark.asyncio
-    async def test_connection_error_raises_exception(self):
-        """Test that connection errors raise EC20ConnectionError."""
-        with patch("httpx.AsyncClient") as mock_client_class:
-            mock_client = AsyncMock()
-            mock_client.get = AsyncMock(side_effect=httpx.ConnectError("Connection refused"))
-            mock_client_class.return_value = mock_client
-
-            async with EC20Client(host="192.168.1.100") as client:
-                with pytest.raises(EC20ConnectionError, match="Connection"):
-                    await client.get_status()
-
-    @pytest.mark.asyncio
-    async def test_timeout_error_raises_exception(self):
-        """Test that timeout errors raise EC20ConnectionError."""
-        with patch("httpx.AsyncClient") as mock_client_class:
-            mock_client = AsyncMock()
-            mock_client.get = AsyncMock(side_effect=httpx.TimeoutException("Timeout"))
-            mock_client_class.return_value = mock_client
-
-            async with EC20Client(host="192.168.1.100") as client:
-                with pytest.raises(EC20ConnectionError, match="[Tt]imeout"):
-                    await client.get_status()
-
-    @pytest.mark.asyncio
-    async def test_api_error_raises_exception(self):
-        """Test that API errors raise EC20APIError."""
-        error_response = httpx.Response(
-            status_code=400,
-            json={"error": "Invalid parameter"},
+    async def test_disable_tracking_hits_vip(self, respx_mock):
+        route = respx_mock.get(url__regex=r".*/cgi-bin/vip.*").mock(
+            return_value=httpx.Response(200, json={"Response": {"Result": "OK"}})
         )
+        async with EC20Client(host=HOST, password="admin") as client:
+            await client.disable_tracking()
+        assert "set_ai_vip" in _last_url(route)
 
-        with patch("httpx.AsyncClient") as mock_client_class:
-            mock_client = AsyncMock()
-            mock_client.post = AsyncMock(return_value=error_response)
-            mock_client_class.return_value = mock_client
-
-            async with EC20Client(host="192.168.1.100") as client:
-                with pytest.raises(EC20APIError, match="Invalid parameter"):
-                    await client.pan(degrees=500)  # Invalid degree
+    async def test_get_tracking_status_uses_param_cgi(self, respx_mock):
+        route = respx_mock.get(url__regex=r".*param\.cgi\?get_target_status.*").mock(
+            return_value=httpx.Response(200, text='target_status="tracking"\n')
+        )
+        async with EC20Client(host=HOST, password="admin") as client:
+            status = await client.get_tracking_status()
+        assert route.called
+        assert status["target_status"] == "tracking"
 
 
 # ============================================================================
-# EC20Client Preview Tests
+# Preview  (MJPEG over WebSocket -> no single-frame HTTP capture)
 # ============================================================================
 
 
 class TestEC20ClientPreview:
-    """Tests for EC20Client preview methods."""
-
-    @pytest.mark.asyncio
-    async def test_get_preview_returns_image_bytes(self):
-        """Test get_preview returns camera preview image as bytes."""
-        # Minimal PNG bytes (1x1 transparent pixel)
-        mock_image = b"\x89PNG\r\n\x1a\n" + b"\x00" * 100
-
-        mock_response = httpx.Response(
-            status_code=200,
-            content=mock_image,
-            headers={"content-type": "image/jpeg"},
-        )
-
-        with patch("httpx.AsyncClient") as mock_client_class:
-            mock_client = AsyncMock()
-            mock_client.get = AsyncMock(return_value=mock_response)
-            mock_client_class.return_value = mock_client
-
-            async with EC20Client(host="192.168.1.100") as client:
-                preview = await client.get_preview()
-
-            assert isinstance(preview, bytes)
-            assert len(preview) > 0
+    async def test_get_preview_reports_unsupported(self):
+        """Preview is an MJPEG WebSocket stream (/ws/mjpeg); a single-frame HTTP
+        grab is not available on this firmware, so get_preview must fail clearly
+        rather than hit a fabricated endpoint."""
+        async with EC20Client(host=HOST, password="admin") as client:
+            with pytest.raises(EC20APIError, match="[Ww]eb[Ss]ocket|MJPEG|not supported"):
+                await client.get_preview()
 
 
 # ============================================================================
-# EC20 Config Tests
+# Error handling
+# ============================================================================
+
+
+class TestEC20ClientErrors:
+    async def test_connection_error(self, respx_mock):
+        respx_mock.get(url__regex=r".*param\.cgi.*").mock(
+            side_effect=httpx.ConnectError("refused")
+        )
+        async with EC20Client(host=HOST, password="admin") as client:
+            with pytest.raises(EC20ConnectionError, match="Connection"):
+                await client.get_status()
+
+    async def test_timeout_error(self, respx_mock):
+        respx_mock.get(url__regex=r".*param\.cgi.*").mock(
+            side_effect=httpx.TimeoutException("timeout")
+        )
+        async with EC20Client(host=HOST, password="admin") as client:
+            with pytest.raises(EC20ConnectionError, match="[Tt]imeout"):
+                await client.get_status()
+
+    async def test_auth_error_on_401(self, respx_mock):
+        respx_mock.get(url__regex=r".*ptzctrl\.cgi.*").mock(
+            return_value=httpx.Response(401, text="401 Unauthorized")
+        )
+        async with EC20Client(host=HOST, password="wrong") as client:
+            with pytest.raises(EC20AuthError):
+                await client.home()
+
+    async def test_api_error_on_500(self, respx_mock):
+        respx_mock.get(url__regex=r".*ptzctrl\.cgi.*").mock(
+            return_value=httpx.Response(500, text="boom")
+        )
+        async with EC20Client(host=HOST, password="admin") as client:
+            with pytest.raises(EC20APIError):
+                await client.home()
+
+    async def test_not_connected_raises(self):
+        client = EC20Client(host=HOST, password="admin")
+        with pytest.raises(EC20ConnectionError, match="Not connected"):
+            await client.home()
+
+
+# ============================================================================
+# EC20 config in Settings (unchanged behaviour)
 # ============================================================================
 
 
 class TestEC20Config:
-    """Tests for EC20 configuration in Settings."""
-
     def test_ec20_settings_defaults(self):
-        """Test EC20 settings have correct defaults."""
         settings = Settings()
         assert settings.ec20_devices == ""
         assert settings.ec20_username == "admin"
@@ -513,222 +338,158 @@ class TestEC20Config:
         assert settings.ec20_use_https is False
         assert settings.ec20_timeout == 30.0
 
-    def test_get_ec20_device_list_empty(self):
-        """Test get_ec20_device_list returns empty list when not configured."""
-        settings = Settings()
-        assert settings.get_ec20_device_list() == []
-
-    def test_get_ec20_device_list_single(self):
-        """Test get_ec20_device_list with single device."""
-        settings = Settings(ec20_devices="192.168.1.100")
-        assert settings.get_ec20_device_list() == ["192.168.1.100"]
-
-    def test_get_ec20_device_list_multiple(self):
-        """Test get_ec20_device_list with multiple devices."""
-        settings = Settings(ec20_devices="192.168.1.100, 192.168.1.101, cam3.local")
+    def test_get_ec20_device_list(self):
+        settings = Settings(ec20_devices="192.168.8.5, 192.168.8.6, cam3.local")
         devices = settings.get_ec20_device_list()
-        assert len(devices) == 3
-        assert "192.168.1.100" in devices
-        assert "192.168.1.101" in devices
-        assert "cam3.local" in devices
+        assert devices == ["192.168.8.5", "192.168.8.6", "cam3.local"]
 
-    def test_get_ec20_host_default(self):
-        """Test get_ec20_host returns first device for 'default'."""
-        settings = Settings(ec20_devices="192.168.1.100,192.168.1.101")
-        assert settings.get_ec20_host("default") == "192.168.1.100"
-
-    def test_get_ec20_host_by_index(self):
-        """Test get_ec20_host returns device by index."""
-        settings = Settings(ec20_devices="192.168.1.100,192.168.1.101")
-        assert settings.get_ec20_host("0") == "192.168.1.100"
-        assert settings.get_ec20_host("1") == "192.168.1.101"
+    def test_get_ec20_host_default_and_index(self):
+        settings = Settings(ec20_devices="192.168.8.5,192.168.8.6")
+        assert settings.get_ec20_host("default") == "192.168.8.5"
+        assert settings.get_ec20_host("0") == "192.168.8.5"
+        assert settings.get_ec20_host("1") == "192.168.8.6"
 
     def test_get_ec20_host_direct_ip(self):
-        """Test get_ec20_host returns direct IP."""
-        settings = Settings()
-        assert settings.get_ec20_host("10.0.0.50") == "10.0.0.50"
+        assert Settings().get_ec20_host("10.0.0.50") == "10.0.0.50"
 
     def test_get_ec20_host_no_default_raises(self):
-        """Test get_ec20_host raises when no default configured."""
-        settings = Settings()
         with pytest.raises(ValueError, match="No default EC20"):
-            settings.get_ec20_host("default")
+            Settings().get_ec20_host("default")
 
 
 # ============================================================================
-# EC20 MCP Tools Tests
+# MCP tools (client mocked)
 # ============================================================================
+
+
+def _mock_client(**methods):
+    """Build a patched EC20Client whose async methods return the given values."""
+    instance = AsyncMock()
+    for name, value in methods.items():
+        setattr(instance, name, AsyncMock(return_value=value))
+    instance.__aenter__ = AsyncMock(return_value=instance)
+    instance.__aexit__ = AsyncMock(return_value=None)
+    return instance
 
 
 class TestEC20MCPTools:
-    """Tests for EC20 MCP tool functions."""
-
-    @pytest.mark.asyncio
-    async def test_ec20_get_status_tool(self):
-        """Test ec20_get_status MCP tool."""
+    async def test_get_status(self):
         from epiphan_mcp.tools.ec20 import ec20_get_status
 
-        mock_status = {
-            "model": "EC20",
-            "firmware": "1.0.0",
-            "ptz": {"pan": 0, "tilt": 0, "zoom": 1},
-        }
+        camera = {"devname": "Epiphan EC20", "device_model": "ESP1895"}
+        with patch("epiphan_mcp.tools.ec20.EC20Client") as cls:
+            cls.return_value = _mock_client(get_status=camera)
+            result = await ec20_get_status(camera_id=HOST)
+        assert result.success is True
+        assert result.camera["device_model"] == "ESP1895"
 
-        with patch("epiphan_mcp.tools.ec20.EC20Client") as mock_client_class:
-            mock_instance = AsyncMock()
-            mock_instance.get_status = AsyncMock(return_value=mock_status)
-            mock_instance.__aenter__ = AsyncMock(return_value=mock_instance)
-            mock_instance.__aexit__ = AsyncMock(return_value=None)
-            mock_client_class.return_value = mock_instance
-
-            result = await ec20_get_status(camera_id="192.168.1.100")
-
-            assert result.success is True
-            assert result.camera["model"] == "EC20"
-
-    @pytest.mark.asyncio
-    async def test_ec20_pan_tilt_tool(self):
-        """Test ec20_pan_tilt MCP tool."""
+    async def test_pan_tilt_move(self):
         from epiphan_mcp.tools.ec20 import ec20_pan_tilt
 
-        with patch("epiphan_mcp.tools.ec20.EC20Client") as mock_client_class:
-            mock_instance = AsyncMock()
-            mock_instance.pan = AsyncMock(return_value={"success": True, "pan": 30.0})
-            mock_instance.tilt = AsyncMock(return_value={"success": True, "tilt": -10.0})
-            mock_instance.__aenter__ = AsyncMock(return_value=mock_instance)
-            mock_instance.__aexit__ = AsyncMock(return_value=None)
-            mock_client_class.return_value = mock_instance
+        instance = _mock_client(move={"Response": {"Result": "OK"}})
+        with patch("epiphan_mcp.tools.ec20.EC20Client", return_value=instance):
+            result = await ec20_pan_tilt(camera_id=HOST, direction="left", pan_speed=12)
+        assert result.success is True
+        assert result.direction == "left"
+        assert result.pan_speed == 12
+        instance.move.assert_called_once_with("left", pan_speed=12, tilt_speed=12)
 
-            result = await ec20_pan_tilt(camera_id="192.168.1.100", pan=30.0, tilt=-10.0)
+    async def test_pan_tilt_stop(self):
+        from epiphan_mcp.tools.ec20 import ec20_pan_tilt
 
-            assert result.success is True
+        instance = _mock_client(stop={"Response": {"Result": "OK"}})
+        with patch("epiphan_mcp.tools.ec20.EC20Client", return_value=instance):
+            result = await ec20_pan_tilt(camera_id=HOST, direction="stop")
+        assert result.success is True
+        assert result.direction == "stop"
+        instance.stop.assert_called_once()
+        instance.move.assert_not_called()
 
-    @pytest.mark.asyncio
-    async def test_ec20_zoom_tool(self):
-        """Test ec20_zoom MCP tool."""
+    async def test_zoom_in(self):
         from epiphan_mcp.tools.ec20 import ec20_zoom
 
-        with patch("epiphan_mcp.tools.ec20.EC20Client") as mock_client_class:
-            mock_instance = AsyncMock()
-            mock_instance.zoom = AsyncMock(return_value={"success": True, "zoom": 10})
-            mock_instance.__aenter__ = AsyncMock(return_value=mock_instance)
-            mock_instance.__aexit__ = AsyncMock(return_value=None)
-            mock_client_class.return_value = mock_instance
+        instance = _mock_client(zoom={"Response": {"Result": "OK"}})
+        with patch("epiphan_mcp.tools.ec20.EC20Client", return_value=instance):
+            result = await ec20_zoom(camera_id=HOST, direction="in", speed=5)
+        assert result.success is True
+        assert result.direction == "in"
+        instance.zoom.assert_called_once_with("in", speed=5)
 
-            result = await ec20_zoom(camera_id="192.168.1.100", level=10)
+    async def test_zoom_stop(self):
+        from epiphan_mcp.tools.ec20 import ec20_zoom
 
-            assert result.success is True
-            mock_instance.zoom.assert_called_with(level=10)
+        instance = _mock_client(zoom_stop={"Response": {"Result": "OK"}})
+        with patch("epiphan_mcp.tools.ec20.EC20Client", return_value=instance):
+            result = await ec20_zoom(camera_id=HOST, direction="stop")
+        assert result.success is True
+        instance.zoom_stop.assert_called_once()
 
-    @pytest.mark.asyncio
-    async def test_ec20_goto_preset_tool(self):
-        """Test ec20_goto_preset MCP tool."""
+    async def test_goto_preset(self):
         from epiphan_mcp.tools.ec20 import ec20_goto_preset
 
-        with patch("epiphan_mcp.tools.ec20.EC20Client") as mock_client_class:
-            mock_instance = AsyncMock()
-            mock_instance.goto_preset = AsyncMock(return_value={"success": True, "preset_id": 1})
-            mock_instance.__aenter__ = AsyncMock(return_value=mock_instance)
-            mock_instance.__aexit__ = AsyncMock(return_value=None)
-            mock_client_class.return_value = mock_instance
+        instance = _mock_client(goto_preset={"Response": {"Result": "OK"}})
+        with patch("epiphan_mcp.tools.ec20.EC20Client", return_value=instance):
+            result = await ec20_goto_preset(camera_id=HOST, preset_id=3)
+        assert result.success is True
+        assert result.preset_id == 3
+        instance.goto_preset.assert_called_once_with(preset_id=3)
 
-            result = await ec20_goto_preset(camera_id="192.168.1.100", preset_id=1)
-
-            assert result.success is True
-            mock_instance.goto_preset.assert_called_with(preset_id=1)
-
-    @pytest.mark.asyncio
-    async def test_ec20_home_tool(self):
-        """Test ec20_home MCP tool."""
-        from epiphan_mcp.tools.ec20 import ec20_home
-
-        with patch("epiphan_mcp.tools.ec20.EC20Client") as mock_client_class:
-            mock_instance = AsyncMock()
-            mock_instance.home = AsyncMock(
-                return_value={"success": True, "pan": 0, "tilt": 0, "zoom": 1}
-            )
-            mock_instance.__aenter__ = AsyncMock(return_value=mock_instance)
-            mock_instance.__aexit__ = AsyncMock(return_value=None)
-            mock_client_class.return_value = mock_instance
-
-            result = await ec20_home(camera_id="192.168.1.100")
-
-            assert result.success is True
-
-    @pytest.mark.asyncio
-    async def test_ec20_enable_tracking_tool(self):
-        """Test ec20_enable_tracking MCP tool."""
-        from epiphan_mcp.tools.ec20 import ec20_enable_tracking
-
-        with patch("epiphan_mcp.tools.ec20.EC20Client") as mock_client_class:
-            mock_instance = AsyncMock()
-            mock_instance.enable_tracking = AsyncMock(
-                return_value={"success": True, "tracking": {"enabled": True, "mode": "presenter"}}
-            )
-            mock_instance.__aenter__ = AsyncMock(return_value=mock_instance)
-            mock_instance.__aexit__ = AsyncMock(return_value=None)
-            mock_client_class.return_value = mock_instance
-
-            result = await ec20_enable_tracking(camera_id="192.168.1.100", mode="presenter")
-
-            assert result.success is True
-            mock_instance.enable_tracking.assert_called_with(mode="presenter")
-
-    @pytest.mark.asyncio
-    async def test_ec20_disable_tracking_tool(self):
-        """Test ec20_disable_tracking MCP tool."""
-        from epiphan_mcp.tools.ec20 import ec20_disable_tracking
-
-        with patch("epiphan_mcp.tools.ec20.EC20Client") as mock_client_class:
-            mock_instance = AsyncMock()
-            mock_instance.disable_tracking = AsyncMock(
-                return_value={"success": True, "tracking": {"enabled": False}}
-            )
-            mock_instance.__aenter__ = AsyncMock(return_value=mock_instance)
-            mock_instance.__aexit__ = AsyncMock(return_value=None)
-            mock_client_class.return_value = mock_instance
-
-            result = await ec20_disable_tracking(camera_id="192.168.1.100")
-
-            assert result.success is True
-
-    @pytest.mark.asyncio
-    async def test_ec20_list_presets_tool(self):
-        """Test ec20_list_presets MCP tool."""
-        from epiphan_mcp.tools.ec20 import ec20_list_presets
-
-        mock_presets = [
-            {"id": 1, "name": "Podium"},
-            {"id": 2, "name": "Whiteboard"},
-        ]
-
-        with patch("epiphan_mcp.tools.ec20.EC20Client") as mock_client_class:
-            mock_instance = AsyncMock()
-            mock_instance.get_presets = AsyncMock(return_value=mock_presets)
-            mock_instance.__aenter__ = AsyncMock(return_value=mock_instance)
-            mock_instance.__aexit__ = AsyncMock(return_value=None)
-            mock_client_class.return_value = mock_instance
-
-            result = await ec20_list_presets(camera_id="192.168.1.100")
-
-            assert result.success is True
-            assert len(result.presets) == 2
-
-    @pytest.mark.asyncio
-    async def test_ec20_save_preset_tool(self):
-        """Test ec20_save_preset MCP tool."""
+    async def test_save_preset_has_no_name(self):
         from epiphan_mcp.tools.ec20 import ec20_save_preset
 
-        with patch("epiphan_mcp.tools.ec20.EC20Client") as mock_client_class:
-            mock_instance = AsyncMock()
-            mock_instance.save_preset = AsyncMock(
-                return_value={"success": True, "preset_id": 5, "name": "New View"}
-            )
-            mock_instance.__aenter__ = AsyncMock(return_value=mock_instance)
-            mock_instance.__aexit__ = AsyncMock(return_value=None)
-            mock_client_class.return_value = mock_instance
+        instance = _mock_client(save_preset={"Response": {"Result": "OK"}})
+        with patch("epiphan_mcp.tools.ec20.EC20Client", return_value=instance):
+            result = await ec20_save_preset(camera_id=HOST, preset_id=7)
+        assert result.success is True
+        assert result.preset_id == 7
+        assert not hasattr(result, "name")
+        instance.save_preset.assert_called_once_with(preset_id=7)
 
-            result = await ec20_save_preset(camera_id="192.168.1.100", preset_id=5, name="New View")
+    async def test_home(self):
+        from epiphan_mcp.tools.ec20 import ec20_home
 
-            assert result.success is True
-            mock_instance.save_preset.assert_called_with(preset_id=5, name="New View")
+        instance = _mock_client(home={"Response": {"Result": "OK"}})
+        with patch("epiphan_mcp.tools.ec20.EC20Client", return_value=instance):
+            result = await ec20_home(camera_id=HOST)
+        assert result.success is True
+
+    async def test_enable_tracking(self):
+        from epiphan_mcp.tools.ec20 import ec20_enable_tracking
+
+        instance = _mock_client(enable_tracking={"Response": {"Result": "OK"}})
+        with patch("epiphan_mcp.tools.ec20.EC20Client", return_value=instance):
+            result = await ec20_enable_tracking(camera_id=HOST, mode="presenter")
+        assert result.success is True
+        assert result.mode == "presenter"
+        instance.enable_tracking.assert_called_once_with(mode="presenter")
+
+    async def test_disable_tracking(self):
+        from epiphan_mcp.tools.ec20 import ec20_disable_tracking
+
+        instance = _mock_client(disable_tracking={"Response": {"Result": "OK"}})
+        with patch("epiphan_mcp.tools.ec20.EC20Client", return_value=instance):
+            result = await ec20_disable_tracking(camera_id=HOST)
+        assert result.success is True
+
+    async def test_list_presets_returns_slot_range(self):
+        """No client call — the EC20 can't enumerate presets, so list the slots."""
+        from epiphan_mcp.tools.ec20 import ec20_list_presets
+
+        result = await ec20_list_presets(camera_id=HOST)
+        assert result.success is True
+        assert [p["id"] for p in result.presets] == list(range(0, 12))
+
+    async def test_get_preview_reports_unsupported(self):
+        from epiphan_mcp.integrations.ec20 import EC20APIError
+        from epiphan_mcp.tools.ec20 import ec20_get_preview
+
+        instance = AsyncMock()
+        instance.get_preview = AsyncMock(
+            side_effect=EC20APIError("preview is an MJPEG WebSocket stream")
+        )
+        instance.__aenter__ = AsyncMock(return_value=instance)
+        instance.__aexit__ = AsyncMock(return_value=None)
+        with patch("epiphan_mcp.tools.ec20.EC20Client", return_value=instance):
+            result = await ec20_get_preview(camera_id=HOST)
+        assert result.success is False
+        assert "WebSocket" in result.error

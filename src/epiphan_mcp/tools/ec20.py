@@ -1,30 +1,27 @@
 """MCP tools for Epiphan EC20 PTZ camera control.
 
-This module provides MCP-compatible tools for controlling EC20 PTZ cameras,
-enabling AI assistants to perform camera operations through natural language.
+The EC20 is a directional PTZ camera: pan/tilt and zoom are continuous motions
+(a direction starts movement; a ``stop`` halts it), presets are numeric slots
+0-11, and there is no absolute positioning or position query. These tools map
+directly onto that real, hardware-verified control model.
 
 Tools:
-    - ec20_get_status: Get camera status and current position
-    - ec20_pan_tilt: Move camera to absolute pan/tilt position
-    - ec20_zoom: Set camera zoom level
-    - ec20_goto_preset: Move camera to saved preset
-    - ec20_save_preset: Save current position as preset
+    - ec20_get_status: Get camera identity and system configuration
+    - ec20_pan_tilt: Start/stop directional pan-tilt motion
+    - ec20_zoom: Start/stop directional zoom motion
+    - ec20_goto_preset: Recall a numeric preset (0-11)
+    - ec20_save_preset: Save current position to a numeric preset (0-11)
     - ec20_home: Return camera to home position
-    - ec20_enable_tracking: Enable AI tracking mode
+    - ec20_enable_tracking: Enable AI tracking (presenter/zone)
     - ec20_disable_tracking: Disable AI tracking
-    - ec20_list_presets: List all saved presets
-    - ec20_get_preview: Get camera preview image
+    - ec20_list_presets: List the addressable preset slots (0-11)
+    - ec20_get_preview: (Preview is a WebSocket MJPEG stream — reports unsupported)
 
 Example:
     ```python
-    # Get camera status
-    result = await ec20_get_status(camera_id="192.168.1.50")
-
-    # Pan and tilt camera
-    result = await ec20_pan_tilt(camera_id="default", pan=45.0, tilt=15.0)
-
-    # Enable presenter tracking
-    result = await ec20_enable_tracking(camera_id="default", mode="presenter")
+    await ec20_pan_tilt(camera_id="192.168.8.5", direction="left", pan_speed=12)
+    await ec20_pan_tilt(camera_id="192.168.8.5", direction="stop")
+    await ec20_goto_preset(camera_id="default", preset_id=3)
     ```
 """
 
@@ -36,7 +33,13 @@ from fastmcp import FastMCP
 from pydantic import Field
 
 from epiphan_mcp.config import get_settings
-from epiphan_mcp.integrations.ec20 import EC20APIError, EC20Client, EC20ConnectionError
+from epiphan_mcp.integrations.ec20 import (
+    PRESET_ID_MAX,
+    PRESET_ID_MIN,
+    EC20APIError,
+    EC20Client,
+    EC20ConnectionError,
+)
 from epiphan_mcp.models import (
     EC20OperationResult,
     EC20PanTiltResult,
@@ -58,29 +61,29 @@ _CameraId = Annotated[
         "an IP address or hostname, or a numeric index like '0' or '1'."
     ),
 ]
-_Pan = Annotated[
-    float,
-    Field(description="Pan position in degrees (-162.5 to +162.5)."),
+_Direction = Annotated[
+    str,
+    Field(description="Pan/tilt direction: 'up', 'down', 'left', 'right', or 'stop'."),
 ]
-_Tilt = Annotated[
-    float,
-    Field(description="Tilt position in degrees (-30 to +90 typical)."),
-]
-_Speed = Annotated[
+_PanSpeed = Annotated[
     int,
-    Field(description="Movement speed (1-100, default 50)."),
+    Field(ge=1, description="Pan speed (typical 1-24). Ignored when direction is 'stop'."),
 ]
-_ZoomLevel = Annotated[
+_TiltSpeed = Annotated[
     int,
-    Field(description="Zoom level (1-36: 1-20 optical, 21-36 digital)."),
+    Field(ge=1, description="Tilt speed (typical 1-20). Ignored when direction is 'stop'."),
+]
+_ZoomDirection = Annotated[
+    str,
+    Field(description="Zoom direction: 'in', 'out', or 'stop'."),
+]
+_ZoomSpeed = Annotated[
+    int,
+    Field(ge=1, description="Zoom speed (typical 1-7). Ignored when direction is 'stop'."),
 ]
 _PresetId = Annotated[
     int,
-    Field(ge=0, le=11, description="Preset ID (0-11, per EC20 spec)."),
-]
-_PresetName = Annotated[
-    str,
-    Field(description="Name for the preset."),
+    Field(ge=PRESET_ID_MIN, le=PRESET_ID_MAX, description="Preset ID (0-11, per EC20 spec)."),
 ]
 _TrackingMode = Annotated[
     str,
@@ -89,20 +92,13 @@ _TrackingMode = Annotated[
 
 
 def _get_ec20_client(camera_id: str = "default") -> tuple[EC20Client, str]:
-    """Get EC20 client for camera ID.
-
-    Args:
-        camera_id: Camera identifier (default, IP, or index)
-
-    Returns:
-        Tuple of (EC20Client, resolved_host)
+    """Get EC20 client for a camera ID, plus the resolved host.
 
     Raises:
-        ValueError: If camera_id cannot be resolved
+        ValueError: If camera_id cannot be resolved.
     """
     settings = get_settings()
     host = settings.get_ec20_host(camera_id)
-
     client = EC20Client(
         host=host,
         username=settings.ec20_username,
@@ -110,509 +106,239 @@ def _get_ec20_client(camera_id: str = "default") -> tuple[EC20Client, str]:
         use_https=settings.ec20_use_https,
         timeout=settings.ec20_timeout,
     )
-
     return client, host
 
 
 async def ec20_get_status(camera_id: _CameraId = "default") -> EC20StatusResult:
-    """Get EC20 camera status including PTZ position and tracking state.
+    """Get EC20 camera identity and system configuration.
 
-    Args:
-        camera_id: EC20 camera identifier. Can be:
-            - "default" - first configured EC20 camera
-            - IP address or hostname - used directly
-            - Index like "0", "1" - nth configured camera
-
-    Returns:
-        Camera status data (model, firmware, position, tracking).
-
-    Example:
-        >>> result = await ec20_get_status(camera_id="192.168.1.50")
-        >>> print(result.camera["pan"])
-        45.0
+    Returns real device fields (model, firmware, serial, work mode, NDI info).
     """
     try:
         client, host = _get_ec20_client(camera_id)
-
         async with client:
             status = await client.get_status()
-
-        return EC20StatusResult(
-            success=True,
-            camera_id=host,
-            camera=status,
-        )
-
+        return EC20StatusResult(success=True, camera_id=host, camera=status)
     except ValueError as e:
-        return EC20StatusResult(
-            success=False,
-            camera_id=camera_id,
-            error=str(e),
-        )
+        return EC20StatusResult(success=False, camera_id=camera_id, error=str(e))
     except EC20ConnectionError as e:
-        return EC20StatusResult(
-            success=False,
-            camera_id=camera_id,
-            error=f"Connection error: {e}",
-        )
+        return EC20StatusResult(success=False, camera_id=camera_id, error=f"Connection error: {e}")
     except EC20APIError as e:
-        return EC20StatusResult(
-            success=False,
-            camera_id=camera_id,
-            error=f"API error: {e}",
-        )
+        return EC20StatusResult(success=False, camera_id=camera_id, error=f"API error: {e}")
 
 
 async def ec20_pan_tilt(
     camera_id: _CameraId = "default",
-    pan: _Pan = 0.0,
-    tilt: _Tilt = 0.0,
-    speed: _Speed = 50,
+    direction: _Direction = "stop",
+    pan_speed: _PanSpeed = 12,
+    tilt_speed: _TiltSpeed = 12,
 ) -> EC20PanTiltResult:
-    """Move EC20 camera to absolute pan/tilt position.
+    """Start or stop directional pan/tilt motion on the EC20.
 
-    Args:
-        camera_id: EC20 camera identifier
-        pan: Pan position in degrees (-162.5 to +162.5)
-        tilt: Tilt position in degrees (-30 to +90 typical)
-        speed: Movement speed (1-100, default 50)
-
-    Returns:
-        New pan/tilt position and raw command results.
+    The camera moves continuously in ``direction`` until you call again with
+    ``direction='stop'``. There is no absolute-position command.
 
     Example:
-        >>> result = await ec20_pan_tilt(pan=45.0, tilt=15.0, speed=75)
-        >>> print(result.pan, result.tilt)
-        45.0 15.0
+        >>> await ec20_pan_tilt(direction="left", pan_speed=12)   # start
+        >>> await ec20_pan_tilt(direction="stop")                 # stop
     """
     try:
         client, host = _get_ec20_client(camera_id)
-
         async with client:
-            pan_result = await client.pan(degrees=pan, speed=speed)
-            tilt_result = await client.tilt(degrees=tilt, speed=speed)
-
+            if direction == "stop":
+                result = await client.stop()
+            else:
+                result = await client.move(direction, pan_speed=pan_speed, tilt_speed=tilt_speed)
         return EC20PanTiltResult(
             success=True,
             camera_id=host,
-            pan=pan,
-            tilt=tilt,
-            pan_result=pan_result,
-            tilt_result=tilt_result,
+            direction=direction,
+            pan_speed=None if direction == "stop" else pan_speed,
+            tilt_speed=None if direction == "stop" else tilt_speed,
+            result=result,
         )
-
     except ValueError as e:
-        return EC20PanTiltResult(
-            success=False,
-            camera_id=camera_id,
-            error=str(e),
-        )
+        return EC20PanTiltResult(success=False, camera_id=camera_id, error=str(e))
     except EC20ConnectionError as e:
-        return EC20PanTiltResult(
-            success=False,
-            camera_id=camera_id,
-            error=f"Connection error: {e}",
-        )
+        return EC20PanTiltResult(success=False, camera_id=camera_id, error=f"Connection error: {e}")
     except EC20APIError as e:
-        return EC20PanTiltResult(
-            success=False,
-            camera_id=camera_id,
-            error=f"API error: {e}",
-        )
+        return EC20PanTiltResult(success=False, camera_id=camera_id, error=f"API error: {e}")
 
 
 async def ec20_zoom(
     camera_id: _CameraId = "default",
-    level: _ZoomLevel = 1,
+    direction: _ZoomDirection = "stop",
+    speed: _ZoomSpeed = 5,
 ) -> EC20ZoomResult:
-    """Set EC20 camera zoom level.
+    """Start or stop directional zoom motion on the EC20.
 
-    Args:
-        camera_id: EC20 camera identifier
-        level: Zoom level (1-36: 1-20 optical, 21-36 digital)
-
-    Returns:
-        New zoom level and raw command result.
+    Zoom moves continuously ``in`` or ``out`` until you call with
+    ``direction='stop'``. There is no absolute zoom-level command.
 
     Example:
-        >>> result = await ec20_zoom(level=10)
-        >>> print(result.zoom_level)
-        10
+        >>> await ec20_zoom(direction="in", speed=5)   # start zooming in
+        >>> await ec20_zoom(direction="stop")          # stop
     """
     try:
         client, host = _get_ec20_client(camera_id)
-
         async with client:
-            zoom_result = await client.zoom(level=level)
-
+            if direction == "stop":
+                result = await client.zoom_stop()
+            else:
+                result = await client.zoom(direction, speed=speed)
         return EC20ZoomResult(
             success=True,
             camera_id=host,
-            zoom_level=level,
-            result=zoom_result,
+            direction=direction,
+            speed=None if direction == "stop" else speed,
+            result=result,
         )
-
     except ValueError as e:
-        return EC20ZoomResult(
-            success=False,
-            camera_id=camera_id,
-            error=str(e),
-        )
+        return EC20ZoomResult(success=False, camera_id=camera_id, error=str(e))
     except EC20ConnectionError as e:
-        return EC20ZoomResult(
-            success=False,
-            camera_id=camera_id,
-            error=f"Connection error: {e}",
-        )
+        return EC20ZoomResult(success=False, camera_id=camera_id, error=f"Connection error: {e}")
     except EC20APIError as e:
-        return EC20ZoomResult(
-            success=False,
-            camera_id=camera_id,
-            error=f"API error: {e}",
-        )
+        return EC20ZoomResult(success=False, camera_id=camera_id, error=f"API error: {e}")
 
 
 async def ec20_goto_preset(
     camera_id: _CameraId = "default",
-    preset_id: _PresetId = 1,
+    preset_id: _PresetId = 0,
 ) -> EC20PresetRecallResult:
-    """Move EC20 camera to a saved preset position.
-
-    Args:
-        camera_id: EC20 camera identifier
-        preset_id: ID of preset to recall (0-11)
-
-    Returns:
-        Recalled preset ID and raw command result.
-
-    Example:
-        >>> result = await ec20_goto_preset(preset_id=1)
-        >>> print(result.preset_id)
-        1
-    """
+    """Recall a saved EC20 preset position (0-11)."""
     try:
         client, host = _get_ec20_client(camera_id)
-
         async with client:
             result = await client.goto_preset(preset_id=preset_id)
-
         return EC20PresetRecallResult(
-            success=True,
-            camera_id=host,
-            preset_id=preset_id,
-            result=result,
+            success=True, camera_id=host, preset_id=preset_id, result=result
         )
-
     except ValueError as e:
-        return EC20PresetRecallResult(
-            success=False,
-            camera_id=camera_id,
-            error=str(e),
-        )
+        return EC20PresetRecallResult(success=False, camera_id=camera_id, error=str(e))
     except EC20ConnectionError as e:
         return EC20PresetRecallResult(
-            success=False,
-            camera_id=camera_id,
-            error=f"Connection error: {e}",
+            success=False, camera_id=camera_id, error=f"Connection error: {e}"
         )
     except EC20APIError as e:
-        return EC20PresetRecallResult(
-            success=False,
-            camera_id=camera_id,
-            error=f"API error: {e}",
-        )
+        return EC20PresetRecallResult(success=False, camera_id=camera_id, error=f"API error: {e}")
 
 
 async def ec20_save_preset(
     camera_id: _CameraId = "default",
-    preset_id: _PresetId = 1,
-    name: _PresetName = "",
+    preset_id: _PresetId = 0,
 ) -> EC20PresetSaveResult:
-    """Save current EC20 camera position as a preset.
+    """Save the current EC20 position to a numeric preset slot (0-11).
 
-    Args:
-        camera_id: EC20 camera identifier
-        preset_id: ID for the preset (0-11)
-        name: Name for the preset
-
-    Returns:
-        Saved preset ID, name, and raw command result.
-
-    Example:
-        >>> result = await ec20_save_preset(preset_id=1, name="Podium")
-        >>> print(result.name)
-        "Podium"
+    The EC20 stores presets by number only — there is no name.
     """
     try:
         client, host = _get_ec20_client(camera_id)
-
         async with client:
-            result = await client.save_preset(preset_id=preset_id, name=name)
-
+            result = await client.save_preset(preset_id=preset_id)
         return EC20PresetSaveResult(
-            success=True,
-            camera_id=host,
-            preset_id=preset_id,
-            name=name,
-            result=result,
+            success=True, camera_id=host, preset_id=preset_id, result=result
         )
-
     except ValueError as e:
-        return EC20PresetSaveResult(
-            success=False,
-            camera_id=camera_id,
-            error=str(e),
-        )
+        return EC20PresetSaveResult(success=False, camera_id=camera_id, error=str(e))
     except EC20ConnectionError as e:
         return EC20PresetSaveResult(
-            success=False,
-            camera_id=camera_id,
-            error=f"Connection error: {e}",
+            success=False, camera_id=camera_id, error=f"Connection error: {e}"
         )
     except EC20APIError as e:
-        return EC20PresetSaveResult(
-            success=False,
-            camera_id=camera_id,
-            error=f"API error: {e}",
-        )
+        return EC20PresetSaveResult(success=False, camera_id=camera_id, error=f"API error: {e}")
 
 
 async def ec20_home(camera_id: _CameraId = "default") -> EC20OperationResult:
-    """Return EC20 camera to home position (pan=0, tilt=0, zoom=1).
-
-    Args:
-        camera_id: EC20 camera identifier
-
-    Returns:
-        Home operation result.
-
-    Example:
-        >>> result = await ec20_home()
-        >>> print(result.success)
-        True
-    """
+    """Return the EC20 camera to its home position."""
     try:
         client, host = _get_ec20_client(camera_id)
-
         async with client:
             result = await client.home()
-
-        return EC20OperationResult(
-            success=True,
-            camera_id=host,
-            result=result,
-        )
-
+        return EC20OperationResult(success=True, camera_id=host, result=result)
     except ValueError as e:
-        return EC20OperationResult(
-            success=False,
-            camera_id=camera_id,
-            error=str(e),
-        )
+        return EC20OperationResult(success=False, camera_id=camera_id, error=str(e))
     except EC20ConnectionError as e:
         return EC20OperationResult(
-            success=False,
-            camera_id=camera_id,
-            error=f"Connection error: {e}",
+            success=False, camera_id=camera_id, error=f"Connection error: {e}"
         )
     except EC20APIError as e:
-        return EC20OperationResult(
-            success=False,
-            camera_id=camera_id,
-            error=f"API error: {e}",
-        )
+        return EC20OperationResult(success=False, camera_id=camera_id, error=f"API error: {e}")
 
 
 async def ec20_enable_tracking(
     camera_id: _CameraId = "default",
     mode: _TrackingMode = "presenter",
 ) -> EC20TrackingResult:
-    """Enable AI tracking on EC20 camera.
-
-    Args:
-        camera_id: EC20 camera identifier
-        mode: Tracking mode - "presenter" or "zone"
-
-    Returns:
-        Enabled tracking mode and raw command result.
-
-    Example:
-        >>> result = await ec20_enable_tracking(mode="presenter")
-        >>> print(result.mode)
-        "presenter"
-    """
+    """Enable AI tracking on the EC20 camera ('presenter' or 'zone')."""
     try:
         client, host = _get_ec20_client(camera_id)
-
         async with client:
             result = await client.enable_tracking(mode=mode)
-
-        return EC20TrackingResult(
-            success=True,
-            camera_id=host,
-            mode=mode,
-            result=result,
-        )
-
+        return EC20TrackingResult(success=True, camera_id=host, mode=mode, result=result)
     except ValueError as e:
-        return EC20TrackingResult(
-            success=False,
-            camera_id=camera_id,
-            error=str(e),
-        )
+        return EC20TrackingResult(success=False, camera_id=camera_id, error=str(e))
     except EC20ConnectionError as e:
         return EC20TrackingResult(
-            success=False,
-            camera_id=camera_id,
-            error=f"Connection error: {e}",
+            success=False, camera_id=camera_id, error=f"Connection error: {e}"
         )
     except EC20APIError as e:
-        return EC20TrackingResult(
-            success=False,
-            camera_id=camera_id,
-            error=f"API error: {e}",
-        )
+        return EC20TrackingResult(success=False, camera_id=camera_id, error=f"API error: {e}")
 
 
 async def ec20_disable_tracking(camera_id: _CameraId = "default") -> EC20OperationResult:
-    """Disable AI tracking on EC20 camera.
-
-    Args:
-        camera_id: EC20 camera identifier
-
-    Returns:
-        Tracking disabled result.
-
-    Example:
-        >>> result = await ec20_disable_tracking()
-        >>> print(result.success)
-        True
-    """
+    """Disable AI tracking on the EC20 camera."""
     try:
         client, host = _get_ec20_client(camera_id)
-
         async with client:
             result = await client.disable_tracking()
-
-        return EC20OperationResult(
-            success=True,
-            camera_id=host,
-            result=result,
-        )
-
+        return EC20OperationResult(success=True, camera_id=host, result=result)
     except ValueError as e:
-        return EC20OperationResult(
-            success=False,
-            camera_id=camera_id,
-            error=str(e),
-        )
+        return EC20OperationResult(success=False, camera_id=camera_id, error=str(e))
     except EC20ConnectionError as e:
         return EC20OperationResult(
-            success=False,
-            camera_id=camera_id,
-            error=f"Connection error: {e}",
+            success=False, camera_id=camera_id, error=f"Connection error: {e}"
         )
     except EC20APIError as e:
-        return EC20OperationResult(
-            success=False,
-            camera_id=camera_id,
-            error=f"API error: {e}",
-        )
+        return EC20OperationResult(success=False, camera_id=camera_id, error=f"API error: {e}")
 
 
 async def ec20_list_presets(camera_id: _CameraId = "default") -> EC20PresetListResult:
-    """List all saved presets on EC20 camera.
+    """List the addressable EC20 preset slots (0-11).
 
-    Args:
-        camera_id: EC20 camera identifier
-
-    Returns:
-        List of presets with id, name, pan, tilt, zoom.
-
-    Example:
-        >>> result = await ec20_list_presets()
-        >>> for preset in result.presets:
-        ...     print(f"{preset['id']}: {preset['name']}")
-        1: Podium
-        2: Whiteboard
+    The EC20 firmware has no command to report which slots are populated or
+    their names, so this returns the valid slot ids you can recall/save.
     """
     try:
-        client, host = _get_ec20_client(camera_id)
-
-        async with client:
-            presets = await client.get_presets()
-
-        return EC20PresetListResult(
-            success=True,
-            camera_id=host,
-            presets=presets,
-        )
-
+        _, host = _get_ec20_client(camera_id)
+        presets = [{"id": pid} for pid in range(PRESET_ID_MIN, PRESET_ID_MAX + 1)]
+        return EC20PresetListResult(success=True, camera_id=host, presets=presets)
     except ValueError as e:
-        return EC20PresetListResult(
-            success=False,
-            camera_id=camera_id,
-            error=str(e),
-        )
-    except EC20ConnectionError as e:
-        return EC20PresetListResult(
-            success=False,
-            camera_id=camera_id,
-            error=f"Connection error: {e}",
-        )
-    except EC20APIError as e:
-        return EC20PresetListResult(
-            success=False,
-            camera_id=camera_id,
-            error=f"API error: {e}",
-        )
+        return EC20PresetListResult(success=False, camera_id=camera_id, error=str(e))
 
 
 async def ec20_get_preview(camera_id: _CameraId = "default") -> EC20PreviewResult:
-    """Get preview image from EC20 camera.
+    """Get a preview image from the EC20 camera.
 
-    Args:
-        camera_id: EC20 camera identifier
-
-    Returns:
-        Base64-encoded JPEG preview image.
-
-    Example:
-        >>> result = await ec20_get_preview()
-        >>> import base64
-        >>> image_bytes = base64.b64decode(result.image_base64)
+    Note: the EC20 exposes preview only as an MJPEG WebSocket stream
+    (/ws/mjpeg); single-frame HTTP capture is not supported on current
+    firmware, so this reports an error rather than a fabricated image.
     """
     try:
         client, host = _get_ec20_client(camera_id)
-
         async with client:
             image_bytes = await client.get_preview()
-
         return EC20PreviewResult(
             success=True,
             camera_id=host,
             image_base64=base64.b64encode(image_bytes).decode("utf-8"),
             content_type="image/jpeg",
         )
-
     except ValueError as e:
-        return EC20PreviewResult(
-            success=False,
-            camera_id=camera_id,
-            error=str(e),
-        )
+        return EC20PreviewResult(success=False, camera_id=camera_id, error=str(e))
     except EC20ConnectionError as e:
-        return EC20PreviewResult(
-            success=False,
-            camera_id=camera_id,
-            error=f"Connection error: {e}",
-        )
+        return EC20PreviewResult(success=False, camera_id=camera_id, error=f"Connection error: {e}")
     except EC20APIError as e:
-        return EC20PreviewResult(
-            success=False,
-            camera_id=camera_id,
-            error=f"API error: {e}",
-        )
+        return EC20PreviewResult(success=False, camera_id=camera_id, error=f"API error: {e}")
 
 
 def register(server: FastMCP) -> None:

@@ -1,47 +1,43 @@
 """Async HTTP client for Epiphan EC20 PTZ camera control.
 
-This module provides an async HTTP client for EC20 PTZ cameras, enabling:
-- PTZ control (pan, tilt, zoom)
-- Preset management (save, recall, list)
-- AI tracking control (presenter mode, zone mode)
-- Camera status and position retrieval
-- Preview image capture
+The EC20's control API was captured from **live hardware** (unit serial
+EP6601037, firmware "SOC v3.0.30 - ARM 6.1.84SEpiphan", model VX752A/ESP1895)
+and its web-UI JavaScript bundle. It is a **CGI interface guarded by HTTP
+Digest auth** — NOT the REST-over-Basic scheme earlier versions assumed:
 
-The EC20 exposes a REST API (used by this client) as a first-class control
-method, alongside VISCA over IP, ONVIF, and NDI (per Epiphan tech specs). On
-current firmware the API is served over **HTTP port 80 only — HTTPS/443 is
-disabled** (Epiphan EC20 Q-SYS plugin README, v1.0), so `use_https=True` is
-likely unsupported.
+- **Auth**: HTTP Digest (MD5). Basic auth is rejected with 401.
+- **Config / status**: ``GET /cgi-bin/param.cgi?<command>`` returns a
+  line-based ``key="value"`` body (NOT JSON). Read commands include
+  ``get_device_conf``, ``get_system_conf``, ``get_target_status``.
+- **PTZ**: ``GET /cgi-bin/ptzctrl.cgi?ptzcmd&<action>[&<arg>...]`` returns JSON
+  ``{"Response": {"Result": ...}}``. This is the standard VISCA-over-HTTP
+  command set: directional ``up``/``down``/``left``/``right`` (+ pan/tilt
+  speed) held until ``ptzstop``; ``zoomin``/``zoomout`` (+ speed) held until
+  ``zoomstop``; ``home``; and numeric presets ``poscall``/``posset`` (0-11).
+- **AI tracking**: ``GET /cgi-bin/vip?set_ai_vip&<arg>``.
 
-TODO: The endpoint PATHS below are best-effort placeholders — Epiphan does not
-publish a REST endpoint reference; paths must be captured from the camera web UI
-(http://<camera-ip>) browser dev-tools, then confirmed with scripts/validate_ec20.py.
+Deliberately NOT modelled (no such command exists on the device): absolute
+pan/tilt/zoom positioning, position queries, and named / enumerable presets.
+The camera is a stateless directional device.
 
-However, several CAPABILITY facts ARE documented (Q-SYS plugin README) and are
-already reflected in this client's validation/behaviour:
-- Presets are numbered 0-11 (NOT 1-255). Requires firmware >= 3.3.40.
-- AI auto-tracking modes are "presenter" and "zone" only (plus an Auto-Zoom
-  toggle). There is no "body" mode.
-- Preview is a live MJPEG stream; get_preview() returns a single best-effort frame.
-- PTZ is documented as directional + speed and zoom as in/out + speed; the
-  absolute pan/tilt/zoom modelled here is UNVERIFIED and must be confirmed
-  against hardware.
-Sources: EC20 tech specs; Epiphan EC20 Q-SYS plugin README (Carrier Labs, 2026-05).
+Two areas are wired best-effort and flagged UNVERIFIED until re-checked against
+hardware (device was mid-network-change when captured): the exact ``set_ai_vip``
+argument grammar, and preview — which is an MJPEG **WebSocket** stream at
+``/ws/mjpeg`` with no single-frame HTTP endpoint, so ``get_preview`` fails
+explicitly rather than hit a fabricated URL.
+
+Capability facts (Epiphan EC20 Q-SYS plugin README): presets 0-11 (firmware
+>= 3.3.40); AI tracking modes are "presenter" and "zone" only; API is HTTP
+port 80 only (443 disabled), so ``use_https`` is unsupported on current firmware.
 
 Example:
     ```python
-    async with EC20Client(host="192.168.1.100") as client:
-        # Get camera status
-        status = await client.get_status()
-
-        # Pan camera 30 degrees right
-        await client.pan(degrees=30.0, speed=50)
-
-        # Enable presenter tracking
-        await client.enable_tracking(mode="presenter")
-
-        # Go to preset "Podium"
-        await client.goto_preset(preset_id=1)
+    async with EC20Client(host="192.168.8.5", password="admin") as client:
+        status = await client.get_status()      # real device info
+        await client.move("left", pan_speed=12) # start panning left
+        await client.stop()                      # stop
+        await client.goto_preset(3)              # recall preset 3
+        await client.enable_tracking("presenter")
     ```
 """
 
@@ -80,6 +76,16 @@ class EC20AuthError(EC20APIError):
 PRESET_ID_MIN = 0
 PRESET_ID_MAX = 11
 
+# Directional PTZ action tokens (confirmed literals in the camera web-UI JS).
+_MOVE_DIRECTIONS = {"up", "down", "left", "right"}
+_ZOOM_DIRECTIONS = {"in": "zoomin", "out": "zoomout"}
+
+# AI auto-tracking modes (Q-SYS plugin README) — "body" is NOT a real mode.
+_TRACKING_MODES = {"presenter", "zone"}
+
+# Keys from param.cgi whose values are secrets and must never be surfaced.
+_SECRET_KEY_MARKERS = ("passwd", "password")
+
 
 def _validate_preset_id(preset_id: int) -> None:
     """Raise ValueError if preset_id is outside the EC20's documented 0-11 range."""
@@ -90,16 +96,35 @@ def _validate_preset_id(preset_id: int) -> None:
         )
 
 
-class EC20Client:
-    """Async HTTP client for Epiphan EC20 PTZ camera.
+def _parse_param_body(text: str) -> dict[str, str]:
+    """Parse a param.cgi ``key="value"`` response body into a dict.
 
-    Provides PTZ control, preset management, and AI tracking via REST API.
+    The EC20 returns configuration as newline-separated ``key="value"`` pairs.
+    Secret-looking keys (``*passwd*``/``*password*``) are redacted — the device
+    echoes ``userpasswd`` in plaintext.
+    """
+    result: dict[str, str] = {}
+    for raw_line in text.splitlines():
+        line = raw_line.strip().rstrip(",")
+        if not line or "=" not in line:
+            continue
+        key, _, value = line.partition("=")
+        key = key.strip()
+        value = value.strip().strip('"')
+        if any(marker in key.lower() for marker in _SECRET_KEY_MARKERS):
+            value = "***"
+        result[key] = value
+    return result
+
+
+class EC20Client:
+    """Async HTTP client for Epiphan EC20 PTZ camera (CGI + Digest auth).
 
     Attributes:
         host: EC20 camera IP address or hostname
         username: Camera username (default "admin")
         password: Camera password
-        use_https: Use HTTPS instead of HTTP
+        use_https: Use HTTPS (unsupported on current firmware — 443 disabled)
         timeout: Request timeout in seconds
     """
 
@@ -111,22 +136,12 @@ class EC20Client:
         use_https: bool = False,
         timeout: float = 30.0,
     ):
-        """Initialize EC20 client.
-
-        Args:
-            host: EC20 camera IP or hostname
-            username: Camera username (default "admin")
-            password: Camera password
-            use_https: Use HTTPS instead of HTTP
-            timeout: Request timeout in seconds
-        """
         self.host = host
         self.username = username
         self.password = password
         self.use_https = use_https
         self.timeout = timeout
 
-        # Build base URL
         protocol = "https" if use_https else "http"
         self.base_url = f"{protocol}://{host}"
 
@@ -134,10 +149,10 @@ class EC20Client:
         self._client: httpx.AsyncClient | None = None
 
     async def __aenter__(self) -> "EC20Client":
-        """Async context manager entry - create HTTP client."""
-        auth = None
+        """Create the HTTP client. The EC20 requires HTTP **Digest** auth."""
+        auth: httpx.Auth | None = None
         if self.username or self.password:
-            auth = httpx.BasicAuth(self.username, self.password)
+            auth = httpx.DigestAuth(self.username, self.password)
 
         self._client = httpx.AsyncClient(
             base_url=self.base_url,
@@ -148,329 +163,185 @@ class EC20Client:
         return self
 
     async def __aexit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
-        """Async context manager exit - close HTTP client."""
         if self._client:
             await self._client.aclose()
             self._client = None
 
     # =========================================================================
-    # Internal HTTP Methods
+    # Internal transport
     # =========================================================================
 
-    async def _get(self, path: str, **kwargs: Any) -> dict[str, Any]:
-        """Make GET request to EC20 API.
-
-        Args:
-            path: API path (e.g., "/api/status")
-            **kwargs: Additional arguments for httpx.get()
-
-        Returns:
-            JSON response as dict
-
-        Raises:
-            EC20ConnectionError: Connection failed
-            EC20APIError: API returned error
-        """
+    async def _get(self, path_and_query: str) -> httpx.Response:
+        """GET a raw path+query (the EC20 uses bare ``&`` flags, not key=value)."""
         if not self._client:
-            raise EC20ConnectionError("Not connected - use async with")
-
+            raise EC20ConnectionError("Not connected - use 'async with EC20Client(...)'")
         try:
-            response = await self._client.get(path, **kwargs)
-            return self._handle_response(response)
+            response = await self._client.get(path_and_query)
         except httpx.ConnectError as e:
             raise EC20ConnectionError(f"Connection failed: {e}") from e
         except httpx.TimeoutException as e:
             raise EC20ConnectionError(f"Request timeout: {e}") from e
+        self._raise_for_status(response)
+        return response
 
-    async def _post(
-        self,
-        path: str,
-        data: dict[str, Any] | None = None,
-        **kwargs: Any,
-    ) -> dict[str, Any]:
-        """Make POST request to EC20 API.
-
-        Args:
-            path: API path (e.g., "/api/ptz/move")
-            data: JSON data to send
-            **kwargs: Additional arguments for httpx.post()
-
-        Returns:
-            JSON response as dict
-
-        Raises:
-            EC20ConnectionError: Connection failed
-            EC20APIError: API returned error
-        """
-        if not self._client:
-            raise EC20ConnectionError("Not connected - use async with")
-
-        try:
-            response = await self._client.post(path, json=data, **kwargs)
-            return self._handle_response(response)
-        except httpx.ConnectError as e:
-            raise EC20ConnectionError(f"Connection failed: {e}") from e
-        except httpx.TimeoutException as e:
-            raise EC20ConnectionError(f"Request timeout: {e}") from e
-
-    def _handle_response(self, response: httpx.Response) -> dict[str, Any]:
-        """Handle API response, raising errors for non-success.
-
-        Args:
-            response: httpx.Response object
-
-        Returns:
-            JSON response as dict
-
-        Raises:
-            EC20AuthError: On 401/403 (bad credentials)
-            EC20APIError: API returned any other error status
-        """
+    def _raise_for_status(self, response: httpx.Response) -> None:
         if response.status_code in (401, 403):
             raise EC20AuthError(
-                f"Authentication failed: {response.status_code} - {response.text}",
+                f"Authentication failed: {response.status_code}. "
+                "The EC20 requires HTTP Digest auth and valid credentials.",
+                status_code=response.status_code,
+            )
+        if response.status_code >= 400:
+            raise EC20APIError(
+                response.text or f"HTTP {response.status_code}",
                 status_code=response.status_code,
             )
 
-        # Check for HTTP errors
-        if response.status_code >= 400:
-            error_msg = "Unknown error"
-            try:
-                error_data = response.json()
-                error_msg = error_data.get("error", error_data.get("message", str(error_data)))
-            except Exception:
-                error_msg = response.text or f"HTTP {response.status_code}"
+    async def _param(self, command: str) -> dict[str, str]:
+        """GET /cgi-bin/param.cgi?<command> and parse the key=\"value\" body."""
+        response = await self._get(f"/cgi-bin/param.cgi?{command}")
+        return _parse_param_body(response.text)
 
-            raise EC20APIError(error_msg, status_code=response.status_code)
-
-        # Parse JSON response
+    async def _ptz(self, *parts: str | int) -> dict[str, Any]:
+        """GET /cgi-bin/ptzctrl.cgi?ptzcmd&<parts...> and parse the JSON body."""
+        query = "&".join(["ptzcmd", *(str(p) for p in parts)])
+        response = await self._get(f"/cgi-bin/ptzctrl.cgi?{query}")
         try:
             result: dict[str, Any] = response.json()
             return result
         except Exception:
-            # Return empty dict for non-JSON responses (e.g., images)
             return {}
 
     # =========================================================================
-    # Status Methods
+    # Status
     # =========================================================================
 
     async def get_status(self) -> dict[str, Any]:
-        """Get camera status information.
+        """Get camera identity and system configuration.
 
-        Returns:
-            Camera status including model, firmware, PTZ position, tracking state
-
-        Raises:
-            EC20ConnectionError: Connection failed
-            EC20APIError: API error
+        Merges ``get_device_conf`` (model/firmware/serial/NDI) and
+        ``get_system_conf`` (work mode, tally, user names). Password fields are
+        redacted.
         """
-        return await self._get("/api/status")
-
-    async def get_position(self) -> dict[str, Any]:
-        """Get current PTZ position.
-
-        Returns:
-            Dict with pan, tilt, zoom values
-
-        Raises:
-            EC20ConnectionError: Connection failed
-            EC20APIError: API error
-        """
-        return await self._get("/api/ptz/position")
+        status: dict[str, Any] = {}
+        status.update(await self._param("get_device_conf"))
+        status.update(await self._param("get_system_conf"))
+        return status
 
     # =========================================================================
-    # PTZ Control Methods
+    # PTZ directional control
     # =========================================================================
 
-    async def pan(self, degrees: float, speed: int = 50) -> dict[str, Any]:
-        """Pan camera to absolute position.
+    async def move(
+        self, direction: str, pan_speed: int = 12, tilt_speed: int = 12
+    ) -> dict[str, Any]:
+        """Start moving the camera in a direction; motion holds until ``stop()``.
 
         Args:
-            degrees: Pan position in degrees (-162.5 to +162.5)
-            speed: Pan speed (1-100, default 50)
-
-        Returns:
-            Result of pan operation
-
-        Raises:
-            EC20ConnectionError: Connection failed
-            EC20APIError: API error
+            direction: one of up / down / left / right
+            pan_speed / tilt_speed: movement speeds (VISCA-style; typical pan
+                1-24, tilt 1-20 — exact caps unverified on this firmware).
         """
-        return await self._post("/api/ptz/pan", data={"degrees": degrees, "speed": speed})
+        if direction not in _MOVE_DIRECTIONS:
+            raise ValueError(
+                f"Invalid direction: {direction!r}. Must be one of {sorted(_MOVE_DIRECTIONS)}."
+            )
+        return await self._ptz(direction, pan_speed, tilt_speed)
 
-    async def tilt(self, degrees: float, speed: int = 50) -> dict[str, Any]:
-        """Tilt camera to absolute position.
+    async def stop(self) -> dict[str, Any]:
+        """Stop pan/tilt motion."""
+        return await self._ptz("ptzstop", 1, 1)
+
+    async def zoom(self, direction: str, speed: int = 5) -> dict[str, Any]:
+        """Start zooming in/out; motion holds until ``zoom_stop()``.
 
         Args:
-            degrees: Tilt position in degrees (-30 to +90 typical)
-            speed: Tilt speed (1-100, default 50)
-
-        Returns:
-            Result of tilt operation
-
-        Raises:
-            EC20ConnectionError: Connection failed
-            EC20APIError: API error
+            direction: "in" or "out"
+            speed: zoom speed (typical 1-7 — exact cap unverified).
         """
-        return await self._post("/api/ptz/tilt", data={"degrees": degrees, "speed": speed})
+        action = _ZOOM_DIRECTIONS.get(direction)
+        if action is None:
+            raise ValueError(
+                f"Invalid zoom direction: {direction!r}. Must be one of "
+                f"{sorted(_ZOOM_DIRECTIONS)}."
+            )
+        return await self._ptz(action, speed)
 
-    async def zoom(self, level: int) -> dict[str, Any]:
-        """Set zoom level.
-
-        Args:
-            level: Zoom level (1-36: 1-20 optical, 21-36 digital)
-
-        Returns:
-            Result of zoom operation
-
-        Raises:
-            ValueError: Invalid zoom level
-            EC20ConnectionError: Connection failed
-            EC20APIError: API error
-        """
-        if not 1 <= level <= 36:
-            raise ValueError(f"Zoom level must be 1-36, got {level}")
-
-        return await self._post("/api/ptz/zoom", data={"level": level})
+    async def zoom_stop(self) -> dict[str, Any]:
+        """Stop zoom motion."""
+        return await self._ptz("zoomstop")
 
     async def home(self) -> dict[str, Any]:
-        """Return camera to home position.
-
-        Returns:
-            Result showing camera at home position (pan=0, tilt=0, zoom=1)
-
-        Raises:
-            EC20ConnectionError: Connection failed
-            EC20APIError: API error
-        """
-        return await self._post("/api/ptz/home")
+        """Return the camera to its home position."""
+        return await self._ptz("home")
 
     # =========================================================================
-    # Preset Methods
+    # Presets (numeric 0-11)
     # =========================================================================
-
-    async def get_presets(self) -> list[dict[str, Any]]:
-        """Get list of saved presets.
-
-        Returns:
-            List of preset dicts with id, name, pan, tilt, zoom
-
-        Raises:
-            EC20ConnectionError: Connection failed
-            EC20APIError: API error
-        """
-        result = await self._get("/api/ptz/presets")
-        presets: list[dict[str, Any]] = result.get("presets", [])
-        return presets
 
     async def goto_preset(self, preset_id: int) -> dict[str, Any]:
-        """Move camera to saved preset position.
+        """Recall a saved preset position (0-11)."""
+        _validate_preset_id(preset_id)
+        return await self._ptz("poscall", preset_id)
 
-        Args:
-            preset_id: ID of preset to recall (0-11, per EC20 spec)
+    async def save_preset(self, preset_id: int) -> dict[str, Any]:
+        """Save the current position to a preset slot (0-11).
 
-        Returns:
-            Result of preset recall operation
-
-        Raises:
-            ValueError: preset_id out of range
-            EC20ConnectionError: Connection failed
-            EC20APIError: API error
+        The EC20 stores presets by number only — there is no name field.
         """
         _validate_preset_id(preset_id)
-        return await self._post("/api/ptz/preset/goto", data={"preset_id": preset_id})
-
-    async def save_preset(self, preset_id: int, name: str) -> dict[str, Any]:
-        """Save current position as preset.
-
-        Args:
-            preset_id: ID for the preset (0-11, per EC20 spec)
-            name: Name for the preset
-
-        Returns:
-            Result of preset save operation
-
-        Raises:
-            ValueError: preset_id out of range
-            EC20ConnectionError: Connection failed
-            EC20APIError: API error
-        """
-        _validate_preset_id(preset_id)
-        return await self._post(
-            "/api/ptz/preset/save",
-            data={"preset_id": preset_id, "name": name},
-        )
+        return await self._ptz("posset", preset_id)
 
     # =========================================================================
-    # AI Tracking Methods
+    # AI tracking
     # =========================================================================
 
     async def enable_tracking(self, mode: str = "presenter") -> dict[str, Any]:
-        """Enable AI tracking.
+        """Enable AI auto-tracking.
 
         Args:
-            mode: Tracking mode - "presenter" or "zone" (per EC20 spec)
+            mode: "presenter" or "zone" (per Q-SYS plugin README).
 
-        Returns:
-            Result with tracking status
-
-        Raises:
-            ValueError: Invalid tracking mode
-            EC20ConnectionError: Connection failed
-            EC20APIError: API error
+        Note: the exact ``set_ai_vip`` argument grammar is UNVERIFIED against
+        hardware; zone-mode additionally requires a ``tracking.area.*`` bounding
+        box that this method does not yet set. Confirm with validate_ec20.py.
         """
-        valid_modes = {"presenter", "zone"}
-        if mode not in valid_modes:
-            raise ValueError(f"Invalid tracking mode: {mode}. Must be one of {valid_modes}")
-
-        return await self._post("/api/tracking/enable", data={"mode": mode})
+        if mode not in _TRACKING_MODES:
+            raise ValueError(
+                f"Invalid tracking mode: {mode!r}. Must be one of {sorted(_TRACKING_MODES)}."
+            )
+        return await self._vip("set_ai_vip", 1)
 
     async def disable_tracking(self) -> dict[str, Any]:
-        """Disable AI tracking.
+        """Disable AI auto-tracking."""
+        return await self._vip("set_ai_vip", 0)
 
-        Returns:
-            Result with tracking disabled status
+    async def get_tracking_status(self) -> dict[str, Any]:
+        """Get AI tracking / target status."""
+        return await self._param("get_target_status")
 
-        Raises:
-            EC20ConnectionError: Connection failed
-            EC20APIError: API error
-        """
-        return await self._post("/api/tracking/disable")
+    async def _vip(self, *parts: str | int) -> dict[str, Any]:
+        """GET /cgi-bin/vip?<parts...> (AI tracking control)."""
+        query = "&".join(str(p) for p in parts)
+        response = await self._get(f"/cgi-bin/vip?{query}")
+        try:
+            result: dict[str, Any] = response.json()
+            return result
+        except Exception:
+            return {}
 
     # =========================================================================
-    # Preview Methods
+    # Preview
     # =========================================================================
 
     async def get_preview(self) -> bytes:
-        """Get a single camera preview frame.
+        """Not supported on current firmware.
 
-        Note: the EC20 exposes a live MJPEG *stream*; this returns a single
-        best-effort frame from it. The exact endpoint is unverified (see the
-        module TODO) — confirm with scripts/validate_ec20.py against hardware.
-
-        Returns:
-            JPEG image bytes (one frame)
-
-        Raises:
-            EC20ConnectionError: Connection failed
-            EC20APIError: API error
+        The EC20 exposes its live preview only as an MJPEG **WebSocket** stream
+        at ``/ws/mjpeg`` — there is no single-frame HTTP endpoint. Rather than
+        fabricate a URL, this fails explicitly.
         """
-        if not self._client:
-            raise EC20ConnectionError("Not connected - use async with")
-
-        try:
-            response = await self._client.get("/api/preview")
-
-            if response.status_code >= 400:
-                raise EC20APIError(
-                    f"Failed to get preview: HTTP {response.status_code}",
-                    status_code=response.status_code,
-                )
-
-            return response.content
-
-        except httpx.ConnectError as e:
-            raise EC20ConnectionError(f"Connection failed: {e}") from e
-        except httpx.TimeoutException as e:
-            raise EC20ConnectionError(f"Request timeout: {e}") from e
+        raise EC20APIError(
+            "EC20 preview is an MJPEG WebSocket stream (/ws/mjpeg); single-frame "
+            "HTTP capture is not supported on this firmware."
+        )

@@ -1283,31 +1283,41 @@ class EC20StatusResult(BaseModel):
 
 
 class EC20PanTiltResult(BaseModel):
-    """Return type of ``ec20_pan_tilt``."""
+    """Return type of ``ec20_pan_tilt``.
 
-    success: bool = Field(description="Whether the move succeeded")
+    The EC20 has no absolute positioning; motion is directional and continuous
+    (a direction starts movement, ``stop`` halts it).
+    """
+
+    success: bool = Field(description="Whether the command succeeded")
     camera_id: str = Field(
         default="", description="Resolved camera host, or the requested camera_id on error"
     )
-    pan: float | None = Field(default=None, description="New pan position in degrees")
-    tilt: float | None = Field(default=None, description="New tilt position in degrees")
-    pan_result: dict[str, Any] | None = Field(
-        default=None, description="Raw pan command result from the camera."
+    direction: str | None = Field(
+        default=None, description="Direction commanded: up, down, left, right, or stop"
     )
-    tilt_result: dict[str, Any] | None = Field(
-        default=None, description="Raw tilt command result from the camera."
+    pan_speed: int | None = Field(default=None, description="Pan speed used")
+    tilt_speed: int | None = Field(default=None, description="Tilt speed used")
+    result: dict[str, Any] | None = Field(
+        default=None, description="Raw command result from the camera."
     )
     error: str | None = Field(default=None, description="Error message on failure.")
 
 
 class EC20ZoomResult(BaseModel):
-    """Return type of ``ec20_zoom``."""
+    """Return type of ``ec20_zoom``.
 
-    success: bool = Field(description="Whether the zoom succeeded")
+    Zoom is directional (in/out held until stop), not an absolute level.
+    """
+
+    success: bool = Field(description="Whether the zoom command succeeded")
     camera_id: str = Field(
         default="", description="Resolved camera host, or the requested camera_id on error"
     )
-    zoom_level: int | None = Field(default=None, description="New zoom level (1-36)")
+    direction: str | None = Field(
+        default=None, description="Zoom direction commanded: in, out, or stop"
+    )
+    speed: int | None = Field(default=None, description="Zoom speed used")
     result: dict[str, Any] | None = Field(
         default=None, description="Raw zoom command result from the camera."
     )
@@ -1329,14 +1339,16 @@ class EC20PresetRecallResult(BaseModel):
 
 
 class EC20PresetSaveResult(BaseModel):
-    """Return type of ``ec20_save_preset``."""
+    """Return type of ``ec20_save_preset``.
+
+    The EC20 stores presets by number only (0-11); there is no name field.
+    """
 
     success: bool = Field(description="Whether the preset was saved")
     camera_id: str = Field(
         default="", description="Resolved camera host, or the requested camera_id on error"
     )
-    preset_id: int | None = Field(default=None, description="Preset ID saved")
-    name: str | None = Field(default=None, description="Preset name")
+    preset_id: int | None = Field(default=None, description="Preset ID saved (0-11)")
     result: dict[str, Any] | None = Field(
         default=None, description="Raw preset command result from the camera."
     )
@@ -1364,7 +1376,7 @@ class EC20TrackingResult(BaseModel):
         default="", description="Resolved camera host, or the requested camera_id on error"
     )
     mode: str | None = Field(
-        default=None, description="Tracking mode enabled: presenter, zone, or body."
+        default=None, description="Tracking mode enabled: presenter or zone."
     )
     result: dict[str, Any] | None = Field(
         default=None, description="Raw tracking command result from the camera."
@@ -1381,7 +1393,8 @@ class EC20PresetListResult(BaseModel):
     )
     presets: list[dict[str, Any]] = Field(
         default_factory=list,
-        description="Saved presets, each with id, name, pan, tilt, zoom.",
+        description="Addressable preset slots (0-11). The EC20 API cannot report "
+        "which slots are set or their names, so this lists the valid slot ids.",
     )
     error: str | None = Field(default=None, description="Error message on failure.")
 

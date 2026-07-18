@@ -34,10 +34,14 @@ jobs:
         run: mypy src/
 
       - name: Dependency vulnerability scan
-        # Non-blocking for now: transitive deps (pyjwt, starlette, python-multipart,
-        # etc.) currently carry known CVEs with no upstream fix released yet. Flip to
-        # blocking once those are triaged/pinned — this step exists for visibility,
-        # not to silently fail every PR on pre-existing transitive risk.
+        # Non-blocking for now. Direct deps (pytest, python-dotenv) are pinned to
+        # their fixed versions in pyproject.toml. The remaining flagged CVEs
+        # (starlette, python-multipart, pyjwt) are transitive via `mcp`, a
+        # dependency of `fastmcp` — they're blocked behind this project's own
+        # `fastmcp<3` ceiling, not an unfixed upstream. Bumping past that ceiling
+        # is a real major-version upgrade that needs its own compatibility pass
+        # against server.py, not a silent pin change here. Flip this to blocking
+        # once that upgrade lands.
         run: pip-audit
         continue-on-error: true
 

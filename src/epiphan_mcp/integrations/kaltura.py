@@ -242,9 +242,8 @@ class KalturaClient:
         url = f"{self.api_base}/service/{service}/action/{action}"
 
         request_data = data.copy() if data else {}
-        # _ensure_authenticated() above guarantees self._session is set; mypy can't
-        # narrow a mutable attribute across the await boundary.
-        request_data["ks"] = self._session.ks  # type: ignore[union-attr]
+        assert self._session is not None  # set by _ensure_authenticated() above
+        request_data["ks"] = self._session.ks
         request_data["format"] = "1"  # JSON format
 
         try:
@@ -454,12 +453,11 @@ class KalturaClient:
 
         url = f"{self.api_base}/service/uploadToken/action/upload"
 
+        assert self._session is not None  # set by _ensure_authenticated() above
         files = {"fileData": ("upload.bin", file_data)}
         data = {
             "uploadTokenId": upload_token_id,
-            # _ensure_authenticated() above guarantees self._session is set; mypy can't
-            # narrow a mutable attribute across the await boundary.
-            "ks": self._session.ks,  # type: ignore[union-attr]
+            "ks": self._session.ks,
             "format": "1",
             "resume": "1" if resume else "0",
             "finalChunk": "1" if final_chunk else "0",

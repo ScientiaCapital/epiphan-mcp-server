@@ -38,14 +38,14 @@ dependencies = [
     "httpx>=0.25.0,<1",
     "pydantic>=2.4.0,<3",  # CVE-2024-3772 fix
     "pydantic-settings>=2.0.0,<3",
-    "python-dotenv>=1.0.0",
+    "python-dotenv>=1.2.2",  # PYSEC-2026-2270 fix
     # AI/LLM integration (OpenRouter gateway)
     # Note: No openai package needed - using httpx directly for OpenRouter API
 ]
 
 [project.optional-dependencies]
 dev = [
-    "pytest>=7.0.0",
+    "pytest>=9.0.3",  # PYSEC-2026-1845 fix
     "pytest-asyncio>=0.21.0",
     "pytest-cov>=4.0.0",
     "respx>=0.20.0",

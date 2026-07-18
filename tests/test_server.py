@@ -765,9 +765,7 @@ class TestGetFleetStatus:
             mock_settings.return_value = create_test_settings(mock_pearl_host)
 
             with respx.mock(assert_all_called=False) as router:
-                mock_system_routes(
-                    router, api_base, storage_status=STORAGE_STATUS_LOW_RESPONSE
-                )
+                mock_system_routes(router, api_base, storage_status=STORAGE_STATUS_LOW_RESPONSE)
                 router.get(f"{api_base}/recorders/recorder-1/status").mock(
                     return_value=Response(200, json=RECORDER_STATUS_STOPPED)
                 )
@@ -1772,9 +1770,7 @@ class TestPredictStorageFull:
             mock_settings.return_value = create_test_settings(mock_pearl_host)
 
             with respx.mock(assert_all_called=False) as router:
-                mock_system_routes(
-                    router, api_base, storage_status=STORAGE_STATUS_LOW_RESPONSE
-                )
+                mock_system_routes(router, api_base, storage_status=STORAGE_STATUS_LOW_RESPONSE)
                 router.get(f"{api_base}/recorders/recorder-1/status").mock(
                     return_value=Response(200, json=RECORDER_STATUS_RECORDING)
                 )
@@ -1881,9 +1877,7 @@ class TestGetDeviceHealthScore:
             mock_settings.return_value = create_test_settings(mock_pearl_host)
 
             with respx.mock(assert_all_called=False) as router:
-                mock_system_routes(
-                    router, api_base, storage_status=STORAGE_STATUS_LOW_RESPONSE
-                )
+                mock_system_routes(router, api_base, storage_status=STORAGE_STATUS_LOW_RESPONSE)
                 router.get(f"{api_base}/recorders/recorder-1/status").mock(
                     return_value=Response(200, json=RECORDER_STATUS_STOPPED)
                 )
@@ -2101,9 +2095,7 @@ class TestGetStorageReport:
             mock_settings.return_value = create_test_settings(mock_pearl_host)
 
             with respx.mock(assert_all_called=False) as router:
-                mock_system_routes(
-                    router, api_base, storage_status=STORAGE_STATUS_LOW_RESPONSE
-                )
+                mock_system_routes(router, api_base, storage_status=STORAGE_STATUS_LOW_RESPONSE)
 
                 result = await get_storage_report.fn(device_id="default")
 

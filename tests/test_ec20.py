@@ -591,7 +591,6 @@ class TestEC20MCPTools:
         """Test ec20_pan_tilt MCP tool."""
         from epiphan_mcp.tools.ec20 import ec20_pan_tilt
 
-
         with patch("epiphan_mcp.tools.ec20.EC20Client") as mock_client_class:
             mock_instance = AsyncMock()
             mock_instance.pan = AsyncMock(return_value={"success": True, "pan": 30.0})

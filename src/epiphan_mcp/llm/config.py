@@ -157,9 +157,7 @@ class LLMSettings(BaseSettings):
     def is_configured(self) -> bool:
         """Check if LLM is properly configured."""
         return (
-            self.openrouter_api_key is not None
-            or self.mock_mode
-            or self.llm_provider == "ollama"
+            self.openrouter_api_key is not None or self.mock_mode or self.llm_provider == "ollama"
         )
 
 

@@ -593,9 +593,7 @@ class TestPanoptoClientUpload:
                 json={"access_token": "token", "token_type": "Bearer", "expires_in": 3600},
             )
         )
-        respx.put("https://s3.amazonaws.com/bucket/key").mock(
-            return_value=httpx.Response(200)
-        )
+        respx.put("https://s3.amazonaws.com/bucket/key").mock(return_value=httpx.Response(200))
 
         video = tmp_path / "lecture.mp4"
         video.write_bytes(b"fake video content")

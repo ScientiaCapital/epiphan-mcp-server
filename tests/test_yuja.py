@@ -65,9 +65,7 @@ class TestYuJaClientAuth:
     @respx.mock
     async def test_401_raises_auth_error(self):
         """A 401 response raises YuJaAuthError."""
-        respx.get(f"{API}/media/videos").mock(
-            return_value=Response(401, text="invalid token")
-        )
+        respx.get(f"{API}/media/videos").mock(return_value=Response(401, text="invalid token"))
         async with _client() as client:
             with pytest.raises(YuJaAuthError, match="Authentication failed"):
                 await client.list_videos()
@@ -97,9 +95,7 @@ class TestYuJaClientAuth:
     @respx.mock
     async def test_network_error_raises_api_error(self):
         """Transport failures surface as YuJaAPIError."""
-        respx.get(f"{API}/media/videos").mock(
-            side_effect=httpx.ConnectError("connection refused")
-        )
+        respx.get(f"{API}/media/videos").mock(side_effect=httpx.ConnectError("connection refused"))
         async with _client() as client:
             with pytest.raises(YuJaAPIError, match="Request failed"):
                 await client.list_videos()
@@ -144,9 +140,7 @@ class TestYuJaClientVideos:
     async def test_list_videos_reports_truncation_from_total(self):
         """An envelope total larger than the page marks the result truncated."""
         respx.get(f"{API}/media/videos").mock(
-            return_value=Response(
-                200, json={"results": [{"id": "1"}, {"id": "2"}], "total": 250}
-            )
+            return_value=Response(200, json={"results": [{"id": "1"}, {"id": "2"}], "total": 250})
         )
         async with _client() as client:
             videos, truncated = await client.list_videos()
@@ -201,9 +195,7 @@ class TestYuJaClientVideos:
     async def test_list_channels_reports_truncation_from_has_more(self):
         """A hasMore marker in the envelope marks the result truncated."""
         respx.get(f"{API}/channels").mock(
-            return_value=Response(
-                200, json={"results": [{"id": "c1"}], "hasMore": True}
-            )
+            return_value=Response(200, json={"results": [{"id": "c1"}], "hasMore": True})
         )
         async with _client() as client:
             channels, truncated = await client.list_channels()

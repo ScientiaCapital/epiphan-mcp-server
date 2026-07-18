@@ -89,9 +89,7 @@ async def list_echo360_courses() -> Echo360CourseListResult:
             client_secret=config.client_secret,
         ) as client:
             courses, truncated = await client.list_courses()
-            return Echo360CourseListResult(
-                courses=courses, count=len(courses), truncated=truncated
-            )
+            return Echo360CourseListResult(courses=courses, count=len(courses), truncated=truncated)
     except Echo360AuthError as e:
         return Echo360CourseListResult(error=f"Authentication failed: {e}", courses=[])
     except Echo360APIError as e:

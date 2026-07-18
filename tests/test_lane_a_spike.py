@@ -57,7 +57,10 @@ class TestGate:
         emitted = adapter.ingest(HOST, _status())
         assert len(emitted) == 4
         assert {e.relation for e in emitted} == {
-            "status", "firmware", "model", "storage_band",
+            "status",
+            "firmware",
+            "model",
+            "storage_band",
         }
 
     def test_identical_poll_is_suppressed(self, adapter: LaneAAdapter) -> None:
@@ -125,9 +128,7 @@ class TestSupersession:
         keys = [(r["device_uuid"], r["relation"]) for r in sink.current_rows()]
         assert len(keys) == len(set(keys))
 
-    def test_events_log_is_append_only(
-        self, adapter: LaneAAdapter, sink: FlatSink
-    ) -> None:
+    def test_events_log_is_append_only(self, adapter: LaneAAdapter, sink: FlatSink) -> None:
         adapter.ingest(HOST, _status())
         adapter.ingest(HOST, _status(fw="4.18.0"))
         events = sink.all_events()

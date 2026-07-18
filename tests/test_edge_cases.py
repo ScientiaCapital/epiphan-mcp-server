@@ -252,7 +252,9 @@ class TestTimeoutHandling:
             respx.mock(assert_all_called=False) as router,
         ):
             api_base = "http://192.168.1.100/api/v2.0"
-            mock_system_routes(router, api_base, ident_side_effect=ConnectError("Connection refused"))
+            mock_system_routes(
+                router, api_base, ident_side_effect=ConnectError("Connection refused")
+            )
 
             result = await get_fleet_status()
 

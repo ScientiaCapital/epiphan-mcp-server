@@ -281,6 +281,7 @@ class TestPublisherOperations:
 
         assert result.success is True
 
+
 # ============================================================
 # Input Tests
 # ============================================================
@@ -507,9 +508,7 @@ class TestErrorHandling:
         Fleet offline-detection depends on this: an unreachable device must not be
         mistaken for a degraded-but-online one. /system/ident is the first call.
         """
-        mock_system_routes(
-            respx_mock, mock_api_base, ident_side_effect=ConnectError("refused")
-        )
+        mock_system_routes(respx_mock, mock_api_base, ident_side_effect=ConnectError("refused"))
         async with pearl_client as client:
             with pytest.raises(PearlAPIError):
                 await client.get_system_status()
@@ -606,6 +605,7 @@ class TestEventOperations:
         assert len(events) == 2
         assert events[0]["id"] == "event-001"
         assert events[0]["cms_type"] == "kaltura"
+
 
 # ============================================================
 # AFU Tests

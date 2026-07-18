@@ -46,12 +46,8 @@ def mock_system_routes(
     else:
         ident_route.mock(return_value=Response(ident_status, json=ident))
 
-    router.get(f"{api_base}/system/firmware").mock(
-        return_value=Response(200, json=firmware)
-    )
-    router.get(f"{api_base}/system/storages").mock(
-        return_value=Response(200, json=storages)
-    )
+    router.get(f"{api_base}/system/firmware").mock(return_value=Response(200, json=firmware))
+    router.get(f"{api_base}/system/storages").mock(return_value=Response(200, json=storages))
     router.get(url__regex=rf"{re.escape(api_base)}/system/storages/[^/]+/status").mock(
         return_value=Response(200, json=storage_status)
     )

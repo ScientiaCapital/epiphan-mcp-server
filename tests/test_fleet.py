@@ -130,7 +130,9 @@ class TestFleetStatusParallel:
 
                 # Device 2: Connection error
                 api_base2 = "http://192.168.1.101/api/v2.0"
-                mock_system_routes(router, api_base2, ident_side_effect=ConnectError("Connection refused"))
+                mock_system_routes(
+                    router, api_base2, ident_side_effect=ConnectError("Connection refused")
+                )
 
                 # Device 3: Success
                 api_base3 = "http://192.168.1.102/api/v2.0"
@@ -414,7 +416,9 @@ class TestFleetErrorHandling:
                 # Both devices fail
                 for i in [100, 101]:
                     api_base = f"http://192.168.1.{i}/api/v2.0"
-                    mock_system_routes(router, api_base, ident_side_effect=ConnectError("Connection refused"))
+                    mock_system_routes(
+                        router, api_base, ident_side_effect=ConnectError("Connection refused")
+                    )
 
                 result = await get_fleet_status.fn()
 
@@ -446,7 +450,9 @@ class TestFleetErrorHandling:
 
             with respx.mock(assert_all_called=False) as router:
                 api_base = "http://192.168.1.100/api/v2.0"
-                mock_system_routes(router, api_base, ident_side_effect=ConnectError("Connection refused"))
+                mock_system_routes(
+                    router, api_base, ident_side_effect=ConnectError("Connection refused")
+                )
 
                 result = await get_fleet_status.fn()
 
@@ -574,7 +580,9 @@ class TestFleetHealthScores:
 
             with respx.mock(assert_all_called=False) as router:
                 api_base = "http://192.168.1.100/api/v2.0"
-                mock_system_routes(router, api_base, ident_side_effect=ConnectError("Connection refused"))
+                mock_system_routes(
+                    router, api_base, ident_side_effect=ConnectError("Connection refused")
+                )
 
                 result = await get_fleet_status.fn()
 
@@ -897,7 +905,9 @@ class TestPredictFleetIssues:
 
                 # Device 2: Offline
                 api_base2 = "http://192.168.1.101/api/v2.0"
-                mock_system_routes(router, api_base2, ident_side_effect=ConnectError("Connection refused"))
+                mock_system_routes(
+                    router, api_base2, ident_side_effect=ConnectError("Connection refused")
+                )
 
                 # Mock the LLM provider
                 with patch("epiphan_mcp.tools.fleet.get_provider") as mock_provider:

@@ -758,9 +758,7 @@ class TestOllamaProvider:
         assert "X-Title" not in headers
 
     @pytest.mark.asyncio
-    async def test_analyze_image_no_api_key_needed(
-        self, isolated_llm_env, valid_jpeg, respx_mock
-    ):
+    async def test_analyze_image_no_api_key_needed(self, isolated_llm_env, valid_jpeg, respx_mock):
         """analyze_image should work with no API key configured."""
         import httpx
 
@@ -796,17 +794,13 @@ class TestOllamaProvider:
         assert result == "Start recording."
 
     @pytest.mark.asyncio
-    async def test_connection_error_names_ollama(
-        self, isolated_llm_env, valid_jpeg, respx_mock
-    ):
+    async def test_connection_error_names_ollama(self, isolated_llm_env, valid_jpeg, respx_mock):
         """Connection failures should raise LLMConnectionError mentioning Ollama."""
         import httpx
 
         from epiphan_mcp.llm.providers import LLMConnectionError, OllamaProvider
 
-        respx_mock.post(OLLAMA_URL).mock(
-            side_effect=httpx.ConnectError("Connection refused")
-        )
+        respx_mock.post(OLLAMA_URL).mock(side_effect=httpx.ConnectError("Connection refused"))
 
         provider = OllamaProvider()
         with pytest.raises(LLMConnectionError, match="Ollama"):

@@ -62,7 +62,9 @@ def make_fleet_status(devices: list[dict], **overrides: object) -> FleetStatusRe
 
 class TestParseMaintenanceSuggestion:
     def test_extracts_window_and_high_confidence(self):
-        response = "Tonight 10pm-2am would be ideal.\nConfidence: high\nAll devices are idle right now."
+        response = (
+            "Tonight 10pm-2am would be ideal.\nConfidence: high\nAll devices are idle right now."
+        )
         window, confidence, reasoning = _parse_maintenance_suggestion(response, "idle", 0)
         assert "tonight" in window.lower()
         assert confidence == "high"
@@ -74,9 +76,7 @@ class TestParseMaintenanceSuggestion:
         assert confidence == "low"
 
     def test_unparseable_response_falls_back(self):
-        window, confidence, reasoning = _parse_maintenance_suggestion(
-            "??", "idle", 0
-        )
+        window, confidence, reasoning = _parse_maintenance_suggestion("??", "idle", 0)
         assert window == "Review fleet status manually"
         assert confidence == "medium"
         assert "unable to parse" in reasoning.lower()
@@ -108,9 +108,7 @@ class TestFormatAttentionItems:
         assert "priority: high" in formatted
 
     def test_truncates_to_five_items(self):
-        items = [
-            {"device": f"host-{i}", "issue": "issue", "priority": "medium"} for i in range(8)
-        ]
+        items = [{"device": f"host-{i}", "issue": "issue", "priority": "medium"} for i in range(8)]
         formatted = _format_attention_items(items)
         assert formatted.count("host-") == 5
 

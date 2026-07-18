@@ -2,10 +2,10 @@
 
 import asyncio
 import logging
-from typing import Annotated, Any, Literal
+from typing import Annotated, Any, Literal, TypeVar
 
 from fastmcp import FastMCP
-from pydantic import Field
+from pydantic import BaseModel, Field
 
 from epiphan_mcp.client import PearlClient
 from epiphan_mcp.config import get_settings
@@ -23,6 +23,19 @@ from epiphan_mcp.tools.discovery import get_default_channel
 from epiphan_mcp.tools.params import DeviceId
 
 logger = logging.getLogger(__name__)
+
+_T = TypeVar("_T", bound=BaseModel)
+
+
+def _log_and_fail(action: str, exc: Exception, result_cls: type[_T], **fields: Any) -> _T:
+    """Log an exception and build the matching typed failure result.
+
+    Every tool below does this identically on its catch-all except; this
+    just collapses the repeated 5-line block to one line per call site.
+    """
+    logger.exception(f"{action} failed: {exc}")
+    return result_cls(success=False, error=str(exc), **fields)
+
 
 _ChannelId = Annotated[
     str | None,
@@ -201,12 +214,8 @@ async def analyze_channel_scene(
         )
 
     except Exception as e:
-        logger.exception(f"Scene analysis failed: {e}")
-        return SceneAnalysisResult(
-            success=False,
-            error=str(e),
-            device_id=device_id,
-            channel=channel,
+        return _log_and_fail(
+            "Scene analysis", e, SceneAnalysisResult, device_id=device_id, channel=channel
         )
 
 
@@ -258,12 +267,8 @@ async def extract_text_from_preview(
         )
 
     except Exception as e:
-        logger.exception(f"Text extraction failed: {e}")
-        return TextExtractionResult(
-            success=False,
-            error=str(e),
-            device_id=device_id,
-            channel=channel,
+        return _log_and_fail(
+            "Text extraction", e, TextExtractionResult, device_id=device_id, channel=channel
         )
 
 
@@ -337,12 +342,8 @@ async def detect_layout_changes(
         )
 
     except Exception as e:
-        logger.exception(f"Change detection failed: {e}")
-        return ChangeDetectionResult(
-            success=False,
-            error=str(e),
-            device_id=device_id,
-            channel=channel,
+        return _log_and_fail(
+            "Change detection", e, ChangeDetectionResult, device_id=device_id, channel=channel
         )
 
 
@@ -398,12 +399,8 @@ async def check_video_quality(
         )
 
     except Exception as e:
-        logger.exception(f"Quality check failed: {e}")
-        return QualityCheckResult(
-            success=False,
-            error=str(e),
-            device_id=device_id,
-            channel=channel,
+        return _log_and_fail(
+            "Quality check", e, QualityCheckResult, device_id=device_id, channel=channel
         )
 
 
@@ -447,11 +444,7 @@ async def clear_change_detection_cache(
         )
 
     except Exception as e:
-        logger.exception(f"Cache clear failed: {e}")
-        return ChangeCacheClearResult(
-            success=False,
-            error=str(e),
-        )
+        return _log_and_fail("Cache clear", e, ChangeCacheClearResult)
 
 
 async def detect_recording_issues(
@@ -534,10 +527,10 @@ async def detect_recording_issues(
         )
 
     except Exception as e:
-        logger.exception(f"Recording issue detection failed: {e}")
-        return RecordingIssuesResult(
-            success=False,
-            error=str(e),
+        return _log_and_fail(
+            "Recording issue detection",
+            e,
+            RecordingIssuesResult,
             device_id=device_id,
             channel=channel,
         )

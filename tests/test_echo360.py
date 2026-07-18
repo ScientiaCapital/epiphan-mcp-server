@@ -286,9 +286,7 @@ class TestEcho360ClientContent:
         """An envelope total larger than the page marks the result truncated."""
         _mock_token()
         respx.get(f"{API}/courses").mock(
-            return_value=Response(
-                200, json={"data": [{"id": "c1"}, {"id": "c2"}], "total": 250}
-            )
+            return_value=Response(200, json={"data": [{"id": "c1"}, {"id": "c2"}], "total": 250})
         )
         async with _client() as client:
             courses, truncated = await client.list_courses()
@@ -301,9 +299,7 @@ class TestEcho360ClientContent:
         """A non-null next link marks the result truncated."""
         _mock_token()
         respx.get(f"{API}/courses").mock(
-            return_value=Response(
-                200, json={"data": [{"id": "c1"}], "next": "/courses?page=2"}
-            )
+            return_value=Response(200, json={"data": [{"id": "c1"}], "next": "/courses?page=2"})
         )
         async with _client() as client:
             _courses, truncated = await client.list_courses()
@@ -361,9 +357,7 @@ class TestEcho360ClientUpload:
             return_value=Response(200, json={"uploadId": "u1", "uploadUrl": "https://s3/x"})
         )
         async with _client() as client:
-            await client.create_pending_upload(
-                filename="big.mp4", part_size_bytes=5 * 1024 * 1024
-            )
+            await client.create_pending_upload(filename="big.mp4", part_size_bytes=5 * 1024 * 1024)
         body = json.loads(route.calls.last.request.content)
         assert body["partSizeInBytes"] == 5 * 1024 * 1024
 
@@ -583,9 +577,7 @@ class TestListEcho360Courses:
 
         _mock_token()
         respx.get(f"{API}/courses").mock(
-            return_value=Response(
-                200, json={"data": [{"id": "c1"}, {"id": "c2"}], "total": 250}
-            )
+            return_value=Response(200, json={"data": [{"id": "c1"}, {"id": "c2"}], "total": 250})
         )
         with patch.dict(os.environ, ECHO360_ENV):
             result = await list_echo360_courses()

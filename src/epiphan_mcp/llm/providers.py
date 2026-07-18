@@ -176,13 +176,9 @@ class _OpenAICompatibleProvider(LLMProvider):
         try:
             response = await self.client.post("/chat/completions", json=payload)
         except httpx.ConnectError as e:
-            raise LLMConnectionError(
-                f"Failed to connect to {self.provider_name}: {e}"
-            ) from e
+            raise LLMConnectionError(f"Failed to connect to {self.provider_name}: {e}") from e
         except httpx.TimeoutException as e:
-            raise LLMConnectionError(
-                f"Timeout connecting to {self.provider_name}: {e}"
-            ) from e
+            raise LLMConnectionError(f"Timeout connecting to {self.provider_name}: {e}") from e
 
         try:
             response.raise_for_status()

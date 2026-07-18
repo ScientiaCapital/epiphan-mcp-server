@@ -1285,9 +1285,7 @@ class PearlClient:
             stcid = obj.get("id")
             if stcid is None:
                 continue
-            state = (
-                await self._get(f"/system/singletouchcontrol/{stcid}/state")
-            ).get("result", {})
+            state = (await self._get(f"/system/singletouchcontrol/{stcid}/state")).get("result", {})
             # 'pressed' = currently activated (on/off). NOT 'status' (health flag).
             if bool(state.get("pressed")) != desired:
                 await self._post(f"/system/singletouchcontrol/{stcid}/control/toggle")

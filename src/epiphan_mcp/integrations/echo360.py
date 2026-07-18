@@ -318,7 +318,9 @@ class Echo360Client:
         result = await self._request("GET", "/courses")
         return extract_page(result, "courses")
 
-    async def list_sections(self, course_id: str | None = None) -> tuple[list[dict[str, Any]], bool]:
+    async def list_sections(
+        self, course_id: str | None = None
+    ) -> tuple[list[dict[str, Any]], bool]:
         """List sections, optionally filtered to one course.
 
         Path CONFIRMED: ``GET /public/api/v1/sections`` is documented (EchoVideo
@@ -342,7 +344,9 @@ class Echo360Client:
     # Media
     # =========================================================================
 
-    async def list_medias(self, search_query: str | None = None) -> tuple[list[dict[str, Any]], bool]:
+    async def list_medias(
+        self, search_query: str | None = None
+    ) -> tuple[list[dict[str, Any]], bool]:
         """List media items visible to the API client.
 
         The ``/medias`` resource is documented as GET-only. The search

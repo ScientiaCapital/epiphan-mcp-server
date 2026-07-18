@@ -127,6 +127,13 @@ class LLMSettings(BaseSettings):
         description="Model for quick quality checks (fast, cheap)",
     )
 
+    # HTTP client
+    request_timeout: float = Field(
+        default=60.0,
+        validation_alias="LLM_REQUEST_TIMEOUT",
+        description="HTTP client timeout (seconds) for OpenRouter/Ollama requests",
+    )
+
     # Cost controls
     max_tokens_per_request: int = Field(
         default=1000,

@@ -19,7 +19,7 @@ Environment Variables Required:
 import os
 from datetime import datetime
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, TypedDict
 
 from fastmcp import FastMCP
 from pydantic import Field
@@ -79,7 +79,19 @@ _ResourceId = Annotated[str, Field(description="Recording resource/room ID (opti
 _UploadTokenId = Annotated[str, Field(description="Upload token ID from the upload workflow.")]
 
 
-def _get_kaltura_config() -> dict[str, str | int]:
+class _KalturaClientConfig(TypedDict):
+    """Mirrors KalturaClient.__init__'s per-field types so `KalturaClient(**config)`
+    type-checks without a suppression — a single `dict[str, str | int]` return type
+    can't express that partner_id is int while the rest are str."""
+
+    partner_id: int
+    app_token_id: str
+    app_token: str
+    user_id: str
+    service_url: str
+
+
+def _get_kaltura_config() -> _KalturaClientConfig:
     """Get Kaltura configuration from environment."""
     env = require_env("Kaltura", "KALTURA_PARTNER_ID", "KALTURA_APP_TOKEN_ID", "KALTURA_APP_TOKEN")
 
@@ -126,7 +138,7 @@ async def list_kaltura_categories(
         return KalturaCategoryListResult(error=str(e), categories=[])
 
     try:
-        async with KalturaClient(**config) as client:  # type: ignore
+        async with KalturaClient(**config) as client:
             categories = await client.list_categories(
                 parent_id=parent_id,
                 page_size=page_size,
@@ -165,7 +177,7 @@ async def get_kaltura_category(category_id: _CategoryId) -> KalturaCategoryResul
         return KalturaCategoryResult(error=str(e))
 
     try:
-        async with KalturaClient(**config) as client:  # type: ignore
+        async with KalturaClient(**config) as client:
             category = await client.get_category(category_id)
             return KalturaCategoryResult(category=category)
     except KalturaAuthError as e:
@@ -202,7 +214,7 @@ async def create_kaltura_category(
         return KalturaCategoryResult(error=str(e))
 
     try:
-        async with KalturaClient(**config) as client:  # type: ignore
+        async with KalturaClient(**config) as client:
             category = await client.create_category(
                 name=name,
                 parent_id=parent_id,
@@ -253,7 +265,7 @@ async def list_kaltura_media(
             )
 
     try:
-        async with KalturaClient(**config) as client:  # type: ignore
+        async with KalturaClient(**config) as client:
             media = await client.list_media(
                 category_ids=cat_ids,
                 search_text=search_text or None,
@@ -294,7 +306,7 @@ async def get_kaltura_media(entry_id: _EntryId) -> KalturaMediaResult:
         return KalturaMediaResult(error=str(e))
 
     try:
-        async with KalturaClient(**config) as client:  # type: ignore
+        async with KalturaClient(**config) as client:
             media = await client.get_media(entry_id)
 
             # Map status codes to readable names
@@ -361,7 +373,7 @@ async def create_kaltura_media(
             return KalturaMediaResult(error="category_ids must be comma-separated integers")
 
     try:
-        async with KalturaClient(**config) as client:  # type: ignore
+        async with KalturaClient(**config) as client:
             media = await client.create_media_entry(
                 name=name,
                 description=description,
@@ -426,7 +438,7 @@ async def upload_to_kaltura(
             return KalturaUploadResult(error="category_ids must be comma-separated integers")
 
     try:
-        async with KalturaClient(**config) as client:  # type: ignore
+        async with KalturaClient(**config) as client:
             result = await client.upload_file(
                 file_path=path,
                 entry_name=entry_name or None,
@@ -503,7 +515,7 @@ async def schedule_kaltura_event(
         return KalturaScheduleResult(error=str(e))
 
     try:
-        async with KalturaClient(**config) as client:  # type: ignore
+        async with KalturaClient(**config) as client:
             event = await client.create_schedule_event(
                 name=name,
                 start_date=start_dt,
@@ -545,7 +557,7 @@ async def get_kaltura_upload_status(upload_token_id: _UploadTokenId) -> KalturaU
         return KalturaUploadStatusResult(error=str(e))
 
     try:
-        async with KalturaClient(**config) as client:  # type: ignore
+        async with KalturaClient(**config) as client:
             status = await client.get_upload_status(upload_token_id)
 
             # Map status codes to readable names

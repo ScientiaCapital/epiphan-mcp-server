@@ -645,6 +645,41 @@ class TestSwitchLayout:
         assert result.success is False
         assert "layout_id is required" in result.error
 
+    async def test_switch_layout_api_error(self, mock_pearl_host: str):
+        """Test layout switch with API error."""
+        from epiphan_mcp.server import switch_layout
+
+        api_base = f"http://{mock_pearl_host}/api/v2.0"
+
+        with patch("epiphan_mcp.tools.device.get_settings") as mock_settings:
+            mock_settings.return_value = create_test_settings(mock_pearl_host)
+
+            with respx.mock(assert_all_called=False) as router:
+                router.put(f"{api_base}/channels/channel-1/layouts/active").mock(
+                    return_value=Response(200, json=ERROR_RESPONSE)
+                )
+
+                result = await switch_layout.fn(
+                    device_id="default", channel=1, layout_id="layout-2"
+                )
+
+        assert result.success is False
+        assert result.error is not None
+
+    async def test_switch_layout_invalid_device(self):
+        """Test layout switch with invalid device."""
+        from epiphan_mcp.server import switch_layout
+
+        with patch("epiphan_mcp.tools.device.get_settings") as mock_settings:
+            mock_settings.return_value = create_test_settings(devices="")
+
+            result = await switch_layout.fn(
+                device_id="nonexistent", channel=1, layout_id="layout-2"
+            )
+
+        assert result.success is False
+        assert result.error is not None
+
 
 # ============================================================
 # Fleet Management Tool Tests
@@ -990,6 +1025,214 @@ class TestGetScheduledEvents:
             mock_settings.return_value = create_test_settings(devices="")
 
             result = await get_scheduled_events.fn(device_id="nonexistent")
+
+        assert result.success is False
+        assert result.error is not None
+
+
+class TestCreateScheduledEvent:
+    """Tests for create_scheduled_event tool."""
+
+    async def test_create_scheduled_event_success(self, mock_pearl_host: str):
+        """Test successful ad-hoc event creation."""
+        from epiphan_mcp.server import create_scheduled_event
+
+        api_base = f"http://{mock_pearl_host}/api/v2.0"
+        event_response = {
+            "status": "ok",
+            "result": {"id": "event-1", "name": "Morning Lecture"},
+        }
+
+        with patch("epiphan_mcp.tools.device.get_settings") as mock_settings:
+            mock_settings.return_value = create_test_settings(mock_pearl_host)
+
+            with respx.mock(assert_all_called=False) as router:
+                router.post(f"{api_base}/schedule/events").mock(
+                    return_value=Response(200, json=event_response)
+                )
+
+                result = await create_scheduled_event.fn(
+                    device_id="default",
+                    name="Morning Lecture",
+                    start_time="2024-01-15T10:00:00",
+                    recorders="recorder-1",
+                )
+
+        assert result.success is True
+        assert result.event["id"] == "event-1"
+        assert "created successfully" in result.message
+
+    async def test_create_scheduled_event_missing_name(self, mock_pearl_host: str):
+        """Test event creation with missing required name."""
+        from epiphan_mcp.server import create_scheduled_event
+
+        with patch("epiphan_mcp.tools.device.get_settings") as mock_settings:
+            mock_settings.return_value = create_test_settings(mock_pearl_host)
+
+            result = await create_scheduled_event.fn(device_id="default", name="")
+
+        assert result.success is False
+        assert "name is required" in result.error.lower()
+
+    async def test_create_scheduled_event_api_error(self, mock_pearl_host: str):
+        """Test event creation with API error."""
+        from epiphan_mcp.server import create_scheduled_event
+
+        api_base = f"http://{mock_pearl_host}/api/v2.0"
+
+        with patch("epiphan_mcp.tools.device.get_settings") as mock_settings:
+            mock_settings.return_value = create_test_settings(mock_pearl_host)
+
+            with respx.mock(assert_all_called=False) as router:
+                router.post(f"{api_base}/schedule/events").mock(
+                    return_value=Response(200, json=ERROR_RESPONSE)
+                )
+
+                result = await create_scheduled_event.fn(device_id="default", name="Test Event")
+
+        assert result.success is False
+        assert result.error is not None
+
+    async def test_create_scheduled_event_invalid_device(self):
+        """Test event creation with invalid device."""
+        from epiphan_mcp.server import create_scheduled_event
+
+        with patch("epiphan_mcp.tools.device.get_settings") as mock_settings:
+            mock_settings.return_value = create_test_settings(devices="")
+
+            result = await create_scheduled_event.fn(device_id="nonexistent", name="Test Event")
+
+        assert result.success is False
+        assert result.error is not None
+
+
+class TestPauseEvent:
+    """Tests for pause_event tool."""
+
+    async def test_pause_event_success(self, mock_pearl_host: str):
+        """Test successfully pausing an active event."""
+        from epiphan_mcp.server import pause_event
+
+        api_base = f"http://{mock_pearl_host}/api/v2.0"
+
+        with patch("epiphan_mcp.tools.device.get_settings") as mock_settings:
+            mock_settings.return_value = create_test_settings(mock_pearl_host)
+
+            with respx.mock(assert_all_called=False) as router:
+                router.post(f"{api_base}/schedule/events/event-1/control/pause").mock(
+                    return_value=Response(200, json=CONTROL_SUCCESS_RESPONSE)
+                )
+
+                result = await pause_event.fn(device_id="default", event_id="event-1")
+
+        assert result.success is True
+        assert result.event_id == "event-1"
+
+    async def test_pause_event_missing_event_id(self, mock_pearl_host: str):
+        """Test pausing with missing event_id."""
+        from epiphan_mcp.server import pause_event
+
+        with patch("epiphan_mcp.tools.device.get_settings") as mock_settings:
+            mock_settings.return_value = create_test_settings(mock_pearl_host)
+
+            result = await pause_event.fn(device_id="default", event_id="")
+
+        assert result.success is False
+        assert "event id is required" in result.error.lower()
+
+    async def test_pause_event_api_error(self, mock_pearl_host: str):
+        """Test pausing with API error."""
+        from epiphan_mcp.server import pause_event
+
+        api_base = f"http://{mock_pearl_host}/api/v2.0"
+
+        with patch("epiphan_mcp.tools.device.get_settings") as mock_settings:
+            mock_settings.return_value = create_test_settings(mock_pearl_host)
+
+            with respx.mock(assert_all_called=False) as router:
+                router.post(f"{api_base}/schedule/events/event-1/control/pause").mock(
+                    return_value=Response(200, json=ERROR_RESPONSE)
+                )
+
+                result = await pause_event.fn(device_id="default", event_id="event-1")
+
+        assert result.success is False
+        assert result.error is not None
+
+    async def test_pause_event_invalid_device(self):
+        """Test pausing with invalid device."""
+        from epiphan_mcp.server import pause_event
+
+        with patch("epiphan_mcp.tools.device.get_settings") as mock_settings:
+            mock_settings.return_value = create_test_settings(devices="")
+
+            result = await pause_event.fn(device_id="nonexistent", event_id="event-1")
+
+        assert result.success is False
+        assert result.error is not None
+
+
+class TestResumeEvent:
+    """Tests for resume_event tool."""
+
+    async def test_resume_event_success(self, mock_pearl_host: str):
+        """Test successfully resuming a paused event."""
+        from epiphan_mcp.server import resume_event
+
+        api_base = f"http://{mock_pearl_host}/api/v2.0"
+
+        with patch("epiphan_mcp.tools.device.get_settings") as mock_settings:
+            mock_settings.return_value = create_test_settings(mock_pearl_host)
+
+            with respx.mock(assert_all_called=False) as router:
+                router.post(f"{api_base}/schedule/events/event-1/control/resume").mock(
+                    return_value=Response(200, json=CONTROL_SUCCESS_RESPONSE)
+                )
+
+                result = await resume_event.fn(device_id="default", event_id="event-1")
+
+        assert result.success is True
+        assert result.event_id == "event-1"
+
+    async def test_resume_event_missing_event_id(self, mock_pearl_host: str):
+        """Test resuming with missing event_id."""
+        from epiphan_mcp.server import resume_event
+
+        with patch("epiphan_mcp.tools.device.get_settings") as mock_settings:
+            mock_settings.return_value = create_test_settings(mock_pearl_host)
+
+            result = await resume_event.fn(device_id="default", event_id="")
+
+        assert result.success is False
+        assert "event id is required" in result.error.lower()
+
+    async def test_resume_event_api_error(self, mock_pearl_host: str):
+        """Test resuming with API error."""
+        from epiphan_mcp.server import resume_event
+
+        api_base = f"http://{mock_pearl_host}/api/v2.0"
+
+        with patch("epiphan_mcp.tools.device.get_settings") as mock_settings:
+            mock_settings.return_value = create_test_settings(mock_pearl_host)
+
+            with respx.mock(assert_all_called=False) as router:
+                router.post(f"{api_base}/schedule/events/event-1/control/resume").mock(
+                    return_value=Response(200, json=ERROR_RESPONSE)
+                )
+
+                result = await resume_event.fn(device_id="default", event_id="event-1")
+
+        assert result.success is False
+        assert result.error is not None
+
+    async def test_resume_event_invalid_device(self):
+        """Test resuming with invalid device."""
+        from epiphan_mcp.server import resume_event
+
+        with patch("epiphan_mcp.tools.device.get_settings") as mock_settings:
+            mock_settings.return_value = create_test_settings(devices="")
+
+            result = await resume_event.fn(device_id="nonexistent", event_id="event-1")
 
         assert result.success is False
         assert result.error is not None

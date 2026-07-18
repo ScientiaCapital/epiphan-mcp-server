@@ -329,7 +329,7 @@ class OpenRouterProvider(_OpenAICompatibleProvider):
                 "HTTP-Referer": "https://github.com/ScientiaCapital/epiphan-mcp-server",
                 "X-Title": "Epiphan Pearl MCP Server",
             },
-            timeout=60.0,
+            timeout=self._settings.request_timeout,
         )
 
 
@@ -365,7 +365,7 @@ class OllamaProvider(_OpenAICompatibleProvider):
 
     def _build_client(self) -> httpx.AsyncClient:
         # Ollama ignores auth; no OpenRouter-style headers needed.
-        return httpx.AsyncClient(base_url=self._base_url, timeout=60.0)
+        return httpx.AsyncClient(base_url=self._base_url, timeout=self._settings.request_timeout)
 
 
 class MockProvider(LLMProvider):

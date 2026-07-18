@@ -6,6 +6,11 @@ from pathlib import Path
 
 _CHUNK_SIZE = 1024 * 1024
 
+DEFAULT_UPLOAD_MAX_WAIT_SECONDS = 300.0
+"""Shared default for how long upload_file() polls for transcoding/processing
+to finish before giving up, one definition instead of three copies of 300.0
+across the Kaltura/Panopto/Echo360 clients."""
+
 
 async def stream_file(file_path: Path | str, chunk_size: int = _CHUNK_SIZE) -> AsyncIterator[bytes]:
     """Yield a file's bytes in chunks for httpx streaming uploads.

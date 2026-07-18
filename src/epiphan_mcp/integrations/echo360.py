@@ -43,7 +43,7 @@ from urllib.parse import urljoin
 import httpx
 
 from ._pagination import extract_page
-from ._upload import stream_file
+from ._upload import DEFAULT_UPLOAD_MAX_WAIT_SECONDS, stream_file
 
 logger = logging.getLogger(__name__)
 
@@ -479,7 +479,7 @@ class Echo360Client:
         title: str | None = None,
         wait_for_processing: bool = False,
         poll_interval: float = 5.0,
-        max_wait: float = 300.0,
+        max_wait: float = DEFAULT_UPLOAD_MAX_WAIT_SECONDS,
     ) -> dict[str, Any]:
         """Complete video upload workflow via the Capture Intake API.
 

@@ -27,7 +27,7 @@ from typing import Any
 
 import httpx
 
-from ._upload import stream_file
+from ._upload import DEFAULT_UPLOAD_MAX_WAIT_SECONDS, stream_file
 
 logger = logging.getLogger(__name__)
 
@@ -242,7 +242,9 @@ class KalturaClient:
         url = f"{self.api_base}/service/{service}/action/{action}"
 
         request_data = data.copy() if data else {}
-        request_data["ks"] = self._session.ks  # type: ignore
+        # _ensure_authenticated() above guarantees self._session is set; mypy can't
+        # narrow a mutable attribute across the await boundary.
+        request_data["ks"] = self._session.ks  # type: ignore[union-attr]
         request_data["format"] = "1"  # JSON format
 
         try:
@@ -455,7 +457,9 @@ class KalturaClient:
         files = {"fileData": ("upload.bin", file_data)}
         data = {
             "uploadTokenId": upload_token_id,
-            "ks": self._session.ks,  # type: ignore
+            # _ensure_authenticated() above guarantees self._session is set; mypy can't
+            # narrow a mutable attribute across the await boundary.
+            "ks": self._session.ks,  # type: ignore[union-attr]
             "format": "1",
             "resume": "1" if resume else "0",
             "finalChunk": "1" if final_chunk else "0",
@@ -530,7 +534,7 @@ class KalturaClient:
         chunk_size: int = 10 * 1024 * 1024,  # 10MB chunks
         wait_for_ready: bool = False,
         poll_interval: float = 5.0,
-        max_wait: float = 300.0,
+        max_wait: float = DEFAULT_UPLOAD_MAX_WAIT_SECONDS,
     ) -> dict[str, Any]:
         """Complete file upload workflow.
 

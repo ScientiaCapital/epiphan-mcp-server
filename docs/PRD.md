@@ -4,7 +4,9 @@
 **Version**: 1.0
 **Author**: Tim Kipper
 **Date**: January 22, 2026
-**Status**: Draft
+**Status**: SUPERSEDED — written at the 113-tool/674-test baseline; the project has
+since grown to 130 tools / 1,376 tests. Kept for historical provenance only. See
+`README.md` and `CLAUDE.md` for current scope.
 
 ---
 

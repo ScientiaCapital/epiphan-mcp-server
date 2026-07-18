@@ -4,7 +4,7 @@
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![Tests](https://img.shields.io/badge/tests-1376-brightgreen.svg)](tests/)
 [![Tools](https://img.shields.io/badge/MCP_tools-130-blue.svg)](src/epiphan_mcp/server.py)
-[![Version](https://img.shields.io/badge/version-1.2.0-blue.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.3.0-blue.svg)](CHANGELOG.md)
 
 MCP (Model Context Protocol) server for controlling Epiphan Pearl video capture devices through AI assistants like Claude.
 
@@ -57,7 +57,7 @@ New here / just want to test it? See **[QUICKSTART.md](QUICKSTART.md)** for the 
 Not yet published to PyPI — **install from source**:
 
 ```bash
-git clone https://github.com/tmkipper/epiphan-mcp-server.git
+git clone https://github.com/ScientiaCapital/epiphan-mcp-server.git
 cd epiphan-mcp-server
 python -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"

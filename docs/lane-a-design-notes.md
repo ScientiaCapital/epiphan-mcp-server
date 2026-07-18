@@ -57,3 +57,5 @@ Graphiti earns its complexity only when most sources are genuinely unstructured 
 need its bi-temporal + hybrid-retrieval machinery over prose.
 
 See `examples/lane_a_spike/` for the working deterministic Lane-A adapter + flat sink.
+Target node/edge schema for the eventual graph: `proav-ontology.md` (ProAV-vertical
+ontology, direction set 2026-07-18 — graph effort is fleet/ProAV, not sales/GTM).

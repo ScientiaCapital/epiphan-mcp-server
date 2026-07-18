@@ -5,7 +5,7 @@ The shortest path from `git clone` to driving a Pearl. ~5 minutes.
 ## 1. Install (from source — not on PyPI yet)
 
 ```bash
-git clone https://github.com/tmkipper/epiphan-mcp-server.git
+git clone https://github.com/ScientiaCapital/epiphan-mcp-server.git
 cd epiphan-mcp-server
 python -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"

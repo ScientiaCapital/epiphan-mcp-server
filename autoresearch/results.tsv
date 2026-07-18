@@ -1,4 +1,0 @@
-timestamp	commit	tests	skipped	mypy	ruff	score
-2026-03-21T20:41:58Z	fbe6518 refactor: decompose server.py monolith + dynamic discovery + mypy cleanup (#1)	tests=777/777	skipped=7	mypy=0	ruff=0	score=7770
-2026-03-21T20:46:46Z	38398e1 feat: add autoresearch — Karpathy-style autonomous improvement loop	tests=777/777	skipped=7	mypy=0	ruff=0	score=7770
-2026-03-21T20:51:18Z	64c44ef experiment: add get_all_recorder_status MCP tool + 2 tests	tests=725/726	skipped=7	mypy=0	ruff=0	score=7150

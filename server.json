@@ -2,14 +2,14 @@
   "name": "epiphan-pearl",
   "display_name": "Epiphan Pearl MCP Server",
   "description": "AI-native control for Epiphan Pearl video capture devices — recording, streaming, fleet management, CMS integrations, and PTZ camera control through the Model Context Protocol.",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "author": {
     "name": "Tim Kipper",
-    "url": "https://github.com/tmkipper"
+    "url": "https://github.com/ScientiaCapital"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/tmkipper/epiphan-mcp-server"
+    "url": "https://github.com/ScientiaCapital/epiphan-mcp-server"
   },
   "license": "MIT",
   "transport": "stdio",
@@ -30,7 +30,7 @@
   ],
   "installation": {
     "pip": "Not yet published to PyPI — install from source (below)",
-    "source": "git clone https://github.com/tmkipper/epiphan-mcp-server.git && pip install -e '.[dev]'"
+    "source": "git clone https://github.com/ScientiaCapital/epiphan-mcp-server.git && pip install -e '.[dev]'"
   },
   "configuration": {
     "required": ["PEARL_DEVICES", "PEARL_USERNAME", "PEARL_PASSWORD"],

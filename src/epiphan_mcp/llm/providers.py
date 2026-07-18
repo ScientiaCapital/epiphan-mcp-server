@@ -326,7 +326,7 @@ class OpenRouterProvider(_OpenAICompatibleProvider):
             base_url=self._base_url,
             headers={
                 "Authorization": f"Bearer {self._api_key}",
-                "HTTP-Referer": "https://github.com/tmkipper/epiphan-mcp-server",
+                "HTTP-Referer": "https://github.com/ScientiaCapital/epiphan-mcp-server",
                 "X-Title": "Epiphan Pearl MCP Server",
             },
             timeout=60.0,

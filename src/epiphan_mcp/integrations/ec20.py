@@ -208,15 +208,31 @@ class EC20Client:
         response = await self._get(f"/cgi-bin/param.cgi?{command}")
         return _parse_param_body(response.text)
 
+    def _json_result(self, response: httpx.Response) -> dict[str, Any]:
+        """Parse a JSON command response, raising on the device's own failure verdict.
+
+        ptzctrl.cgi / vip return HTTP 200 with ``{"Response": {"Result":
+        "Success"|"Failed", ...}}``. A ``Failed`` result (e.g. tracking with no
+        VIP target -> ``Msg: "vip is null"``) is a real command failure and must
+        not be reported to callers as success.
+        """
+        try:
+            data: dict[str, Any] = response.json()
+        except Exception:
+            return {}
+        response_obj = data.get("Response")
+        if isinstance(response_obj, dict) and response_obj.get("Result") == "Failed":
+            msg = response_obj.get("Msg") or response_obj.get("msg") or "command failed"
+            code = response_obj.get("Code")
+            detail = f"{msg}" + (f" (code {code})" if code is not None else "")
+            raise EC20APIError(f"EC20 command failed: {detail}")
+        return data
+
     async def _ptz(self, *parts: str | int) -> dict[str, Any]:
         """GET /cgi-bin/ptzctrl.cgi?ptzcmd&<parts...> and parse the JSON body."""
         query = "&".join(["ptzcmd", *(str(p) for p in parts)])
         response = await self._get(f"/cgi-bin/ptzctrl.cgi?{query}")
-        try:
-            result: dict[str, Any] = response.json()
-            return result
-        except Exception:
-            return {}
+        return self._json_result(response)
 
     # =========================================================================
     # Status
@@ -338,11 +354,7 @@ class EC20Client:
         """GET /cgi-bin/vip?<parts...> (AI tracking control)."""
         query = "&".join(str(p) for p in parts)
         response = await self._get(f"/cgi-bin/vip?{query}")
-        try:
-            result: dict[str, Any] = response.json()
-            return result
-        except Exception:
-            return {}
+        return self._json_result(response)
 
     # =========================================================================
     # Preview

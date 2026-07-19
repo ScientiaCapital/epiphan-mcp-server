@@ -148,7 +148,7 @@ class TestEC20ClientPTZ:
     @pytest.fixture
     def ptz_route(self, respx_mock):
         return respx_mock.get(url__regex=r".*ptzctrl\.cgi.*").mock(
-            return_value=httpx.Response(200, json={"Response": {"Result": "OK"}})
+            return_value=httpx.Response(200, json={"Response": {"Result": "Success"}})
         )
 
     @pytest.mark.parametrize("direction", ["up", "down", "left", "right"])
@@ -156,7 +156,7 @@ class TestEC20ClientPTZ:
         async with EC20Client(host=HOST, password="admin") as client:
             result = await client.move(direction, pan_speed=12, tilt_speed=10)
         assert f"ptzcmd&{direction}&12&10" in _last_url(ptz_route)
-        assert result["Response"]["Result"] == "OK"
+        assert result["Response"]["Result"] == "Success"
 
     async def test_move_rejects_bad_direction(self):
         async with EC20Client(host=HOST, password="admin") as client:
@@ -200,7 +200,7 @@ class TestEC20ClientPresets:
     @pytest.fixture
     def ptz_route(self, respx_mock):
         return respx_mock.get(url__regex=r".*ptzctrl\.cgi.*").mock(
-            return_value=httpx.Response(200, json={"Response": {"Result": "OK"}})
+            return_value=httpx.Response(200, json={"Response": {"Result": "Success"}})
         )
 
     async def test_goto_preset_uses_poscall(self, ptz_route):
@@ -236,7 +236,7 @@ class TestEC20ClientPresets:
 class TestEC20ClientTracking:
     async def test_enable_tracking_hits_vip(self, respx_mock):
         route = respx_mock.get(url__regex=r".*/cgi-bin/vip.*").mock(
-            return_value=httpx.Response(200, json={"Response": {"Result": "OK"}})
+            return_value=httpx.Response(200, json={"Response": {"Result": "Success"}})
         )
         async with EC20Client(host=HOST, password="admin") as client:
             await client.enable_tracking(mode="presenter")
@@ -249,7 +249,7 @@ class TestEC20ClientTracking:
 
     async def test_disable_tracking_hits_vip(self, respx_mock):
         route = respx_mock.get(url__regex=r".*/cgi-bin/vip.*").mock(
-            return_value=httpx.Response(200, json={"Response": {"Result": "OK"}})
+            return_value=httpx.Response(200, json={"Response": {"Result": "Success"}})
         )
         async with EC20Client(host=HOST, password="admin") as client:
             await client.disable_tracking()
@@ -323,6 +323,26 @@ class TestEC20ClientErrors:
         with pytest.raises(EC20ConnectionError, match="Not connected"):
             await client.home()
 
+    async def test_ptz_result_failed_raises(self, respx_mock):
+        """A 200 body with Result='Failed' is a device-level failure, not success."""
+        respx_mock.get(url__regex=r".*ptzctrl\.cgi.*").mock(
+            return_value=httpx.Response(200, json={"Response": {"Result": "Failed", "Msg": "nope"}})
+        )
+        async with EC20Client(host=HOST, password="admin") as client:
+            with pytest.raises(EC20APIError, match="nope"):
+                await client.home()
+
+    async def test_vip_result_failed_raises(self, respx_mock):
+        """enable_tracking without a VIP target returns Result='Failed' (vip is null)."""
+        respx_mock.get(url__regex=r".*/cgi-bin/vip.*").mock(
+            return_value=httpx.Response(
+                200, json={"Response": {"Result": "Failed", "Code": 202, "Msg": "vip is null"}}
+            )
+        )
+        async with EC20Client(host=HOST, password="admin") as client:
+            with pytest.raises(EC20APIError, match="vip is null"):
+                await client.enable_tracking("presenter")
+
 
 # ============================================================================
 # EC20 config in Settings (unchanged behaviour)
@@ -386,7 +406,7 @@ class TestEC20MCPTools:
     async def test_pan_tilt_move(self):
         from epiphan_mcp.tools.ec20 import ec20_pan_tilt
 
-        instance = _mock_client(move={"Response": {"Result": "OK"}})
+        instance = _mock_client(move={"Response": {"Result": "Success"}})
         with patch("epiphan_mcp.tools.ec20.EC20Client", return_value=instance):
             result = await ec20_pan_tilt(camera_id=HOST, direction="left", pan_speed=12)
         assert result.success is True
@@ -397,7 +417,7 @@ class TestEC20MCPTools:
     async def test_pan_tilt_stop(self):
         from epiphan_mcp.tools.ec20 import ec20_pan_tilt
 
-        instance = _mock_client(stop={"Response": {"Result": "OK"}})
+        instance = _mock_client(stop={"Response": {"Result": "Success"}})
         with patch("epiphan_mcp.tools.ec20.EC20Client", return_value=instance):
             result = await ec20_pan_tilt(camera_id=HOST, direction="stop")
         assert result.success is True
@@ -408,7 +428,7 @@ class TestEC20MCPTools:
     async def test_zoom_in(self):
         from epiphan_mcp.tools.ec20 import ec20_zoom
 
-        instance = _mock_client(zoom={"Response": {"Result": "OK"}})
+        instance = _mock_client(zoom={"Response": {"Result": "Success"}})
         with patch("epiphan_mcp.tools.ec20.EC20Client", return_value=instance):
             result = await ec20_zoom(camera_id=HOST, direction="in", speed=5)
         assert result.success is True
@@ -418,7 +438,7 @@ class TestEC20MCPTools:
     async def test_zoom_stop(self):
         from epiphan_mcp.tools.ec20 import ec20_zoom
 
-        instance = _mock_client(zoom_stop={"Response": {"Result": "OK"}})
+        instance = _mock_client(zoom_stop={"Response": {"Result": "Success"}})
         with patch("epiphan_mcp.tools.ec20.EC20Client", return_value=instance):
             result = await ec20_zoom(camera_id=HOST, direction="stop")
         assert result.success is True
@@ -427,7 +447,7 @@ class TestEC20MCPTools:
     async def test_goto_preset(self):
         from epiphan_mcp.tools.ec20 import ec20_goto_preset
 
-        instance = _mock_client(goto_preset={"Response": {"Result": "OK"}})
+        instance = _mock_client(goto_preset={"Response": {"Result": "Success"}})
         with patch("epiphan_mcp.tools.ec20.EC20Client", return_value=instance):
             result = await ec20_goto_preset(camera_id=HOST, preset_id=3)
         assert result.success is True
@@ -437,7 +457,7 @@ class TestEC20MCPTools:
     async def test_save_preset_has_no_name(self):
         from epiphan_mcp.tools.ec20 import ec20_save_preset
 
-        instance = _mock_client(save_preset={"Response": {"Result": "OK"}})
+        instance = _mock_client(save_preset={"Response": {"Result": "Success"}})
         with patch("epiphan_mcp.tools.ec20.EC20Client", return_value=instance):
             result = await ec20_save_preset(camera_id=HOST, preset_id=7)
         assert result.success is True
@@ -448,7 +468,7 @@ class TestEC20MCPTools:
     async def test_home(self):
         from epiphan_mcp.tools.ec20 import ec20_home
 
-        instance = _mock_client(home={"Response": {"Result": "OK"}})
+        instance = _mock_client(home={"Response": {"Result": "Success"}})
         with patch("epiphan_mcp.tools.ec20.EC20Client", return_value=instance):
             result = await ec20_home(camera_id=HOST)
         assert result.success is True
@@ -456,7 +476,7 @@ class TestEC20MCPTools:
     async def test_enable_tracking(self):
         from epiphan_mcp.tools.ec20 import ec20_enable_tracking
 
-        instance = _mock_client(enable_tracking={"Response": {"Result": "OK"}})
+        instance = _mock_client(enable_tracking={"Response": {"Result": "Success"}})
         with patch("epiphan_mcp.tools.ec20.EC20Client", return_value=instance):
             result = await ec20_enable_tracking(camera_id=HOST, mode="presenter")
         assert result.success is True
@@ -466,7 +486,7 @@ class TestEC20MCPTools:
     async def test_disable_tracking(self):
         from epiphan_mcp.tools.ec20 import ec20_disable_tracking
 
-        instance = _mock_client(disable_tracking={"Response": {"Result": "OK"}})
+        instance = _mock_client(disable_tracking={"Response": {"Result": "Success"}})
         with patch("epiphan_mcp.tools.ec20.EC20Client", return_value=instance):
             result = await ec20_disable_tracking(camera_id=HOST)
         assert result.success is True

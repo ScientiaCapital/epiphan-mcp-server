@@ -1,96 +1,87 @@
 # epiphan-mcp-server
 
-**Branch**: main | **Updated**: 2026-07-18 (end of day)
+**Branch**: main | **Updated**: 2026-07-22
 
 ## Status
-Full handover-prep pass for Vadim + Epiphan engineers, done end-to-end: confidentiality
-audit (this repo + epiphan-openav-bridge + silkroute), repo hygiene, test-coverage gaps
-closed, CI hardened, and a code-review pass with its findings fixed. **4 commits on
-`main`, all local — NOT yet pushed to `origin/main`** (currently 4 ahead). Suite at
-**1,414 passed / 7 skipped**, mypy strict + ruff clean, coverage gate live at 80%
-(measured 85%). No secrets/strategy leaks found in a final grep re-sweep across all
-three repos.
+First real hardware-validation pass — the gap flagged as "the single biggest remaining"
+last session is now largely closed. The **EC20 integration was rewritten from a fictional
+REST/Basic client to the real hardware API** (HTTP Digest + CGI, faithful directional PTZ),
+discovered by inspecting the camera's own web-UI JS, and **validated live end-to-end** against
+the unit (serial EP6601037): every PTZ/preset/home command returns `Result: "Success"`. A
+silent-failure bug (device `Result:"Failed"` reported as success) was caught during live
+validation and fixed. **3 commits on `main`, all pushed to `origin/main`** (`da61632`,
+`329e91c`, `90c8879`). Suite **1425 passed / 7 deselected**, mypy strict + ruff clean.
+
+The **Pearl Mini is located at `192.168.8.4`** but is in first-boot state — it forces
+`/admin/passwords.cgi` and returns 403 on the REST API until an admin password is set. That's
+a device action for Tim, and the only blocker on Pearl validation.
 
 ## Next Session's Focus
-1. [ ] **Push to origin** — `git push`, 4 unpublished commits (`d91c314..5dbf75d`).
-   Nothing from today is visible to anyone else until this happens.
-2. [ ] **Hardware validation — the single biggest remaining gap.** No `.env` has ever
-   existed here; nothing in this repo (or the Lane-A spike, or `scripts/validate_ec20.py`
-   /`validate_cms.py`) has ever touched a real Pearl, EC20, or OpenAV device. This is the
-   actual gap between "130 tools, tests pass" and proof they work. Also the blocker for
-   the Vadim live demo. Needs: `cp .env.example .env` + real Pearl creds, then
-   `pytest -m integration` (7 tests) + `run.py --live` (Lane-A spike).
-3. [ ] **PyPI publish decision** — still not live (`QUICKSTART.md`/`server.json` both say
-   "not yet published"). Publish v1.3.0 or keep docs honest as-is.
-4. [ ] **`server.json` MCP-registry validity** — no `$schema`, non-reverse-DNS `name`,
-   missing `packages`/`remotes` block. Only matters if official-registry submission is
-   still a live goal.
-5. [ ] **`fastmcp<3` ceiling** — blocks fastmcp 3.4.4, which likely carries the fixed
-   transitive deps for the remaining pip-audit CVEs (pyjwt/starlette/python-multipart,
-   all via `mcp`). Bumping past `<3` is a real major-version upgrade needing its own
-   compatibility pass against `server.py` — don't do it silently.
-6. [ ] **gtm-brain-skill rename** (separate repo: `skills/archived/gtm-brain-skill`) —
-   Tim wants it rebuilt under a ProAV-specific name, not sales/BDR. Source is archived,
-   not deleted; Aura creds untouched in `skills/.env`.
-7. [ ] Deferred, no urgency: full research report on `epiphan-pi-strategic-report.md`
-   for Victor and George (memory: `strategic-report-followup.md`).
+1. [ ] **Pearl Mini validation** (top priority; one step from done). Tim sets the admin password
+   at `http://192.168.8.4/admin/passwords.cgi`, then: `cp .env.example .env` +
+   `PEARL_DEVICES=192.168.8.4` / `PEARL_USERNAME=admin` / `PEARL_PASSWORD=<set>` →
+   `pytest tests/test_integration.py -m integration -v` → `get_system_status` smoke.
+   NOTE: verify the IP first — DHCP reshuffles addresses (see Network gotchas).
+2. [ ] **EC20 AI-tracking grammar** — `set_ai_vip` is the right endpoint but needs a VIP-target
+   arg (bare call → `{"Result":"Failed","Msg":"vip is null"}`). Capture the web-UI's actual
+   `set_ai_vip` params (browser dev-tools while enabling tracking) to finish `enable_tracking`.
+   Also: `get_target_status` 404s on this firmware (VX752A/SOC v3.0.30) — target-status read is
+   absent here; `get_tracking_status` correctly surfaces that.
+3. [ ] **EC20 `save_preset`** — never exercised live (would overwrite preset slot 0); the
+   `posset&<id>` grammar is inferred, not hardware-confirmed. Confirm when a slot is expendable.
+4. [ ] Carry-overs (deliberate go/no-go calls for Tim, not blocked work):
+   PyPI publish decision (v1.3.0); `server.json` MCP-registry validity ($schema/reverse-DNS
+   name/packages); `fastmcp<3` ceiling (blocks CVE-fixing transitive bumps — real major upgrade);
+   gtm-brain-skill ProAV rename (separate repo, source archived).
 
 ## Done (This Session)
-- [x] **Neo4j/context-graph review + direction decision**: graph investment is
-  ProAV/fleet-vertical (`docs/proav-ontology.md` written, pins Device/Incident/Fix/
-  Technician/Venue/Integration/Vertical schema), not sales — gtm-brain-skill archived
-  pending a ProAV-specific rename
-- [x] **Confidentiality audit** across epiphan-mcp-server + epiphan-openav-bridge +
-  silkroute: removed `docs/SPRINT_REPORT.md` (named "Epiphan themselves" as biggest
-  competitive threat), removed tracked pointers to `epiphan-pi-strategic-report.md` in
-  both sibling repos' `PROJECT_CONTEXT.md`, removed "before sharing with Vadim"
-  narrative-framing section from silkroute's demo guide. Final grep re-sweep clean.
-- [x] **Repo hygiene**: fixed `github.com/tmkipper` → `ScientiaCapital` drift everywhere
-  (README/CHANGELOG/QUICKSTART/server.json/pyproject/llm headers); version bumped to
-  1.3.0 (was under-versioned vs the already-advertised 130-tool/Echo360 count); added
-  `SECURITY.md`; removed dead `autoresearch/` experiment harness; marked stale
-  `docs/PRD.md`/`PRP.md` SUPERSEDED
-- [x] **Test coverage gaps closed**: `tools/fleet_intelligence.py` (was wrongly reported
-  as 0% by an earlier sweep — really just untested branches: storage/health/risk-level
-  logic, fleet-status-failure path), `tools/schedule.py`'s
-  create/pause/resume_event (zero coverage before), `switch_layout`'s error branches,
-  `integrations/_pagination.py`. New: `tests/test_fleet_intelligence.py`,
-  `tests/test_pagination.py`.
-- [x] **CI hardened**: coverage gate `--cov-fail-under=80` (verified live, passes at
-  85%), `tests/` now linted+format-checked (not just `src/`), non-blocking `pip-audit`
-  step, unconditional `build` job on every PR (not just tags), weekly Dependabot.
-- [x] **Code-review pass + fixes**: 9 unexplained `type: ignore` in `tools/kaltura.py`
-  eliminated via a `TypedDict` on `_get_kaltura_config()`; the 2 remaining
-  `ks`-nullability ignores in `integrations/kaltura.py` replaced with real
-  `assert self._session is not None` (mypy narrowing, not suppression); triplicated
-  `max_wait=300.0` upload timeout collapsed into `integrations/_upload.
-  DEFAULT_UPLOAD_MAX_WAIT_SECONDS`; LLM client timeout now configurable
-  (`LLM_REQUEST_TIMEOUT`) instead of hardcoded; `pytest>=9.0.3`/`python-dotenv>=1.2.2`
-  floor pins fix 2 of the pip-audit CVEs, CI comment corrected to explain the rest are
-  blocked behind the `fastmcp<3` ceiling, not "no upstream fix"
+- [x] **EC20 root-caused + rewritten**: found via live curl + the camera's web-UI JS that the
+  device uses **HTTP Digest** (not Basic) and a **CGI** API (`param.cgi`/`ptzctrl.cgi`/`vip`),
+  not the fictional `/api/ptz/*` REST paths. Rewrote `integrations/ec20.py` to Digest + CGI +
+  `key="value"` parsing (with password redaction) + faithful directional PTZ (move/stop, zoom
+  in/out/stop, home, numeric presets 0-11, tracking); `get_preview` now honestly reports the
+  WebSocket-only limitation instead of hitting a fabricated URL.
+- [x] **Tool/model layer realigned**: `tools/ec20.py` kept the same 10 tool names (130-tool
+  invariant intact) with directional params; `models.py` + `test_tool_schemas.py` wire keys
+  updated; `tests/test_ec20.py` rewritten (client asserts real URLs + parsing; tool tests);
+  `scripts/validate_ec20.py` repointed at real endpoints. All TDD (RED→GREEN).
+- [x] **Live-validated the EC20** (read-only + destructive movement pass): `get_status` returns
+  real device data; PTZ/preset-recall/home all `Success`; preview confirmed WebSocket-only.
+- [x] **Fixed a silent failure** exposed live: `ptzctrl.cgi`/`vip` return HTTP 200 even on
+  failure; added `_json_result()` to raise `EC20APIError` on `Result:"Failed"`. Tracking now
+  honestly errors ("vip is null") instead of reporting success.
+- [x] **Located the Pearl Mini** at `192.168.8.4` (in first-boot password-setup state) after a
+  full-subnet signature scan; confirmed the EC20 lives at `192.168.8.5`/`.11` (DHCP-variable).
 
 ## Blockers
-**Not pushed** — `main` is 4 commits ahead of `origin/main`, push before anyone else
-(Vadim, Epiphan engineers) can see today's work. Otherwise Tim-gated: hardware
-validation needs real `.env`+credentials; PyPI publish is a go/no-go call; gtm-brain
-rename needs a name from Tim.
+- **Pearl Mini**: admin password not set → REST API 403. Tim must set it via the device web UI
+  (`http://192.168.8.4/admin/passwords.cgi`) before validation can proceed. Not a code issue.
+- **EC20 AI tracking**: functional gap (needs the `set_ai_vip` target-arg grammar); everything
+  else on the EC20 is validated and shipped.
+
+## Network gotchas (saves hours next time)
+- **DHCP reshuffles device IPs** — the EC20 appeared at both `.5` and `.11`; this Mac at `.7`/`.13`.
+  Don't trust a static IP; re-discover each session.
+- **Reach requires shared subnet** — a host only reaches devices on its own `/24`. The site
+  router sends other subnets (e.g. `192.168.10.x`) straight to the internet (no inter-subnet
+  routing). Get this Mac onto `192.168.8.x` (Wi-Fi) to reach the devices.
+- **Discover by signature, not IP**: EC20 = Digest `GET /cgi-bin/param.cgi?get_device_conf` →
+  "Epiphan EC20"; Pearl = `GET /api/v2.0/system/status` (JSON or 401 Basic) or `/admin/*.cgi`.
+- Device creds: EC20 = Digest `admin`/`admin`; Pearl = Basic auth, password TBD by Tim at setup.
 
 ## Tech Stack
 Python 3.11+ | FastMCP | httpx (async) | Pydantic v2 | pydantic-settings | pytest + respx | ruff + mypy (strict)
 
 ## Links
-- GitHub: https://github.com/ScientiaCapital/epiphan-mcp-server (4 commits unpushed locally)
-- Sibling repos touched today (confidentiality fixes uncommitted there, by design —
-  each has its own unrelated in-progress work): `../epiphan-openav-bridge`,
-  `../silkroute`
+- GitHub: https://github.com/ScientiaCapital/epiphan-mcp-server (main == origin/main, clean)
 - Pearl API docs: https://www.epiphan.com/userguides/pearl-api/
-- Full plan/status doc for this session: `~/.claude/plans/where-we-at-withthe-radiant-pudding.md`
+- Session plan/handoff: `~/.claude/plans/ok-we-have-all-frolicking-cocke.md`
+- EC20 API reference (hard-won): auto-memory `ec20-rest-api-undocumented.md`
 
 ---
 
-Next session: push first, then hardware validation is the highest-leverage next step
-(unblocks both the Vadim demo and the "does this actually work" question). Everything
-else (PyPI, registry, fastmcp bump, gtm-brain rename) is a deliberate go/no-go call for
-Tim, not blocked work.
+Next session: if Tim has set the Pearl password, Pearl validation is a ~10-minute close-out
+(.env → integration tests). The EC20 — this session's main deliverable — is done, validated,
+and pushed; only its AI-tracking grammar remains.
 
-_Updated at end of day 2026-07-18._
+_Updated 2026-07-22._
